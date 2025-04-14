@@ -18,39 +18,40 @@ class GenerateSeatLayout
     public function seatLayouts()
     {
         $layout = ['left' => 0, 'right' => 0];
+        $columnCounts = [];
 
-        // Get all unique column numbers
-        $columns = [];
+        // 1. Gather all unique column numbers
         foreach ($this->seatLayout['SeatDetails'] as $row) {
             foreach ($row as $seat) {
-                $columns[] = (int)$seat['RowNo'];
+                if (!empty($seat['ColumnNo']) && is_numeric($seat['ColumnNo'])) {
+                    $columnCounts[] = (int)$seat['ColumnNo'];
+                }
             }
         }
-        $uniqueColumns = array_unique($columns);
-        sort($uniqueColumns);
-        Log::info($uniqueColumns);
 
-        // Manually split based on total number of columns
-        $totalColumns = count($uniqueColumns);
-        if ($totalColumns <= 1) {
-            // Probably invalid or single-column layout
-            $layout['left'] = 1;
-            $layout['right'] = 0;
-        } else {
-            // Split columns around the middle index
-            $middle = (int) floor($totalColumns / 2);
-            $leftColumns = array_slice($uniqueColumns, 0, $middle);
-            $rightColumns = array_slice($uniqueColumns, $middle);
-
-            $layout['left'] = count($leftColumns);
-            $layout['right'] = count($rightColumns);
+        // 2. Handle empty layout
+        if (empty($columnCounts)) {
+            Log::warning('No valid ColumnNo found in SeatDetails.');
+            return (object) $layout;
         }
 
-        Log::info('Corrected layout: Left=' . $layout['left'] . ', Right=' . $layout['right']);
+        // 3. Process and split
+        $uniqueColumns = array_unique($columnCounts);
+        sort($uniqueColumns); // ascending order
 
-        return (object)$layout;
+        $totalColumns = count($uniqueColumns);
+        $middleIndex = (int) floor($totalColumns / 2);
+
+        $leftColumns = array_slice($uniqueColumns, 0, $middleIndex);
+        $rightColumns = array_slice($uniqueColumns, $middleIndex);
+        Log::info($leftColumns, $rightColumns);
+
+        $layout['left'] = count($leftColumns);
+        $layout['right'] = count($rightColumns);
+
+        Log::info("Seat layout computed. Left: {$layout['left']}, Right: {$layout['right']}");
+        return (object) $layout;
     }
-
 
 
     public function generateLayout()
@@ -67,7 +68,14 @@ class GenerateSeatLayout
             // Generate vertical columns
             $verticalRows = $this->arrangeSeatsVertically($deckSeats);
 
-            foreach ($verticalRows as $row) {
+            foreach ($verticalRows as $rowNo => $row) {
+                $seatNames = array_map(function ($seat) {
+                    return $seat['SeatName'] ?? '';
+                }, $row);
+
+                // Log seat names for this row
+                Log::info("Seats in Row {$rowNo}: [" . implode(', ', $seatNames) . "]");
+                // Generate the row HTML
                 $html .= $this->generateSeatRow($row);
             }
             $html .= '</div></div>'; // .single and .seat-plan-inner

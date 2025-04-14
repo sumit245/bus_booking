@@ -4699,78 +4699,11 @@ i {
 
 @media (max-width: 1199px) {
     .seat-plan-inner .single {
-        padding-top: 60px;
+        padding-top: 20px;
     }
 }
 
-.seat-plan-inner .front {
-    position: absolute;
-    width: 60px;
-    height: 25px;
-    top: -13px;
-    left: 50%;
-    -webkit-transform: translateX(-50%);
-    transform: translateX(-50%);
-    display: -webkit-box;
-    display: -ms-flexbox;
-    display: flex;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    align-items: center;
-    -webkit-box-pack: center;
-    -ms-flex-pack: center;
-    justify-content: center;
-    text-transform: uppercase;
-    font-size: 10px;
-    font-weight: 600;
-    z-index: 1;
-    color: #9b9b9b;
-    background: #f1f1f1;
-    letter-spacing: 1px;
-}
 
-.seat-plan-inner .rear {
-    position: absolute;
-    width: 60px;
-    height: 25px;
-    left: 50%;
-    -webkit-transform: translateX(-50%);
-    transform: translateX(-50%);
-    bottom: -13px;
-    display: -webkit-box;
-    display: -ms-flexbox;
-    display: flex;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    align-items: center;
-    -webkit-box-pack: center;
-    -ms-flex-pack: center;
-    justify-content: center;
-    text-transform: uppercase;
-    font-size: 10px;
-    font-weight: 600;
-    z-index: 23;
-    color: #9b9b9b;
-    background: #f1f1f1;
-    letter-spacing: 1px;
-}
-
-.seat-plan-inner .lower {
-    width: 50px;
-    height: 40px;
-    position: absolute;
-    left: 20px;
-    top: 20px;
-    color: #777;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.seat-plan-inner .driver {
-    position: absolute;
-    right: 20px;
-    top: 15px;
-}
 
 .seat-wrapper {
     margin: 0;

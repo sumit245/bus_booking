@@ -4685,7 +4685,7 @@ i {
 }
 
 .seat-plan-inner {
-    margin-top: 25px;
+    margin-top: 8px;
 }
 
 .seat-plan-inner .single {
@@ -4694,7 +4694,7 @@ i {
     min-height: 150px;
     max-width: 100%;
     padding: 20px;
-    margin-bottom: 55px;
+    margin-bottom: 8px;
 }
 
 @media (max-width: 1199px) {

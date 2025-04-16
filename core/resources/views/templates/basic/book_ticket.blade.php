@@ -71,29 +71,30 @@
           </div>
           <!-- Right column with seat layout -->
           <div class="col-lg-4 col-md-6">
-            <h6 class="title">@lang("Click on Seat to select or deselect")</h6>
-            {{-- TODO: Add seat layout here --}}
-            {!! (new \App\Http\Helpers\GenerateSeatLayout($seatLayout))->generateLayout() !!}
-            <div class="seat-for-reserved">
-              <div class="seat-condition available-seat">
-                <span class="seat"><span></span></span>
-                <p>@lang("Available Seats")</p>
-              </div>
-              <div class="seat-condition selected-by-you">
-                <span class="seat"><span></span></span>
-                <p>@lang("Selected by You")</p>
-              </div>
-              <div class="seat-condition selected-by-gents">
-                <div class="seat"><span></span></div>
-                <p>@lang("Booked by Gents")</p>
-              </div>
-              <div class="seat-condition selected-by-ladies">
-                <div class="seat"><span></span></div>
-                <p>@lang("Booked by Ladies")</p>
-              </div>
-              <div class="seat-condition selected-by-others">
-                <div class="seat"><span></span></div>
-                <p>@lang("Booked by Others")</p>
+            <div class="seat-overview-wrapper">
+              {{-- TODO: Add seat layout here --}}
+              {!! (new \App\Http\Helpers\GenerateSeatLayout($seatLayout))->generateLayout() !!}
+              <div class="seat-for-reserved">
+                <div class="seat-condition available-seat">
+                  <span class="seat"><span></span></span>
+                  <p>@lang("Available Seats")</p>
+                </div>
+                <div class="seat-condition selected-by-you">
+                  <span class="seat"><span></span></span>
+                  <p>@lang("Selected by You")</p>
+                </div>
+                <div class="seat-condition selected-by-gents">
+                  <div class="seat"><span></span></div>
+                  <p>@lang("Booked by Gents")</p>
+                </div>
+                <div class="seat-condition selected-by-ladies">
+                  <div class="seat"><span></span></div>
+                  <p>@lang("Booked by Ladies")</p>
+                </div>
+                <div class="seat-condition selected-by-others">
+                  <div class="seat"><span></span></div>
+                  <p>@lang("Booked by Others")</p>
+                </div>
               </div>
             </div>
           </div>

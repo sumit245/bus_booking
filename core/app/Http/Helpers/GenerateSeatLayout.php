@@ -128,7 +128,6 @@ class GenerateSeatLayout
 
     private function getDeckHeader($deckNumber)
     {
-        // $html = '<div class="deck-header">';
         $html = '<span class="front">Front</span>';
         $html .= '<span class="rear">Rear</span>';
 

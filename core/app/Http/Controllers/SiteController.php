@@ -603,6 +603,7 @@ class SiteController extends Controller
 
     public function bookTicketApi(Request $request)
     {
+        Log::info($request->all());
         echo "Booked Successfuly";
     }
 }

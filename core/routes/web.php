@@ -388,7 +388,7 @@ Route::get('/ticket/{id}/{slug}', 'SiteController@selectSeat')->name('ticket.sea
 Route::post('/get-boarding-points', 'SiteController@getBoardingPoints')->name('get.boarding.points');
 // Add this route for blocking seats
 Route::post('/block-seat', 'SiteController@blockSeat')->name('block.seat');
-Route::post('/book-seat', 'SiteController@blockSeatApi')->name('book.ticket');
+Route::post('/book-seat', 'SiteController@bookTicketApi')->name('book.ticket');
 Route::get('/ticket/get-price', 'SiteController@getTicketPrice')->name('ticket.get-price');
 Route::post('/ticket/book/{id}', 'SiteController@bookTicket')->name('ticket.book');
 Route::post('/contact', 'SiteController@contactSubmit');

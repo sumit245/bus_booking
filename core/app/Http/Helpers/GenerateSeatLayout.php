@@ -63,7 +63,7 @@ class GenerateSeatLayout
         foreach ($decks as $deckNumber => $deckSeats) {
             $html .= '<div class="seat-plan-inner">';
             $html .= '<div class="single">';
-            // $html .= $this->getDeckHeader($deckNumber);
+            $html .= $this->getDeckHeader($deckNumber);
 
             // Generate vertical columns
             $verticalRows = $this->arrangeSeatsVertically($deckSeats);
@@ -128,12 +128,11 @@ class GenerateSeatLayout
 
     private function getDeckHeader($deckNumber)
     {
-        $html = '<span class="front">Front</span>';
-        $html .= '<span class="rear">Rear</span>';
+        $html = "";
 
         if ($deckNumber == 0) {
-            $html .= '<div class="lower"><span>Door</span><br/><span style="font-size:12 !important;">Lower Deck</span></div>';
-            $html .= '<span class="driver"><img src="' . asset('assets/templates/basic/images/icon/wheel.svg') . '" alt="Driver"></span>';
+            $html .= '<div class="lower"><br/><span style="font-size:12 !important;">Lower Deck</span></div>';
+            // $html .= '<span class="driver"><img src="' . asset('assets/templates/basic/images/icon/wheel.svg') . '" alt="Driver"></span>';
         } else {
             $html .= '<span class="driver">Upper Deck </span>';
         }

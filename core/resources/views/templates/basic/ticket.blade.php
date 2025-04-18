@@ -1,10 +1,10 @@
 @extends($activeTemplate . $layout)
-  @php
-    use Illuminate\Support\Facades\DB;
-    $cities = DB::table("cities")->get();
-    $originCity = DB::table("cities")->where("city_id", request()->OriginId)->first();
-    $destinationCity = DB::table("cities")->where("city_id", request()->DestinationId)->first();
-  @endphp
+@php
+  use Illuminate\Support\Facades\DB;
+  $cities = DB::table("cities")->get();
+  $originCity = DB::table("cities")->where("city_id", request()->OriginId)->first();
+  $destinationCity = DB::table("cities")->where("city_id", request()->DestinationId)->first();
+@endphp
 
 @section("content")
   <div class="ticket-search-bar bg_img padding-top"
@@ -136,7 +136,7 @@
                   </div>
                 </div>
                 <div class="ticket-item-inner book-ticket">
-                  <p class="rent mb-0">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["OfferedPrice"]) }}
+                  <p class="rent mb-0">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}
                   </p>
                 </div>
                 <a class="btn btn--base"

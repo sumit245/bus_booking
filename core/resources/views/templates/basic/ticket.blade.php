@@ -4,6 +4,7 @@
   $cities = DB::table("cities")->get();
   $originCity = DB::table("cities")->where("city_id", request()->OriginId)->first();
   $destinationCity = DB::table("cities")->where("city_id", request()->DestinationId)->first();
+  $SearchTokenId = session()->get("search_token_id", null);
 @endphp
 
 @section("content")
@@ -166,16 +167,16 @@
         format: 'yyyy-mm-dd'
       });
     });
-    (function($) {
-      "use strict";
-      $('.search').on('change', function() {
-        $('#filterForm').submit();
-      });
+    // (function($) {
+    //   "use strict";
+    //   $('.search').on('change', function() {
+    //     $('#filterForm').submit();
+    //   });
 
-      $('.reset-button').on('click', function() {
-        $('.search').prop('checked', false);
-        $('#filterForm').submit();
-      });
-    })(jQuery);
+    //   $('.reset-button').on('click', function() {
+    //     $('.search').prop('checked', false);
+    //     $('#filterForm').submit();
+    //   });
+    // })(jQuery);
   </script>
 @endpush

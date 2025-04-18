@@ -52,7 +52,7 @@
     <div class="container">
       <div class="row gy-5">
         <div class="col-lg-3">
-          <form action="{{ route("search") }}" id="filterForm">
+          <form action="{{ route("search") }}" id="filterFordsm">
             <div class="ticket-filter">
               <div class="filter-header filter-item">
                 <h4 class="title mb-0">@lang("Filter")</h4>

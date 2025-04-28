@@ -402,3 +402,5 @@ Route::get('placeholder-image/{size}', 'SiteController@placeholderImage')->name(
 Route::get('ticket/search', 'SiteController@ticketSearch')->name('search');
 Route::get('/{slug}', 'SiteController@pages')->name('pages');
 Route::get('/', 'SiteController@index')->name('home');
+// Add this route for AJAX filtering
+Route::get('/filter-trips', 'SiteController@filterTrips')->name('filter.trips');

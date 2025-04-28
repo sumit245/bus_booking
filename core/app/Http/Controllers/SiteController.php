@@ -555,6 +555,7 @@ class SiteController extends Controller
             ]);
             // ✅ Return JSON instead of redirecting
             return response()->json([
+                'response' => $response['Result'],
                 'success' => true,
                 'message' => 'Seats blocked successfully! Proceed to payment.',
             ]);

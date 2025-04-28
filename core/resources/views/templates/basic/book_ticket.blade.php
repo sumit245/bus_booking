@@ -469,6 +469,9 @@
         // Submit the booking form before opening the payment tab
 
         let formData = $('#bookingForm').serialize();
+        const serverGeneratedTrx = "{{ getTrx(10) }}";
+
+
         $.ajax({
           url: "{{ route("block.seat") }}",
           type: "POST",
@@ -478,8 +481,8 @@
             if (response.success) {
               // Redirect to Razorpay payment page with booking ID
               // Call Razorpay Payment Handler
-              console.log(response)
-              initiateRazorpayPayment(response.booking_id, response.Result?.Passenger?.SeatFare);
+              console.log(response.response?.Passenger)
+              initiateRazorpayPayment(serverGeneratedTrx, response.response?.Passenger[0]?.SeatFare);
             } else {
               alert(response.message || "An error occurred. Please try again.");
             }

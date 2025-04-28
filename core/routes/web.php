@@ -389,21 +389,16 @@ Route::post('/get-boarding-points', 'SiteController@getBoardingPoints')->name('g
 // Add this route for blocking seats
 Route::post('/block-seat', 'SiteController@blockSeat')->name('block.seat');
 Route::post('/book-seat', 'SiteController@bookTicketApi')->name('book.ticket');
-Route::get('/ticket/get-price', 'SiteController@getTicketPrice')->name('ticket.get-price');
-Route::post('/ticket/book/{id}', 'SiteController@bookTicket')->name('ticket.book');
+// Route::get('/ticket/get-price', 'SiteController@getTicketPrice')->name('ticket.get-price');
+// Route::post('/ticket/book/{id}', 'SiteController@bookTicket')->name('ticket.book');
 Route::post('/contact', 'SiteController@contactSubmit');
 Route::get('/change/{lang?}', 'SiteController@changeLanguage')->name('lang');
-
 Route::get('/cookie/accept', 'SiteController@cookieAccept')->name('cookie.accept');
 Route::get('/blog', 'SiteController@blog')->name('blog');
 Route::get('blog/{id}/{slug}', 'SiteController@blogDetails')->name('blog.details');
 Route::get('policy/{id}/{slug}', 'SiteController@policyDetails')->name('policy.details');
 Route::get('cookie/details', 'SiteController@cookieDetails')->name('cookie.details');
-
 Route::get('placeholder-image/{size}', 'SiteController@placeholderImage')->name('placeholder.image');
-
 Route::get('ticket/search', 'SiteController@ticketSearch')->name('search');
-
-
 Route::get('/{slug}', 'SiteController@pages')->name('pages');
 Route::get('/', 'SiteController@index')->name('home');

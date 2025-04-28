@@ -39,7 +39,7 @@
 
           <div class="col-md-6 col-lg-3">
             <div class="form--group">
-              <button>@lang("Find Tickets")</button>
+              <button>@lang("Modify")</button>
             </div>
           </div>
         </form>
@@ -53,99 +53,40 @@
       <div class="row gy-5">
         <div class="col-lg-3">
           <form action="{{ route("search") }}" id="filterFordsm">
-            <div class="ticket-filter">
-              <div class="filter-header filter-item">
-                <h4 class="title mb-0">@lang("Filter")</h4>
-                <button type="reset" class="reset-button h-auto">@lang("Reset All")</button>
-              </div>
-
-              @if ($fleetType)
-                <div class="filter-item">
-                  <h5 class="title">@lang("Vehicle Type")</h5>
-                  <ul class="bus-type">
-                    @foreach ($fleetType as $fleet)
-                      <li class="custom--checkbox">
-                        <input name="fleetType[]" class="search" value="{{ $fleet->id }}" id="{{ $fleet->name }}"
-                          type="checkbox" {{ in_array($fleet->id, request()->fleetType ?? []) ? "checked" : "" }}>
-                        <label for="{{ $fleet->name }}"><span><i
-                              class="las la-bus"></i>{{ __($fleet->name) }}</span></label>
-                      </li>
-                    @endforeach
-                  </ul>
-                </div>
-              @endif
-
-              @if ($routes)
-                <div class="filter-item">
-                  <h5 class="title">@lang("Routes")</h5>
-                  <ul class="bus-type">
-                    @foreach ($routes as $route)
-                      <li class="custom--checkbox">
-                        <input name="routes[]" class="search" value="{{ $route->id }}" id="route.{{ $route->id }}"
-                          type="checkbox" {{ in_array($route->id, request()->routes ?? []) ? "checked" : "" }}>
-                        <label for="route.{{ $route->id }}"><span><i
-                              class="las la-road"></i>{{ __($route->name) }}</span></label>
-                      </li>
-                    @endforeach
-                  </ul>
-                </div>
-              @endif
-
-              @if ($schedules)
-                <div class="filter-item">
-                  <h5 class="title">@lang("Schedules")</h5>
-                  <ul class="bus-type">
-                    @foreach ($schedules as $schedule)
-                      <li class="custom--checkbox">
-                        <input name="schedules[]" class="search" value="{{ $schedule->id }}"
-                          id="schedule.{{ $schedule->id }}" type="checkbox"
-                          {{ in_array($schedule->id, request()->schedules ?? []) ? "checked" : "" }}>
-                        <label for="schedule.{{ $schedule->id }}"><span><i
-                              class="las la-clock"></i>{{ showDateTime($schedule->start_from, "h:i a") . " - " . showDateTime($schedule->end_at, "h:i a") }}</span></label>
-                      </li>
-                    @endforeach
-                  </ul>
-                </div>
-              @endif
-            </div>
+            @include($activeTemplate . "partials.ticket-filter")
           </form>
         </div>
 
         <div class="col-lg-9">
           <div class="ticket-wrapper">
+            {{-- @php print_r($trips);@endphp --}}
             @forelse ($trips as $trip)
               <div class="ticket-item">
-                <div class="row">
-                  <div class="col-md-4">
-                    <div class="bus-info-section">
-                      <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
-                      <span class="bus-info">@lang("Bus Type - ") {{ __($trip["BusType"]) }}</span>
-                      <span class="ratting"><i class="las la-bus"></i>{{ __($trip["ServiceName"]) }}</span>
-                    </div>
+                <div class="ticket-item-inner">
+                  <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
+                  <span class="bus-info">{{ __($trip["BusType"]) }}</span>
+                  <span class="ratting"><i class="las la-bus"></i>{{ __($trip["ServiceName"]) }}</span>
+                </div>
+                <div class="ticket-item-inner travel-time">
+                  <div class="bus-time">
+                    <p class="time">{{ \Carbon\Carbon::parse($trip["DepartureTime"])->format("h:i A") }}</p>
+                    <p class="place">{{ __($trip["BoardingPointsDetails"][0]["CityPointLocation"]) }}</p>
                   </div>
-                  <div class="col-md-5">
-                    <div class="travel-time-section">
-                      <div class="bus-time">
-                        <p class="time">{{ \Carbon\Carbon::parse($trip["DepartureTime"])->format("h:i A") }}</p>
-                        <p class="place">{{ __($trip["BoardingPointsDetails"][0]["CityPointLocation"]) }}</p>
-                      </div>
-                      <div class="bus-time">
-                        <i class="las la-arrow-right"></i>
-                        <p>
-                          {{ \Carbon\Carbon::parse($trip["ArrivalTime"])->diffInHours(\Carbon\Carbon::parse($trip["DepartureTime"])) }}
-                          hours</p>
-                      </div>
-                      <div class="bus-time">
-                        <p class="time">{{ \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") }}</p>
-                        <p class="place">{{ __($trip["DroppingPointsDetails"][0]["CityPointLocation"]) }}</p>
-                      </div>
-                    </div>
+                  <div class="bus-time">
+                    <i class="las la-arrow-right"></i>
+                    <p>
+                      {{ \Carbon\Carbon::parse($trip["ArrivalTime"])->diffInHours(\Carbon\Carbon::parse($trip["DepartureTime"])) }}
+                      hours</p>
                   </div>
-                  <div class="col-md-3">
-                    <div class="price-section">
-                      <p class="rent">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}</p>
-                    </div>
+                  <div class="bus-time">
+                    <p class="time">{{ \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") }}</p>
+                    <p class="place">{{ __($trip["DroppingPointsDetails"][0]["CityPointLocation"]) }}</p>
                   </div>
+                </div>
+                <div class="ticket-item-inner book-ticket">
+                  <p class="rent mb-0">Available Seats{{ $trip["AvailableSeats"] }}</p>
+                  <p class="rent mb-0">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}
+                  </p>
                 </div>
                 <div class="select-seat-btn">
                   <a class="btn btn--base"
@@ -176,17 +117,6 @@
         format: 'yyyy-mm-dd'
       });
     });
-    // (function($) {
-    //   "use strict";
-    //   $('.search').on('change', function() {
-    //     $('#filterForm').submit();
-    //   });
-
-    //   $('.reset-button').on('click', function() {
-    //     $('.search').prop('checked', false);
-    //     $('#filterForm').submit();
-    //   });
-    // })(jQuery);
   </script>
 @endpush
 

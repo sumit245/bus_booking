@@ -65,7 +65,6 @@
                 <div class="ticket-item-inner">
                   <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
                   <span class="bus-info">{{ __($trip["BusType"]) }}</span>
-                  <span class="ratting"><i class="las la-bus"></i>{{ __($trip["ServiceName"]) }}</span>
                 </div>
                 <div class="ticket-item-inner travel-time">
                   <div class="bus-time">
@@ -74,9 +73,18 @@
                   </div>
                   <div class="bus-time">
                     <i class="las la-arrow-right"></i>
-                    <p>
-                      {{ \Carbon\Carbon::parse($trip["ArrivalTime"])->diffInHours(\Carbon\Carbon::parse($trip["DepartureTime"])) }}
-                      hours</p>
+                    @php
+  $departure = \Carbon\Carbon::parse($trip["DepartureTime"]);
+  $arrival = \Carbon\Carbon::parse($trip["ArrivalTime"]);
+  $diffInMinutes = $arrival->diffInMinutes($departure);
+  $hours = floor($diffInMinutes / 60);
+  $minutes = $diffInMinutes % 60;
+@endphp
+
+<p>
+  {{ $hours }}h {{ $minutes }}m
+</p>
+
                   </div>
                   <div class="bus-time">
                     <p class="time">{{ \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") }}</p>
@@ -84,7 +92,7 @@
                   </div>
                 </div>
                 <div class="ticket-item-inner book-ticket">
-                  <p class="rent mb-0">Available Seats{{ $trip["AvailableSeats"] }}</p>
+                  <p class="place mb-0" >{{ $trip["AvailableSeats"] }} Available Seats</p>
                   <p class="rent mb-0">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}
                   </p>
                 </div>
@@ -129,41 +137,13 @@
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     background-color: #fff;
     position: relative;
-    padding-bottom: 70px; /* Make space for the button */
+    padding-bottom: 70px; 
   }
-  
-  .bus-info-section {
-    margin-bottom: 15px;
-  }
-  
-  .travel-time-section {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-  }
-  
-  .bus-time {
-    text-align: center;
-    padding: 0 10px;
-  }
-  
-  .price-section {
-    text-align: right;
-  }
-  
-  .rent {
-    font-size: 18px;
-    font-weight: 600;
-    color: #e74c3c;
-    margin: 0;
-  }
-  
   .select-seat-btn {
     position: absolute;
     bottom: 20px;
     right: 20px;
   }
-  
   .btn--base {
     padding: 8px 20px;
     border-radius: 5px;
@@ -175,68 +155,17 @@
     text-decoration: none;
     display: inline-block;
   }
-  
-  .btn--base:hover {
-    background-color: #c0392b;
-  }
-  
-  .bus-name {
-    font-size: 16px;
-    margin-bottom: 5px;
-  }
-  
-  .bus-info, .ratting {
-    font-size: 13px;
-    display: block;
-    color: #666;
-  }
-  
-  .time {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-  
   .place {
-    font-size: 13px;
-    color: #666;
-  }
-  
-  @media (max-width: 767px) {
-    .ticket-item {
-      padding-bottom: 80px; /* More space for button on mobile */
-    }
-    
-    .travel-time-section {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    
-    .bus-time {
-      text-align: left;
-      padding: 5px 0;
-      display: flex;
-      align-items: center;
-    }
-    
-    .bus-time i {
-      transform: rotate(90deg);
-      margin-right: 10px;
-    }
-    
-    .price-section {
-      text-align: left;
-      margin-top: 15px;
-    }
-    
-    .select-seat-btn {
-      width: calc(100% - 40px); /* Full width minus padding */
-      text-align: center;
-    }
-    
-    .btn--base {
-      width: 100%;
-    }
+  font-size: 13px;
+  color: #666;
+  max-width: 120px; 
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+  .rent {
+    font-size: 15px !important;
   }
 </style>
 @endpush

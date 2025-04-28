@@ -6,7 +6,6 @@
         {{-- Left column to denote seat details and booking form --}}
         <div class="col-lg-4 col-md-4 ml-5">
           <div class="seat-overview-wrapper">
-
             <form action="{{ route("block.seat") }}" method="POST" id="bookingForm" class="row gy-2">
               @csrf
               <input type="text" name="price" hidden>

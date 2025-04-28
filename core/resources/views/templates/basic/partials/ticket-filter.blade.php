@@ -10,12 +10,17 @@
     <button type="reset" class="reset-button h-auto">@lang("Reset All")</button>
   </div>
 
-  <ul class="bus-type">
-    <li class="custom--checkbox">
-      <input name="fleetType[]" class="search" value="" id="" type="checkbox">
-      <label for=""><span><i class="las la-bus"></i>Live Tracking</span></label>
-    </li>
-  </ul>
+  {{-- Live tracking filter --}}
+  <div class="filter-item">
+    <ul class="bus-type">
+      <li class="custom--checkbox">
+        <input name="fleetType[]" class="search" value="" id="" type="checkbox">
+        <label for=""><span><i class="las la-location"></i>Live Tracking</span></label>
+      </li>
+    </ul>
+  </div>
+
+  {{-- Bus types filter --}}
   @if ($fleetType)
     <div class="filter-item">
       <h5 class="title">@lang("Bus Types")</h5>
@@ -111,36 +116,4 @@
       </div>
     </div>
   </div>
-
-  @if ($routes)
-    <div class="filter-item">
-      <h5 class="title">@lang("Routes")</h5>
-      <ul class="bus-type">
-        @foreach ($routes as $route)
-          <li class="custom--checkbox">
-            <input name="routes[]" class="search" value="{{ $route->id }}" id="route.{{ $route->id }}"
-              type="checkbox" {{ in_array($route->id, request()->routes ?? []) ? "checked" : "" }}>
-            <label for="route.{{ $route->id }}"><span><i
-                  class="las la-road"></i>{{ __($route->name) }}</span></label>
-          </li>
-        @endforeach
-      </ul>
-    </div>
-  @endif
-
-  @if ($schedules)
-    <div class="filter-item">
-      <h5 class="title">@lang("Schedules")</h5>
-      <ul class="bus-type">
-        @foreach ($schedules as $schedule)
-          <li class="custom--checkbox">
-            <input name="schedules[]" class="search" value="{{ $schedule->id }}" id="schedule.{{ $schedule->id }}"
-              type="checkbox" {{ in_array($schedule->id, request()->schedules ?? []) ? "checked" : "" }}>
-            <label for="schedule.{{ $schedule->id }}"><span><i
-                  class="las la-clock"></i>{{ showDateTime($schedule->start_from, "h:i a") . " - " . showDateTime($schedule->end_at, "h:i a") }}</span></label>
-          </li>
-        @endforeach
-      </ul>
-    </div>
-  @endif
 </div>

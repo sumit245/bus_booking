@@ -65,7 +65,6 @@
                 <div class="ticket-item-inner">
                   <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
                   <span class="bus-info">{{ __($trip["BusType"]) }}</span>
-                  <span class="ratting"><i class="las la-bus"></i>{{ __($trip["ServiceName"]) }}</span>
                 </div>
                 <div class="ticket-item-inner travel-time">
                   <div class="bus-time">

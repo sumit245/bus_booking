@@ -59,36 +59,45 @@
 
         <div class="col-lg-9">
           <div class="ticket-wrapper">
-            {{-- @php print_r($trips);@endphp --}}
             @forelse ($trips as $trip)
               <div class="ticket-item">
-                <div class="ticket-item-inner">
-                  <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
-                  <span class="bus-info">{{ __($trip["BusType"]) }}</span>
-                </div>
-                <div class="ticket-item-inner travel-time">
-                  <div class="bus-time">
+                <div class="ticket-grid">
+                  <div class="bus-details">
+                    <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
+                    <span class="bus-info">{{ __($trip["BusType"]) }}</span>
+                  </div>
+                  
+                  <div class="departure-details">
                     <p class="time">{{ \Carbon\Carbon::parse($trip["DepartureTime"])->format("h:i A") }}</p>
                     <p class="place">{{ __($trip["BoardingPointsDetails"][0]["CityPointLocation"]) }}</p>
                   </div>
-                  <div class="bus-time">
+                  
+                  <div class="journey-time">
                     <i class="las la-arrow-right"></i>
-                    <p>
-                      {{ \Carbon\Carbon::parse($trip["ArrivalTime"])->diffInHours(\Carbon\Carbon::parse($trip["DepartureTime"])) }}
-                      hours</p>
+                    @php
+                      $departure = \Carbon\Carbon::parse($trip["DepartureTime"]);
+                      $arrival = \Carbon\Carbon::parse($trip["ArrivalTime"]);
+                      $diffInMinutes = $arrival->diffInMinutes($departure);
+                      $hours = floor($diffInMinutes / 60);
+                      $minutes = $diffInMinutes % 60;
+                    @endphp
+                    <p>{{ $hours }}h {{ $minutes }}m</p>
                   </div>
-                  <div class="bus-time">
+                  
+                  <div class="arrival-details">
                     <p class="time">{{ \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") }}</p>
                     <p class="place">{{ __($trip["DroppingPointsDetails"][0]["CityPointLocation"]) }}</p>
                   </div>
+                  
+                  <div class="seat-price-details">
+                    <p class="seats">{{ $trip["AvailableSeats"] }} Available Seats</p>
+                    <p class="price">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}</p>
+                  </div>
                 </div>
-                <div class="ticket-item-inner book-ticket">
-                  <p class="rent mb-0">Available Seats{{ $trip["AvailableSeats"] }}</p>
-                  <p class="rent mb-0">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}
-                  </p>
+                
+                <div class="select-seat-btn">
+                  <a class="btn btn--base" href="{{ route("ticket.seats", [$trip["ResultIndex"], slug($trip["TravelName"])]) }}">@lang("Select Seat")</a>
                 </div>
-                <a class="btn btn--base"
-                  href="{{ route("ticket.seats", [$trip["ResultIndex"], slug($trip["TravelName"])]) }}">@lang("Select Seat")</a>
               </div>
             @empty
               <div class="ticket-item">
@@ -115,4 +124,147 @@
       });
     });
   </script>
+@endpush
+
+@push("style")
+<style>
+  .ticket-item {
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    position: relative;
+    padding-bottom: 70px;
+  }
+  
+  .ticket-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr;
+    gap: 50px;
+    align-items: start;
+  }
+  
+  .bus-details {
+    padding-right: 10px;
+  }
+  
+  .bus-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .bus-info {
+    font-size: 13px;
+    color: #666;
+    display: block;
+    margin-top: 5px;
+  }
+  
+  .departure-details, .arrival-details {
+    text-align: center;
+  }
+  
+  .journey-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .journey-time i {
+    margin-bottom: 5px;
+    color: #e74c3c;
+  }
+  
+  .time {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 0;
+  }
+  
+  .place {
+    font-size: 13px;
+    color: #666;
+    margin: 5px 0 0;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+  
+  .seat-price-details {
+    text-align: right;
+  }
+  
+  .seats {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+  }
+  
+  .price {
+    font-size: 16px !important;
+    font-weight: 600;
+    color: #e74c3c;
+    margin: 5px 0 0;
+  }
+  
+  .select-seat-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+  }
+  
+  .btn--base {
+    padding: 8px 20px;
+    border-radius: 5px;
+    white-space: nowrap;
+    /* background-color: #e74c3c; */
+    color: white;
+    border: none;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+  }
+  
+  .btn--base:hover {
+    background-color: #c0392b;
+  }
+  
+  @media (max-width: 768px) {
+    .ticket-grid {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    
+    .departure-details, .arrival-details, .seat-price-details {
+      text-align: left;
+    }
+    
+    .journey-time {
+      flex-direction: row;
+      justify-content: flex-start;
+    }
+    
+    .journey-time i {
+      margin-right: 10px;
+      margin-bottom: 0;
+    }
+    
+    .select-seat-btn {
+      position: static;
+      margin-top: 15px;
+      text-align: center;
+    }
+    
+    .ticket-item {
+      padding-bottom: 20px;
+    }
+  }
+</style>
 @endpush

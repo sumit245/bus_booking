@@ -141,7 +141,7 @@
   .ticket-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr;
-    gap: 10px;
+    gap: 50px;
     align-items: start;
   }
   

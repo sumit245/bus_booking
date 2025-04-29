@@ -1,5 +1,5 @@
 <div class="sidebar {{ sidebarVariation()['selector'] }} {{ sidebarVariation()['sidebar'] }} {{ @sidebarVariation()['overlay'] }} {{ @sidebarVariation()['opacity'] }}"
-     data-background="{{getImage('assets/admin/images/sidebar/2.jpg','400x800')}}">
+     data-background="{{getImage('assets/admin/images/sidebar/1.jpg','400x800')}}">
     <button class="res-sidebar-close-btn"><i class="las la-times"></i></button>
     <div class="sidebar__inner">
         <div class="sidebar__logo">

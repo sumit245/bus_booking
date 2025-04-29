@@ -502,27 +502,31 @@
         `<input type="hidden" name="passenger_address" value="${$('#passenger_address').val()}">`);
       // Submit the booking form before opening the payment tab
 
-      let formData = $('#bookingForm').serialize();
-      $.ajax({
-        url: "{{ route("block.seat") }}",
-        type: "POST",
-        data: formData,
-        dataType: "json",
-        success: function(response) {
-          if (response.success) {
-            // Redirect to Razorpay payment page with booking ID
-            // Call Razorpay Payment Handler
-            initiateRazorpayPayment(response.booking_id, response.amount);
-          } else {
-            alert(response.message || "An error occurred. Please try again.");
+        let formData = $('#bookingForm').serialize();
+        const serverGeneratedTrx = "{{ getTrx(10) }}";
+
+
+        $.ajax({
+          url: "{{ route("block.seat") }}",
+          type: "POST",
+          data: formData,
+          dataType: "json",
+          success: function(response) {
+            if (response.success) {
+              // Redirect to Razorpay payment page with booking ID
+              // Call Razorpay Payment Handler
+              console.log(response.response?.Passenger)
+              initiateRazorpayPayment(serverGeneratedTrx, response.response?.Passenger[0]?.SeatFare);
+            } else {
+              alert(response.message || "An error occurred. Please try again.");
+            }
+          },
+          error: function(xhr) {
+            console.log(xhr.responseJSON);
+            alert(xhr.responseJSON?.message || "Failed to process booking. Please check your details.");
           }
-        },
-        error: function(xhr) {
-          console.log(xhr.responseJSON);
-          alert(xhr.responseJSON?.message || "Failed to process booking. Please check your details.");
-        }
-      });
-    })
+        });
+      })
 
     //   Handle confirm details button click to go to payment
     $('#confirmDetailsBtn').on('click', function() {

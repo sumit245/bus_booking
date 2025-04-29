@@ -53,26 +53,28 @@
       <div class="row gy-5">
         <div class="col-lg-3">
           <form action="{{ route("search") }}" id="filterFordsm">
+            <input type="hidden" name="OriginId" value="{{ request()->OriginId }}" />
+            <input type="hidden" name="DestinationId" value="{{ request()->DestinationId }}" />
+            <input type="hidden" name="date_of_journey" value="{{ request()->DateOfJourney }}" />
             @include($activeTemplate . "partials.ticket-filter")
           </form>
         </div>
 
         <div class="col-lg-9">
           <div class="ticket-wrapper">
+            {{-- @php print_r($trips);@endphp --}}
             @forelse ($trips as $trip)
               <div class="ticket-item">
-                <div class="ticket-grid">
-                  <div class="bus-details">
-                    <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
-                    <span class="bus-info">{{ __($trip["BusType"]) }}</span>
-                  </div>
-                  
-                  <div class="departure-details">
+                <div class="ticket-item-inner">
+                  <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
+                  <span class="bus-info">{{ __($trip["BusType"]) }}</span>
+                </div>
+                <div class="ticket-item-inner travel-time">
+                  <div class="bus-time">
                     <p class="time">{{ \Carbon\Carbon::parse($trip["DepartureTime"])->format("h:i A") }}</p>
                     <p class="place">{{ __($trip["BoardingPointsDetails"][0]["CityPointLocation"]) }}</p>
                   </div>
-                  
-                  <div class="journey-time">
+                  <div class="bus-time">
                     <i class="las la-arrow-right"></i>
                     @php
                       $departure = \Carbon\Carbon::parse($trip["DepartureTime"]);
@@ -81,22 +83,25 @@
                       $hours = floor($diffInMinutes / 60);
                       $minutes = $diffInMinutes % 60;
                     @endphp
-                    <p>{{ $hours }}h {{ $minutes }}m</p>
+
+                    <p>
+                      {{ $hours }}h {{ $minutes }}m
+                    </p>
+
                   </div>
-                  
-                  <div class="arrival-details">
+                  <div class="bus-time">
                     <p class="time">{{ \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") }}</p>
                     <p class="place">{{ __($trip["DroppingPointsDetails"][0]["CityPointLocation"]) }}</p>
                   </div>
-                  
-                  <div class="seat-price-details">
-                    <p class="seats">{{ $trip["AvailableSeats"] }} Available Seats</p>
-                    <p class="price">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}</p>
-                  </div>
                 </div>
-                
+                <div class="ticket-item-inner book-ticket">
+                  <p class="place mb-0">{{ $trip["AvailableSeats"] }} Available Seats</p>
+                  <p class="rent mb-0">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}
+                  </p>
+                </div>
                 <div class="select-seat-btn">
-                  <a class="btn btn--base" href="{{ route("ticket.seats", [$trip["ResultIndex"], slug($trip["TravelName"])]) }}">@lang("Select Seat")</a>
+                  <a class="btn btn--base"
+                    href="{{ route("ticket.seats", [$trip["ResultIndex"], slug($trip["TravelName"])]) }}">@lang("Select Seat")</a>
                 </div>
               </div>
             @empty
@@ -121,6 +126,75 @@
         maxDate: new Date(new Date().setDate(new Date().getDate() + 100)),
         autoclose: true,
         format: 'yyyy-mm-dd'
+      });
+
+      // Initialize price range slider
+      $(".price-range-slider").slider({
+        range: true,
+        min: 0,
+        max: 5000,
+        values: [{{ request()->min_price ?? 0 }}, {{ request()->max_price ?? 5000 }}],
+        slide: function(event, ui) {
+          $("#min-price").val(ui.values[0]);
+          $("#max-price").val(ui.values[1]);
+        }
+      });
+
+      // Handle filter changes
+      $('.search, #min-price, #max-price').on('change', function() {
+        $('#filterFordsm').submit();
+      });
+
+      // Handle sorting
+      $('#sort-trips').on('change', function() {
+        const sortBy = $(this).val();
+        const $ticketItems = $('.ticket-item');
+
+        $ticketItems.sort(function(a, b) {
+          switch (sortBy) {
+            case 'departure':
+              return $(a).data('departure') - $(b).data('departure');
+            case 'price-low':
+              return $(a).data('price') - $(b).data('price');
+            case 'price-high':
+              return $(b).data('price') - $(a).data('price');
+            case 'duration':
+              return $(a).data('duration') - $(b).data('duration');
+            default:
+              return $(a).data('departure') - $(b).data('departure');
+          }
+        });
+
+        $('.ticket-wrapper').append($ticketItems);
+      });
+
+      // AJAX filtering (optional enhancement)
+
+      $('.search, #min-price, #max-price').on('change', function() {
+        const formData = $('#filterFordsm').serialize();
+
+        $.ajax({
+          url: '{{ route("filter.trips") }}',
+          type: 'GET',
+          data: formData,
+          beforeSend: function() {
+            // Show loading indicator
+            $('.ticket-wrapper').addClass('loading');
+          },
+          success: function(response) {
+            // Update trip list
+            $('.ticket-wrapper').html(response);
+          },
+          error: function(xhr) {
+            console.error('Filter error:', xhr.responseText);
+          },
+          complete: function() {
+            // Hide loading indicator
+            $('.ticket-wrapper').removeClass('loading');
+          }
+        });
+
+        return false; // Prevent form submission
       });
     });
   </script>

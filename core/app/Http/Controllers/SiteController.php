@@ -179,6 +179,203 @@ class SiteController extends Controller
         }
     }
 
+    // Add this method to the SiteController class to handle filtering
+    private function applyFilters($trips, Request $request)
+    {
+        $filteredTrips = $trips;
+
+        // Apply live tracking filter
+        if ($request->has('live_tracking') && $request->live_tracking == 1) {
+            $filteredTrips = array_filter($filteredTrips, function ($trip) {
+                // Check if LiveTrackingAvailable is true in the API response
+                return isset($trip['LiveTrackingAvailable']) && $trip['LiveTrackingAvailable'] === true;
+            });
+        }
+
+        // Apply departure time filter
+        if ($request->has('departure_time') && !empty($request->departure_time)) {
+            $filteredTrips = array_filter($filteredTrips, function ($trip) use ($request) {
+                $departureTime = \Carbon\Carbon::parse($trip['DepartureTime']);
+                $hour = (int)$departureTime->format('H');
+                Log::info($trip["ResultIndex"]);
+                Log::info($hour);
+
+                $inTimeRange = false;
+                foreach ($request->departure_time as $timeRange) {
+                    switch ($timeRange) {
+                        case 'morning':
+                            if ($hour >= 4 && $hour < 12) $inTimeRange = true;
+                            break;
+                        case 'afternoon':
+                            if ($hour >= 12 && $hour < 16) $inTimeRange = true;
+                            break;
+                        case 'evening':
+                            if ($hour >= 16 && $hour < 20) $inTimeRange = true;
+                            break;
+                        case 'night':
+                            if ($hour >= 20 || $hour < 4) $inTimeRange = true;
+                            break;
+                    }
+                }
+                return $inTimeRange;
+            });
+        }
+
+        // Apply amenities filter
+        if ($request->has('amenities') && !empty($request->amenities)) {
+            $filteredTrips = array_filter($filteredTrips, function ($trip) use ($request) {
+                $hasAmenities = false;
+
+                foreach ($request->amenities as $amenity) {
+                    switch ($amenity) {
+                        case 'wifi':
+                            // Check if service name or description contains WiFi
+                            if (
+                                stripos($trip['ServiceName'], 'wifi') !== false ||
+                                (isset($trip['Description']) && stripos($trip['Description'], 'wifi') !== false)
+                            ) {
+                                $hasAmenities = true;
+                            }
+                            break;
+                        case 'charging':
+                            if (
+                                stripos($trip['ServiceName'], 'charging') !== false ||
+                                (isset($trip['Description']) && stripos($trip['Description'], 'charging') !== false)
+                            ) {
+                                $hasAmenities = true;
+                            }
+                            break;
+                        case 'water':
+                            if (
+                                stripos($trip['ServiceName'], 'water') !== false ||
+                                (isset($trip['Description']) && stripos($trip['Description'], 'water') !== false)
+                            ) {
+                                $hasAmenities = true;
+                            }
+                            break;
+                        case 'blanket':
+                            if (
+                                stripos($trip['ServiceName'], 'blanket') !== false ||
+                                (isset($trip['Description']) && stripos($trip['Description'], 'blanket') !== false)
+                            ) {
+                                $hasAmenities = true;
+                            }
+                            break;
+                    }
+                }
+
+                return $hasAmenities;
+            });
+        }
+
+        // Apply price range filter
+        if (($request->has('min_price') && $request->min_price !== null) ||
+            ($request->has('max_price') && $request->max_price !== null)
+        ) {
+
+            $minPrice = $request->min_price ?? 0;
+            $maxPrice = $request->max_price ?? PHP_INT_MAX;
+
+            $filteredTrips = array_filter($filteredTrips, function ($trip) use ($minPrice, $maxPrice) {
+                $price = $trip['BusPrice']['PublishedPrice'];
+                return $price >= $minPrice && $price <= $maxPrice;
+            });
+        }
+
+        // Apply fleet type filter
+        if ($request->has('fleetType') && !empty($request->fleetType)) {
+            $filteredTrips = array_filter($filteredTrips, function ($trip) use ($request) {
+                $busType = $trip['BusType'];
+
+                foreach ($request->fleetType as $fleetType) {
+                    // Check if the bus type contains any of the selected fleet types
+                    switch ($fleetType) {
+                        case 'Seater':
+                            if (stripos($busType, 'Seater') !== false) {
+                                return true;
+                            }
+                            break;
+                        case 'Sleeper':
+                            if (stripos($busType, 'Sleeper') !== false) {
+                                return true;
+                            }
+                            break;
+                        case 'A/C':
+                            if (stripos($busType, 'A/C') !== false || stripos($busType, 'AC') !== false) {
+                                return true;
+                            }
+                            break;
+                        case 'Non A/C':
+                            if (stripos($busType, 'Non A/C') !== false || stripos($busType, 'Non-AC') !== false) {
+                                return true;
+                            }
+                            break;
+                    }
+                }
+
+                return false;
+            });
+        }
+
+
+        return array_values($filteredTrips); // Reset array keys
+    }
+
+
+    // Update the prepareAndReturnView method to apply filters
+    private function prepareAndReturnView($resp, $request)
+    {
+        $trips = $this->sortTripsByDepartureTime($resp['Result']);
+
+        // Apply filters if any are set
+        if (
+            $request->has('departure_time') || $request->has('amenities') ||
+            $request->has('min_price') || $request->has('max_price') ||
+            $request->has('fleetType')
+        ) {
+            $trips = $this->applyFilters($trips, $request);
+        }
+
+        $viewData = [
+            'pageTitle' => 'Search Result',
+            'emptyMessage' => 'There is no trip available',
+            'fleetType' => FleetType::active()->get(),
+            'schedules' => Schedule::all(),
+            'routes' => VehicleRoute::active()->get(),
+            'trips' => $trips,
+            'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
+        ];
+
+        return view($this->activeTemplate . 'ticket', $viewData);
+    }
+
+    // Add a new method to handle AJAX filter requests
+    public function filterTrips(Request $request)
+    {
+        // Get the trips from session
+        $searchTokenId = session()->get('search_token_id');
+        if (!$searchTokenId) {
+            return response()->json(['error' => 'No search results found. Please search again.'], 400);
+        }
+
+        // Fetch trips from API or session cache
+        $resp = searchAPIBuses($request->ip(), session('origin_id'), session('destination_id'), session('date_of_journey'));
+
+        if (isset($resp['Error']['ErrorCode']) && $resp['Error']['ErrorCode'] != 0) {
+            return response()->json(['error' => $resp['Error']['ErrorMessage']], 400);
+        }
+
+        $trips = $this->sortTripsByDepartureTime($resp['Result']);
+        $filteredTrips = $this->applyFilters($trips, $request);
+
+        return response()->json([
+            'success' => true,
+            'trips' => $filteredTrips,
+            'count' => count($filteredTrips)
+        ]);
+    }
+
+
     private function fetchAndProcessAPIResponse(Request $request)
     {
         $resp = searchAPIBuses(
@@ -210,22 +407,22 @@ class SiteController extends Controller
         ]);
     }
 
-    private function prepareAndReturnView($resp, $request)
-    {
-        $trips = $this->sortTripsByDepartureTime($resp['Result']);
+    // private function prepareAndReturnView($resp, $request)
+    // {
+    //     $trips = $this->sortTripsByDepartureTime($resp['Result']);
 
-        $viewData = [
-            'pageTitle' => 'Search Result',
-            'emptyMessage' => 'There is no trip available',
-            'fleetType' => FleetType::active()->get(),
-            'schedules' => Schedule::all(),
-            'routes' => VehicleRoute::active()->get(),
-            'trips' => $trips,
-            'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
-        ];
+    //     $viewData = [
+    //         'pageTitle' => 'Search Result',
+    //         'emptyMessage' => 'There is no trip available',
+    //         'fleetType' => FleetType::active()->get(),
+    //         'schedules' => Schedule::all(),
+    //         'routes' => VehicleRoute::active()->get(),
+    //         'trips' => $trips,
+    //         'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
+    //     ];
 
-        return view($this->activeTemplate . 'ticket', $viewData);
-    }
+    //     return view($this->activeTemplate . 'ticket', $viewData);
+    // }
 
     private function sortTripsByDepartureTime($trips)
     {
@@ -358,6 +555,7 @@ class SiteController extends Controller
             ]);
             // ✅ Return JSON instead of redirecting
             return response()->json([
+                'response' => $response['Result'],
                 'success' => true,
                 'message' => 'Seats blocked successfully! Proceed to payment.',
             ]);

@@ -163,7 +163,44 @@ class SiteController extends Controller
     {
         $this->validateSearchRequest($request);
         $resp = $this->fetchAndProcessAPIResponse($request);
+        
+        // Check if $resp is a RedirectResponse
+        if ($resp instanceof \Illuminate\Http\RedirectResponse) {
+            abort(404, 'No buses found for this route and date');
+        }
+        
+        // Check if $resp is null or doesn't have the expected structure
+        if (!is_array($resp) || !isset($resp['Result']) || empty($resp['Result'])) {
+            abort(404, 'No buses found for this route and date');
+        }
+        
         return $this->prepareAndReturnView($resp, $request);
+    }
+    
+    private function prepareAndReturnView($resp, $request)
+    {
+        $trips = $this->sortTripsByDepartureTime($resp['Result']);
+    
+        // Apply filters if any are set
+        if (
+            $request->has('departure_time') || $request->has('amenities') ||
+            $request->has('min_price') || $request->has('max_price') ||
+            $request->has('fleetType')
+        ) {
+            $trips = $this->applyFilters($trips, $request);
+        }
+    
+        $viewData = [
+            'pageTitle' => 'Search Result',
+            'emptyMessage' => 'There is no trip available',
+            'fleetType' => FleetType::active()->get(),
+            'schedules' => Schedule::all(),
+            'routes' => VehicleRoute::active()->get(),
+            'trips' => $trips,
+            'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
+        ];
+    
+        return view($this->activeTemplate . 'ticket', $viewData);
     }
 
     private function validateSearchRequest(Request $request)
@@ -323,31 +360,31 @@ class SiteController extends Controller
 
 
     // Update the prepareAndReturnView method to apply filters
-    private function prepareAndReturnView($resp, $request)
-    {
-        $trips = $this->sortTripsByDepartureTime($resp['Result']);
+    // private function prepareAndReturnView($resp, $request)
+    // {
+    //     $trips = $this->sortTripsByDepartureTime($resp['Result']);
 
-        // Apply filters if any are set
-        if (
-            $request->has('departure_time') || $request->has('amenities') ||
-            $request->has('min_price') || $request->has('max_price') ||
-            $request->has('fleetType')
-        ) {
-            $trips = $this->applyFilters($trips, $request);
-        }
+    //     // Apply filters if any are set
+    //     if (
+    //         $request->has('departure_time') || $request->has('amenities') ||
+    //         $request->has('min_price') || $request->has('max_price') ||
+    //         $request->has('fleetType')
+    //     ) {
+    //         $trips = $this->applyFilters($trips, $request);
+    //     }
 
-        $viewData = [
-            'pageTitle' => 'Search Result',
-            'emptyMessage' => 'There is no trip available',
-            'fleetType' => FleetType::active()->get(),
-            'schedules' => Schedule::all(),
-            'routes' => VehicleRoute::active()->get(),
-            'trips' => $trips,
-            'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
-        ];
+    //     $viewData = [
+    //         'pageTitle' => 'Search Result',
+    //         'emptyMessage' => 'There is no trip available',
+    //         'fleetType' => FleetType::active()->get(),
+    //         'schedules' => Schedule::all(),
+    //         'routes' => VehicleRoute::active()->get(),
+    //         'trips' => $trips,
+    //         'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
+    //     ];
 
-        return view($this->activeTemplate . 'ticket', $viewData);
-    }
+    //     return view($this->activeTemplate . 'ticket', $viewData);
+    // }
 
     // Add a new method to handle AJAX filter requests
     public function filterTrips(Request $request)

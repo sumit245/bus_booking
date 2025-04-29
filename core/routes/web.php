@@ -167,6 +167,7 @@ Route::namespace('Admin')->prefix('admin')->name('admin.')->group(function () {
             Route::post('assigned-vehicle', 'ManageTripController@assignVehicle')->name('vehicle.assign');
             Route::post('assigned-vehicle/update/{id}', 'ManageTripController@assignedVehicleUpdate')->name('assigned.vehicle.update');
             Route::post('assigned-vehicle/active-disable', 'ManageTripController@assignedVehicleActiveDisabled')->name('assigned.vehicle.active.disable');
+            Route::get('markup', 'ManageTripController@markup')->name('markup');
         });
 
 

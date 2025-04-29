@@ -79,7 +79,7 @@
   </div>
 
   <!-- Bus Amenities Filter -->
-  <div class="filter-item">
+  <!-- <div class="filter-item">
     <h5 class="title">@lang("Bus Amenities")</h5>
     <ul class="bus-type">
       <li class="custom--checkbox">
@@ -103,7 +103,7 @@
         <label for="blanket"><span><i class="las la-bed"></i>@lang("Blanket")</span></label>
       </li>
     </ul>
-  </div>
+  </div> -->
 
   <!-- Price Range Filter -->
   <div class="filter-item">

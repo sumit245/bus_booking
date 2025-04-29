@@ -357,6 +357,12 @@
                                     <span class="menu-title">@lang('Assigned Vehicle')</span>
                                 </a>
                             </li>
+                            <li class="sidebar-menu-item {{ menuActive('admin.trip.markup') }}">
+    <a href="{{ route('admin.trip.markup') }}" class="nav-link">
+        <i class="menu-icon las la-dot-circle"></i>
+        <span class="menu-title">@lang('Add Markup')</span>
+    </a>
+</li>
 
                         </ul>
                     </div>

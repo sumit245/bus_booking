@@ -482,7 +482,7 @@
               // Redirect to Razorpay payment page with booking ID
               // Call Razorpay Payment Handler
               console.log(response.response?.Passenger)
-              initiateRazorpayPayment(serverGeneratedTrx, response.response?.Passenger[0]?.SeatFare);
+              initiateRazorpayPayment(response.booking_id, response.response?.Passenger[0]?.SeatFare);
             } else {
               alert(response.message || "An error occurred. Please try again.");
             }

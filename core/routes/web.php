@@ -167,6 +167,10 @@ Route::namespace('Admin')->prefix('admin')->name('admin.')->group(function () {
             Route::post('assigned-vehicle', 'ManageTripController@assignVehicle')->name('vehicle.assign');
             Route::post('assigned-vehicle/update/{id}', 'ManageTripController@assignedVehicleUpdate')->name('assigned.vehicle.update');
             Route::post('assigned-vehicle/active-disable', 'ManageTripController@assignedVehicleActiveDisabled')->name('assigned.vehicle.active.disable');
+
+            //add markup
+            Route::get('markup', 'ManageTripController@markup')->name('markup');
+             
         });
 
 
@@ -402,3 +406,5 @@ Route::get('placeholder-image/{size}', 'SiteController@placeholderImage')->name(
 Route::get('ticket/search', 'SiteController@ticketSearch')->name('search');
 Route::get('/{slug}', 'SiteController@pages')->name('pages');
 Route::get('/', 'SiteController@index')->name('home');
+// Add this route for AJAX filtering
+Route::get('/filter-trips', 'SiteController@filterTrips')->name('filter.trips');

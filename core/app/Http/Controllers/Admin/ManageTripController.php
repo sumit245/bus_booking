@@ -302,7 +302,13 @@ class ManageTripController extends Controller
 
         return view('admin.trip.assigned_vehicle', compact('pageTitle', 'emptyMessage', 'trips', 'assignedVehicles'));
     }
+    public function markup()
+{
+    $pageTitle = 'Add Markup';
+    return view('admin.trip.markup', compact('pageTitle'));
+}
 
+    
     public function assignVehicle(Request $request){
         $request->validate([
             'trip'      => 'required|integer|gt:0',

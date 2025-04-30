@@ -140,30 +140,43 @@ class GenerateSeatLayout
     }
 
     private function generateSeatRow($rowSeats)
-    {
-        $html = '<div class="seat-wrapper">';
+{
+    // Log the input data for debugging
+    error_log("Generating seat row... Row seats data: " . print_r($rowSeats, true));
 
-        // Left section - 3 seats
-        $html .= '<div class="left-side">';
-        for ($i = 0; $i < $this->seatLayouts->left; $i++) {
-            if (isset($rowSeats[$i])) {
-                $html .= $this->generateSeat($rowSeats[$i]);
-            }
+    // Initial HTML wrapper
+    $html = '<div class="seat-wrapper">';
+
+    // Left section - 3 seats
+    $html .= '<div class="left-side">';
+    for ($i = 0; $i < $this->seatLayouts->left; $i++) {
+        if (isset($rowSeats[$i])) {
+            // Log the seat that is being added
+            error_log("Adding seat at position " . $i . " from the left side: " . print_r($rowSeats[$i], true));
+            $html .= $this->generateSeat($rowSeats[$i]);
         }
-        $html .= '</div>';
-
-        // Right section - 2 seats
-        $html .= '<div class="right-side">';
-        for ($i = $this->seatLayouts->left; $i < ($this->seatLayouts->left + $this->seatLayouts->right); $i++) {
-            if (isset($rowSeats[$i])) {
-                $html .= $this->generateSeat($rowSeats[$i]);
-            }
-        }
-        $html .= '</div>';
-
-        $html .= '</div>';
-        return $html;
     }
+    $html .= '</div>';
+
+    // Right section - 2 seats
+    $html .= '<div class="right-side">';
+    for ($i = $this->seatLayouts->left; $i < ($this->seatLayouts->left + $this->seatLayouts->right); $i++) {
+        if (isset($rowSeats[$i])) {
+            // Log the seat that is being added
+            error_log("Adding seat at position " . $i . " from the right side: " . print_r($rowSeats[$i], true));
+            $html .= $this->generateSeat($rowSeats[$i]);
+        }
+    }
+    $html .= '</div>';
+
+    $html .= '</div>';
+
+    // Log the final generated HTML
+    error_log("Generated seat row HTML: " . $html);
+
+    return $html;
+}
+
     private function arrangeSeatsVertically($deckSeats)
     {
         $verticalRows = [];

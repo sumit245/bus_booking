@@ -16,30 +16,34 @@
           <div class="col-md-4 col-lg-3">
             <div class="form--group">
               <i class="las la-location-arrow"></i>
-              <input type="text" disabled id="origin-id" name="OriginId" class="form--control"
-                value="{{ $originCity->city_name }}">
+              <input type="hidden" id="origin-id" name="OriginId" value="{{ request()->OriginId }}">
+              <input type="text" id="origin" class="form--control" placeholder="@lang("From")"
+                value="{{ $originCity->city_name ?? "" }}" autocomplete="off">
+              <div id="autocomplete-list-origin" class="autocomplete-items"></div>
             </div>
           </div>
 
           <div class="col-md-4 col-lg-3">
             <div class="form--group">
               <i class="las la-map-marker"></i>
-              <input type="text" disabled id="destination-id" class="form--control" name="DestinationId"
-                value="{{ $destinationCity->city_name }}">
+              <input type="hidden" id="destination-id" name="DestinationId" value="{{ request()->DestinationId }}">
+              <input type="text" id="destination" class="form--control" placeholder="@lang("To")"
+                value="{{ $destinationCity->city_name ?? "" }}" autocomplete="off">
+              <div id="autocomplete-list-destination" class="autocomplete-items"></div>
             </div>
           </div>
 
           <div class="col-md-4 col-lg-3">
             <div class="form--group">
               <i class="las la-calendar-check"></i>
-              <input type="text" name="date_of_journey" class="form--control datpicker" placeholder="@lang("Date of Journey")"
+              <input type="text" name="DateOfJourney" class="form--control datpicker" placeholder="@lang("Date of Journey")"
                 autocomplete="off" value="{{ request()->DateOfJourney }}">
             </div>
           </div>
 
           <div class="col-md-6 col-lg-3">
             <div class="form--group">
-              <button>@lang("Modify")</button>
+              <button type="submit">@lang("Modify")</button>
             </div>
           </div>
         </form>
@@ -55,7 +59,7 @@
           <form action="{{ route("search") }}" id="filterFordsm">
             <input type="hidden" name="OriginId" value="{{ request()->OriginId }}" />
             <input type="hidden" name="DestinationId" value="{{ request()->DestinationId }}" />
-            <input type="hidden" name="date_of_journey" value="{{ request()->DateOfJourney }}" />
+            <input type="hidden" name="DateOfJourney" value="{{ request()->DateOfJourney }}" />
             @include($activeTemplate . "partials.ticket-filter")
           </form>
         </div>
@@ -63,45 +67,63 @@
         <div class="col-lg-9">
           <div class="ticket-wrapper">
             @forelse ($trips as $trip)
-              <div class="ticket-item">
+              <div class="ticket-item"
+                data-departure="{{ isset($trip["DepartureTime"]) ? strtotime($trip["DepartureTime"]) : 0 }}"
+                data-price="{{ isset($trip["BusPrice"]["PublishedPrice"]) ? $trip["BusPrice"]["PublishedPrice"] : 0 }}"
+                data-duration="{{ isset($trip["ArrivalTime"]) && isset($trip["DepartureTime"]) ? \Carbon\Carbon::parse($trip["ArrivalTime"])->diffInMinutes(\Carbon\Carbon::parse($trip["DepartureTime"])) : 0 }}">
                 <div class="ticket-grid">
                   <div class="bus-details">
-                    <h5 class="bus-name">{{ __($trip["TravelName"]) }}</h5>
-                    <span class="bus-info">{{ __($trip["BusType"]) }}</span>
+                    <h5 class="bus-name">{{ __(isset($trip["TravelName"]) ? $trip["TravelName"] : "Unknown") }}</h5>
+                    <span class="bus-info">{{ __(isset($trip["BusType"]) ? $trip["BusType"] : "Standard") }}</span>
                   </div>
 
                   <div class="departure-details">
-                    <p class="time">{{ \Carbon\Carbon::parse($trip["DepartureTime"])->format("h:i A") }}</p>
-                    <p class="place">{{ __($trip["BoardingPointsDetails"][0]["CityPointLocation"]) }}</p>
+                    <p class="time">
+                      {{ isset($trip["DepartureTime"]) ? \Carbon\Carbon::parse($trip["DepartureTime"])->format("h:i A") : "N/A" }}
+                    </p>
+                    <p class="place">
+                      {{ __(isset($trip["BoardingPointsDetails"][0]["CityPointLocation"]) ? $trip["BoardingPointsDetails"][0]["CityPointLocation"] : "Unknown") }}
+                    </p>
                   </div>
 
                   <div class="journey-time">
                     <i class="las la-arrow-right"></i>
                     @php
-                      $departure = \Carbon\Carbon::parse($trip["DepartureTime"]);
-                      $arrival = \Carbon\Carbon::parse($trip["ArrivalTime"]);
-                      $diffInMinutes = $arrival->diffInMinutes($departure);
-                      $hours = floor($diffInMinutes / 60);
-                      $minutes = $diffInMinutes % 60;
+                      if (isset($trip["DepartureTime"]) && isset($trip["ArrivalTime"])) {
+                          $departure = \Carbon\Carbon::parse($trip["DepartureTime"]);
+                          $arrival = \Carbon\Carbon::parse($trip["ArrivalTime"]);
+                          $diffInMinutes = $arrival->diffInMinutes($departure);
+                          $hours = floor($diffInMinutes / 60);
+                          $minutes = $diffInMinutes % 60;
+                          $duration = $hours . "h " . $minutes . "m";
+                      } else {
+                          $duration = "N/A";
+                      }
                     @endphp
-                    <p>{{ $hours }}h {{ $minutes }}m</p>
+                    <p>{{ $duration }}</p>
                   </div>
 
                   <div class="arrival-details">
-                    <p class="time">{{ \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") }}</p>
-                    <p class="place">{{ __($trip["DroppingPointsDetails"][0]["CityPointLocation"]) }}</p>
+                    <p class="time">
+                      {{ isset($trip["ArrivalTime"]) ? \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") : "N/A" }}
+                    </p>
+                    <p class="place">
+                      {{ __(isset($trip["DroppingPointsDetails"][0]["CityPointLocation"]) ? $trip["DroppingPointsDetails"][0]["CityPointLocation"] : "Unknown") }}
+                    </p>
                   </div>
 
                   <div class="seat-price-details">
-                    <p class="seats">{{ $trip["AvailableSeats"] }} Available Seats</p>
-                    <p class="price">{{ __($general->cur_sym) }}{{ showAmount($trip["BusPrice"]["PublishedPrice"]) }}
+                    <p class="seats">{{ isset($trip["AvailableSeats"]) ? $trip["AvailableSeats"] : 0 }} Available Seats
+                    </p>
+                    <p class="price">
+                      {{ __($general->cur_sym) }}{{ isset($trip["BusPrice"]["PublishedPrice"]) ? showAmount($trip["BusPrice"]["PublishedPrice"]) : "0.00" }}
                     </p>
                   </div>
                 </div>
 
                 <div class="select-seat-btn">
                   <a class="btn btn--base"
-                    href="{{ route("ticket.seats", [$trip["ResultIndex"], slug($trip["TravelName"])]) }}">@lang("Select Seat")</a>
+                    href="{{ route("ticket.seats", [isset($trip["ResultIndex"]) ? $trip["ResultIndex"] : 0, isset($trip["TravelName"]) ? slug($trip["TravelName"]) : "unknown"]) }}">@lang("Select Seat")</a>
                 </div>
               </div>
             @empty
@@ -128,22 +150,72 @@
         format: 'yyyy-mm-dd'
       });
 
-      // Initialize price range slider
-      $(".price-range-slider").slider({
-        range: true,
-        min: 0,
-        max: 5000,
-        values: [{{ request()->min_price ?? 0 }}, {{ request()->max_price ?? 5000 }}],
-        slide: function(event, ui) {
-          $("#min-price").val(ui.values[0]);
-          $("#max-price").val(ui.values[1]);
-        }
-      });
+      // Autocomplete functionality
+      const cities = @json($cities); // Pass the cities array to JavaScript
 
-      // Handle filter changes
-      $('.search, #min-price, #max-price').on('change', function() {
+      function setupAutocomplete(inputId, listId, hiddenId) {
+        $(`#${inputId}`).on('input', function() {
+          const input = $(this).val().toLowerCase();
+          $(`#${listId}`).empty(); // Clear previous suggestions
+
+          if (input.length === 0) return; // If input is empty, do nothing
+
+          // Filter cities based on input
+          const filteredCities = cities.filter(city => {
+            const cityName = city.city_name.toLowerCase();
+            return cityName.includes(input);
+          });
+
+          // Sort filtered cities to prioritize exact matches
+          filteredCities.sort((a, b) => {
+            const aName = a.city_name.toLowerCase();
+            const bName = b.city_name.toLowerCase();
+            return aName === input ? -1 : (bName === input ? 1 : 0);
+          });
+
+          // Create autocomplete suggestions
+          filteredCities.forEach(city => {
+            $(`#${listId}`).append(`
+              <div class="autocomplete-item" data-id="${city.city_id}">${city.city_name}</div>
+            `);
+          });
+        });
+
+        // Handle click on autocomplete item
+        $(document).on('click', `#${listId} .autocomplete-item`, function() {
+          const cityId = $(this).data('id');
+          const cityName = $(this).text();
+          $(`#${inputId}`).val(cityName); // Set the input value
+          $(`#${hiddenId}`).val(cityId); // Set the hidden input value
+          $(`#${listId}`).empty(); // Clear suggestions
+        });
+
+        // Close the autocomplete list when clicking outside
+        $(document).on('click', function(e) {
+          if (!$(e.target).closest(`#${inputId}`).length) {
+            $(`#${listId}`).empty();
+          }
+        });
+      }
+
+      // Setup autocomplete for origin and destination
+      setupAutocomplete('origin', 'autocomplete-list-origin', 'origin-id');
+      setupAutocomplete('destination', 'autocomplete-list-destination', 'destination-id');
+
+      // Handle filter changes for checkboxes
+      $('.search').on('change', function() {
         $('#filterFordsm').submit();
       });
+
+      // Handle price range filter changes
+      if (typeof noUiSlider !== 'undefined') {
+        const priceSlider = document.getElementById('price-slider');
+        if (priceSlider && priceSlider.noUiSlider) {
+          priceSlider.noUiSlider.on('change', function() {
+            $('#filterFordsm').submit();
+          });
+        }
+      }
 
       // Handle sorting
       $('#sort-trips').on('change', function() {
@@ -168,33 +240,45 @@
         $('.ticket-wrapper').append($ticketItems);
       });
 
-      // AJAX filtering (optional enhancement)
+      // Reset button functionality
+      $('.reset-button').on('click', function(e) {
+        e.preventDefault();
 
-      $('.search, #min-price, #max-price').on('change', function() {
-        const formData = $('#filterFordsm').serialize();
+        // Reset all checkboxes
+        $('input[type="checkbox"]').prop('checked', false);
 
-        $.ajax({
-          url: '{{ route("filter.trips") }}',
-          type: 'GET',
-          data: formData,
-          beforeSend: function() {
-            // Show loading indicator
-            $('.ticket-wrapper').addClass('loading');
-          },
-          success: function(response) {
-            // Update trip list
-            $('.ticket-wrapper').html(response);
-          },
-          error: function(xhr) {
-            console.error('Filter error:', xhr.responseText);
-          },
-          complete: function() {
-            // Hide loading indicator
-            $('.ticket-wrapper').removeClass('loading');
+        // Reset price slider if it exists
+        if (typeof noUiSlider !== 'undefined') {
+          const priceSlider = document.getElementById('price-slider');
+          if (priceSlider && priceSlider.noUiSlider) {
+            priceSlider.noUiSlider.set([0, 5000]);
           }
-        });
+        }
 
-        return false; // Prevent form submission
+        // Submit the form to apply the reset
+        $('#filterFordsm').submit();
+      });
+
+      // Form validation for search form
+      $('.ticket-form').on('submit', function(e) {
+        const originId = $('#origin-id').val();
+        const destinationId = $('#destination-id').val();
+        const dateOfJourney = $('.datpicker').val();
+
+        if (!originId || !destinationId || !dateOfJourney) {
+          e.preventDefault();
+          alert('Please select origin, destination, and journey date');
+          return false;
+        }
+
+        // Check if origin and destination are the same
+        if (originId === destinationId) {
+          e.preventDefault();
+          alert('Origin and destination cannot be the same');
+          return false;
+        }
+
+        return true;
       });
     });
   </script>
@@ -215,7 +299,7 @@
     .ticket-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr;
-      gap: 10px;
+      gap: 50px;
       align-items: start;
     }
 
@@ -309,6 +393,61 @@
 
     .btn--base:hover {
       background-color: #c0392b;
+    }
+
+    /* Loading indicator */
+    .ticket-wrapper.loading {
+      position: relative;
+      min-height: 200px;
+    }
+
+    .ticket-wrapper.loading:after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #e74c3c;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+      }
+
+      100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+      }
+    }
+
+    /* Autocomplete styles */
+    .autocomplete-items {
+      overflow-y: auto;
+      max-height: 200px;
+      position: absolute;
+      border: 1px solid #d4d4d4;
+      border-bottom: none;
+      border-top: none;
+      z-index: 99;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background-color: #fff;
+    }
+
+    .autocomplete-item {
+      padding: 10px;
+      cursor: pointer;
+      background-color: #fff;
+    }
+
+    .autocomplete-item:hover {
+      background-color: #e9e9e9;
     }
 
     @media (max-width: 768px) {

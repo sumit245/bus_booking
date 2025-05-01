@@ -170,6 +170,8 @@ Route::namespace('Admin')->prefix('admin')->name('admin.')->group(function () {
             Route::get('markup', 'ManageTripController@markup')->name('markup');
         });
 
+        
+
 
         // DEPOSIT SYSTEM
         Route::name('deposit.')->prefix('payment')->group(function () {
@@ -390,6 +392,13 @@ Route::post('/get-boarding-points', 'SiteController@getBoardingPoints')->name('g
 // Add this route for blocking seats
 Route::post('/block-seat', 'SiteController@blockSeat')->name('block.seat');
 Route::post('/book-seat', 'SiteController@bookTicketApi')->name('book.ticket');
+// Add these routes to your web.php file
+Route::post('/create-razorpay-order', [App\Http\Controllers\RazorpayController::class, 'createOrder'])->name('create.razorpay.order');
+Route::post('/verify-razorpay-payment', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('verify.razorpay.payment');
+
+// Update your existing book.ticket route to use the verification method
+Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('book.ticket');
+
 // Route::get('/ticket/get-price', 'SiteController@getTicketPrice')->name('ticket.get-price');
 // Route::post('/ticket/book/{id}', 'SiteController@bookTicket')->name('ticket.book');
 Route::post('/contact', 'SiteController@contactSubmit');

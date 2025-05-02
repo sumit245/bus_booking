@@ -288,6 +288,7 @@
 
   </div>
 @endsection
+
 @php
     use App\Models\MarkupTable;
     $markup = MarkupTable::orderBy('id', 'desc')->value('amount') ?? 0;
@@ -337,8 +338,7 @@
       }
     });
 
-
-    
+    // Handle form submission
     $('#bookingForm').on('submit', function(e) {
       e.preventDefault();
       fetchBoardingPoints();
@@ -516,10 +516,9 @@
           dataType: "json",
           success: function(response) {
             if (response.success) {
-              // Redirect to Razorpay payment page with booking ID
               // Call Razorpay Payment Handler
               console.log(response.response?.Passenger)
-              initiateRazorpayPayment(serverGeneratedTrx, response.response?.Passenger[0]?.SeatFare);
+              initiateRazorpayPayment(response.booking_id || serverGeneratedTrx, response.response?.Passenger[0]?.SeatFare);
             } else {
               alert(response.message || "An error occurred. Please try again.");
             }
@@ -537,55 +536,62 @@
     });
 
     function initiateRazorpayPayment(bookingId, amount) {
-      var options = {
-        "key": "{{ env("RAZORPAY_KEY") }}", // Razorpay API Key
-        "amount": amount * 100, // Convert to paise (₹1 = 100 paise)
-        "currency": "INR",
-        "name": "Ghumantoo",
-        "description": "Seat Booking Payment",
-        "image": "https://vindhyashrisolutions.com/assets/images/logoIcon/logo.png",
-        "order_id": bookingId, // Unique booking ID
-        "handler": function(response) {
-          // Payment success callback
-          processPaymentSuccess(response, bookingId);
-        },
-        "prefill": {
-          "name": "{{ auth()->user()->name ?? "Guest" }}",
-          "email": "{{ auth()->user()->email ?? "info@vindhyashrisolutions.com" }}",
-          "contact": "{{ auth()->user()->phone ?? "" }}"
-        },
-        "theme": {
-          "color": "#3399cc"
-        }
-      };
-
-      // Open Razorpay Payment Modal
-      var rzp = new Razorpay(options);
-      rzp.open();
+  // Create Razorpay order directly
+  var options = {
+    "key": "{{ env('RAZORPAY_KEY') }}", // Razorpay API Key
+    "amount": amount * 100, // Convert to paise (₹1 = 100 paise)
+    "currency": "INR",
+    "name": "Ghumantoo",
+    "description": "Seat Booking Payment",
+    "image": "https://vindhyashrisolutions.com/assets/images/logoIcon/logo.png",
+    "prefill": {
+      "name": $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val(),
+      "email": $('#passenger_email').val(),
+      "contact": $('#passenger_phone').val()
+    },
+    "handler": function(response) {
+      // Payment success callback
+      processPaymentSuccess(response, bookingId);
+    },
+    "theme": {
+      "color": "#3399cc"
     }
+  };
 
-    function processPaymentSuccess(response, bookingId) {
-      $.ajax({
-        url: "{{ route("book.ticket") }}",
-        type: "POST",
-        data: {
-          _token: "{{ csrf_token() }}",
-          payment_id: response.razorpay_payment_id,
-          booking_id: bookingId
-        },
-        dataType: "json",
-        success: function(res) {
-          if (res.success) {
-            alert("Payment successful! Booking confirmed.");
-          } else {
-            alert("Payment verification failed. Please contact support.");
-          }
-        },
-        error: function(xhr) {
-          console.log(xhr.responseJSON);
-          alert(xhr.responseJSON?.message || "Failed to verify payment.");
-        }
-      });
+  // Open Razorpay Payment Modal
+  var rzp = new Razorpay(options);
+  rzp.open();
+}
+
+function processPaymentSuccess(response, bookingId) {
+  $.ajax({
+    url: "{{ route('book.ticket') }}",
+    type: "POST",
+    data: {
+      _token: "{{ csrf_token() }}",
+      razorpay_payment_id: response.razorpay_payment_id,
+      razorpay_order_id: response.razorpay_order_id,
+      razorpay_signature: response.razorpay_signature,
+      booking_id: bookingId
+    },
+    dataType: "json",
+    success: function(res) {
+      if (res.success) {
+        alert("Payment successful! Booking confirmed.");
+        window.location.href = res.redirect || "{{ route('support_ticket') }}";
+      } else {
+        alert("Payment verification failed. Please contact support.");
+      }
+    },
+    error: function(xhr) {
+      console.log(xhr.responseJSON);
+      alert(xhr.responseJSON?.message || "Failed to verify payment.");
     }
+  });
+}
   </script>
 @endpush
+
+
+
+ 

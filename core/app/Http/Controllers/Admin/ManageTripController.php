@@ -11,6 +11,7 @@ use App\Models\FleetType;
 use App\Models\Schedule;
 use App\Models\Trip;
 use Carbon\Carbon;
+use App\Models\MarkupTable;
 
 class ManageTripController extends Controller
 {
@@ -302,12 +303,43 @@ class ManageTripController extends Controller
 
         return view('admin.trip.assigned_vehicle', compact('pageTitle', 'emptyMessage', 'trips', 'assignedVehicles'));
     }
-    public function markup()
-{
-    $pageTitle = 'Add Markup';
-    return view('admin.trip.markup', compact('pageTitle'));
-}
+   
+    
 
+    public function markup()
+    {
+        $currentMarkup = MarkupTable::orderBy('id', 'desc')->first();
+
+    
+        if (!$currentMarkup) {
+            $currentMarkup = (object)[
+                'title' => 'Default Markup',
+                'type' => 'fixed',
+                'amount' => 0.00
+            ];
+        }
+    
+        $pageTitle = 'Manage Markup';
+    
+        return view('admin.trip.markup', compact('currentMarkup', 'pageTitle'));
+    }
+// In ManageTripController
+public function updateMarkup(Request $request)
+{
+    $request->validate([
+        'amount' => 'required|numeric|min:0'
+    ]);
+
+    MarkupTable::create([
+        'amount' => $request->amount,
+        'type' => 'fixed'
+    ]);
+
+    $notify[] = ['success', 'Markup amount updated successfully.'];
+    return back()->withNotify($notify);
+}
+    
+    
     
     public function assignVehicle(Request $request){
         $request->validate([

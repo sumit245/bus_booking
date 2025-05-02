@@ -288,46 +288,48 @@
 
   </div>
 @endsection
+@php
+    use App\Models\MarkupTable;
+    $markup = MarkupTable::orderBy('id', 'desc')->value('amount') ?? 0;
 
+@endphp
 @push("script")
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     let selectedSeats = [];
-    let selectedSeatsCount = 0;
     let totalPrice = 0;
+    const markup = parseFloat("{{ $markup }}"); 
+
     $('.seat-wrapper .seat').on('click', function() {
       let seatNumber = $(this).attr('data-seat');
-      let seatPrice = $(this).attr('data-price');
-      $(this).toggleClass('selected-by-you')
+      let seatPrice = parseFloat($(this).attr('data-price'));
+      let priceWithMarkup = seatPrice + markup; 
+
+      $(this).toggleClass('selected-by-you');
 
       if (!selectedSeats.includes(seatNumber)) {
         selectedSeats.push(seatNumber);
-        totalPrice += parseFloat(seatPrice);
-        // Add to display
+        totalPrice += priceWithMarkup;
+
         $('.selected-seat-details').append(
           `<span class="list-group-item d-flex justify-content-between">
-              @lang("Seat") ${seatNumber} <span>${seatPrice}</span></span>`
+              @lang("Seat") ${seatNumber} <span>${priceWithMarkup.toFixed(2)}</span></span>`
         );
-
-        // Update hidden fields with selected seats and total price
-        $('input[name="seats"]').val(selectedSeats.join(','));
-        $('input[name="price"]').val(totalPrice);
       } else {
-        // Remove from display
         selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
-        totalPrice -= parseFloat(seatPrice);
+        totalPrice -= priceWithMarkup;
+
         $('.selected-seat-details span').each(function() {
           if ($(this).text().includes(seatNumber)) {
             $(this).remove();
           }
         });
-
-        // Update hidden fields with selected seats and total price
-        $('input[name="seats"]').val(selectedSeats.join(','));
-        $('input[name="price"]').val(totalPrice);
       }
-      console.log(selectedSeats.length, seatNumber, seatPrice, totalPrice);
-      // Show/hide booked seat details
+
+ 
+      $('input[name="seats"]').val(selectedSeats.join(','));
+      $('input[name="price"]').val(totalPrice.toFixed(2));
+
       if (selectedSeats.length > 0) {
         $('.booked-seat-details').removeClass('d-none').addClass('d-block');
       } else {
@@ -335,7 +337,8 @@
       }
     });
 
-    // Handle form submission
+
+    
     $('#bookingForm').on('submit', function(e) {
       e.preventDefault();
       fetchBoardingPoints();
@@ -513,9 +516,10 @@
           dataType: "json",
           success: function(response) {
             if (response.success) {
+              // Redirect to Razorpay payment page with booking ID
               // Call Razorpay Payment Handler
               console.log(response.response?.Passenger)
-              initiateRazorpayPayment(response.booking_id || serverGeneratedTrx, response.response?.Passenger[0]?.SeatFare);
+              initiateRazorpayPayment(serverGeneratedTrx, response.response?.Passenger[0]?.SeatFare);
             } else {
               alert(response.message || "An error occurred. Please try again.");
             }
@@ -533,58 +537,55 @@
     });
 
     function initiateRazorpayPayment(bookingId, amount) {
-  // Create Razorpay order directly
-  var options = {
-    "key": "{{ env('RAZORPAY_KEY') }}", // Razorpay API Key
-    "amount": amount * 100, // Convert to paise (₹1 = 100 paise)
-    "currency": "INR",
-    "name": "Ghumantoo",
-    "description": "Seat Booking Payment",
-    "image": "https://vindhyashrisolutions.com/assets/images/logoIcon/logo.png",
-    "prefill": {
-      "name": $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val(),
-      "email": $('#passenger_email').val(),
-      "contact": $('#passenger_phone').val()
-    },
-    "handler": function(response) {
-      // Payment success callback
-      processPaymentSuccess(response, bookingId);
-    },
-    "theme": {
-      "color": "#3399cc"
-    }
-  };
+      var options = {
+        "key": "{{ env("RAZORPAY_KEY") }}", // Razorpay API Key
+        "amount": amount * 100, // Convert to paise (₹1 = 100 paise)
+        "currency": "INR",
+        "name": "Ghumantoo",
+        "description": "Seat Booking Payment",
+        "image": "https://vindhyashrisolutions.com/assets/images/logoIcon/logo.png",
+        "order_id": bookingId, // Unique booking ID
+        "handler": function(response) {
+          // Payment success callback
+          processPaymentSuccess(response, bookingId);
+        },
+        "prefill": {
+          "name": "{{ auth()->user()->name ?? "Guest" }}",
+          "email": "{{ auth()->user()->email ?? "info@vindhyashrisolutions.com" }}",
+          "contact": "{{ auth()->user()->phone ?? "" }}"
+        },
+        "theme": {
+          "color": "#3399cc"
+        }
+      };
 
-  // Open Razorpay Payment Modal
-  var rzp = new Razorpay(options);
-  rzp.open();
-}
-
-function processPaymentSuccess(response, bookingId) {
-  $.ajax({
-    url: "{{ route('book.ticket') }}",
-    type: "POST",
-    data: {
-      _token: "{{ csrf_token() }}",
-      razorpay_payment_id: response.razorpay_payment_id,
-      razorpay_order_id: response.razorpay_order_id,
-      razorpay_signature: response.razorpay_signature,
-      booking_id: bookingId
-    },
-    dataType: "json",
-    success: function(res) {
-      if (res.success) {
-        alert("Payment successful! Booking confirmed.");
-        window.location.href = res.redirect || "{{ route('support_ticket') }}";
-      } else {
-        alert("Payment verification failed. Please contact support.");
-      }
-    },
-    error: function(xhr) {
-      console.log(xhr.responseJSON);
-      alert(xhr.responseJSON?.message || "Failed to verify payment.");
+      // Open Razorpay Payment Modal
+      var rzp = new Razorpay(options);
+      rzp.open();
     }
-  });
-}
+
+    function processPaymentSuccess(response, bookingId) {
+      $.ajax({
+        url: "{{ route("book.ticket") }}",
+        type: "POST",
+        data: {
+          _token: "{{ csrf_token() }}",
+          payment_id: response.razorpay_payment_id,
+          booking_id: bookingId
+        },
+        dataType: "json",
+        success: function(res) {
+          if (res.success) {
+            alert("Payment successful! Booking confirmed.");
+          } else {
+            alert("Payment verification failed. Please contact support.");
+          }
+        },
+        error: function(xhr) {
+          console.log(xhr.responseJSON);
+          alert(xhr.responseJSON?.message || "Failed to verify payment.");
+        }
+      });
+    }
   </script>
 @endpush

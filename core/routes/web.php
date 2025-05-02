@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Admin\ManageTripController;
 Route::get('/clear', function () {
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
 });
@@ -398,6 +398,9 @@ Route::post('/verify-razorpay-payment', [App\Http\Controllers\RazorpayController
 
 // Update your existing book.ticket route to use the verification method
 Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('book.ticket');
+Route::get('/admin/markup', [SiteController::class, 'showMarkupPage'])->name('admin.markup');
+Route::put('admin/markup/update', [ManageTripController::class, 'updateMarkup'])->name('markup.update');
+
 
 // Route::get('/ticket/get-price', 'SiteController@getTicketPrice')->name('ticket.get-price');
 // Route::post('/ticket/book/{id}', 'SiteController@bookTicket')->name('ticket.book');

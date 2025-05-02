@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
+use App\Models\MarkupTable;
 class SiteController extends Controller
 {
     public function __construct()
@@ -177,11 +178,25 @@ class SiteController extends Controller
         return $this->prepareAndReturnView($resp, $request);
     }
     
+
     private function prepareAndReturnView($resp, $request)
     {
         $trips = $this->sortTripsByDepartureTime($resp['Result']);
     
-        // Apply filters if any are set
+        // Fetch markup once
+        $markup = MarkupTable::orderBy('id', 'desc')->value('amount') ?? 0;
+
+    
+        // Modify PublishedPrice in each trip directly
+        foreach ($trips as &$trip) {
+            if (isset($trip['BusPrice']['PublishedPrice'])) {
+                $trip['BusPrice']['PublishedPrice'] += $markup;
+            } else {
+                $trip['BusPrice']['PublishedPrice'] = $markup;
+            }
+        }
+    
+        // Apply filters
         if (
             $request->has('departure_time') || $request->has('amenities') ||
             $request->has('min_price') || $request->has('max_price') ||
@@ -202,6 +217,7 @@ class SiteController extends Controller
     
         return view($this->activeTemplate . 'ticket', $viewData);
     }
+    
 
     private function validateSearchRequest(Request $request)
     {

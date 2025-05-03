@@ -190,10 +190,10 @@ class SiteController extends Controller
         // Modify PublishedPrice in each trip directly
         foreach ($trips as &$trip) {
             if (isset($trip['BusPrice']['PublishedPrice'])) {
-                $trip['BusPrice']['PublishedPrice'] += $markup;
-            } else {
-                $trip['BusPrice']['PublishedPrice'] = $markup;
+                $originalPrice = $trip['BusPrice']['PublishedPrice'];
+                $trip['BusPrice']['PublishedPrice'] = $originalPrice + ($originalPrice * $markup / 100);
             }
+            
         }
     
         // Apply filters

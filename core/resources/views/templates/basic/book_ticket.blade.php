@@ -287,24 +287,24 @@
     {{-- End of Booking Form modal --}}
 
   </div>
-@endsection
+  @endsection
 
 @php
     use App\Models\MarkupTable;
     $markup = MarkupTable::orderBy('id', 'desc')->value('amount') ?? 0;
-
 @endphp
+
 @push("script")
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     let selectedSeats = [];
     let totalPrice = 0;
-    const markup = parseFloat("{{ $markup }}"); 
+    const markupPercent = parseFloat("{{ $markup }}");
 
     $('.seat-wrapper .seat').on('click', function() {
       let seatNumber = $(this).attr('data-seat');
       let seatPrice = parseFloat($(this).attr('data-price'));
-      let priceWithMarkup = seatPrice + markup; 
+      let priceWithMarkup = seatPrice + (seatPrice * markupPercent / 100); // Apply percentage markup
 
       $(this).toggleClass('selected-by-you');
 
@@ -327,7 +327,6 @@
         });
       }
 
- 
       $('input[name="seats"]').val(selectedSeats.join(','));
       $('input[name="price"]').val(totalPrice.toFixed(2));
 
@@ -337,6 +336,7 @@
         $('.booked-seat-details').removeClass('d-block').addClass('d-none');
       }
     });
+
 
     // Handle form submission
     $('#bookingForm').on('submit', function(e) {

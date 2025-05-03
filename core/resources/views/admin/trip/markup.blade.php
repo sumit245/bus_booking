@@ -12,7 +12,7 @@
 
                     <!-- Current Amount Box -->
                     <div class="alert alert-secondary text-center font-weight-bold mb-4">
-    @lang('Current Markup Amount'): {{ number_format($currentMarkup->amount, 2) }}
+    @lang('Current Markup Percentage'): {{ number_format($currentMarkup->amount, 2) }}
 </div>
 
 
@@ -23,7 +23,7 @@
                         @method('PUT')
 
                         <div class="form-group">
-                            <label for="amount" class="font-weight-bold">@lang('Update Markup Amount')</label>
+                            <label for="amount" class="font-weight-bold">@lang('Update Markup Percentage')</label>
                             <input type="number" step="0.01" name="amount" id="amount" class="form-control"
        value="{{ $currentMarkup->amount ?? '' }}" required>
 

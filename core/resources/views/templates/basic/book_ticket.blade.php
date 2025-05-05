@@ -289,53 +289,67 @@
   </div>
   @endsection
 
-@php
+  @php
     use App\Models\MarkupTable;
-    $markup = MarkupTable::orderBy('id', 'desc')->value('amount') ?? 0;
+    $markupData = \App\Models\MarkupTable::orderBy('id', 'desc')->first();
+    $flatMarkup = $markupData->flat_markup ?? 0;
+    $percentageMarkup = $markupData->percentage_markup ?? 0;
+    $threshold = $markupData->threshold ?? 0;
 @endphp
 
 @push("script")
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
     let selectedSeats = [];
     let totalPrice = 0;
-    const markupPercent = parseFloat("{{ $markup }}");
 
-    $('.seat-wrapper .seat').on('click', function() {
-      let seatNumber = $(this).attr('data-seat');
-      let seatPrice = parseFloat($(this).attr('data-price'));
-      let priceWithMarkup = seatPrice + (seatPrice * markupPercent / 100); // Apply percentage markup
+    const flatMarkup = parseFloat("{{ $flatMarkup }}");
+    const percentageMarkup = parseFloat("{{ $percentageMarkup }}");
+    const threshold = parseFloat("{{ $threshold }}");
 
-      $(this).toggleClass('selected-by-you');
+    $('.seat-wrapper .seat').on('click', function () {
+        let seatNumber = $(this).attr('data-seat');
+        let seatPrice = parseFloat($(this).attr('data-price'));
 
-      if (!selectedSeats.includes(seatNumber)) {
-        selectedSeats.push(seatNumber);
-        totalPrice += priceWithMarkup;
+        // Apply flat markup if price < threshold, else percentage
+        let markupAmount = seatPrice < threshold
+            ? flatMarkup
+            : (seatPrice * percentageMarkup / 100);
 
-        $('.selected-seat-details').append(
-          `<span class="list-group-item d-flex justify-content-between">
-              @lang("Seat") ${seatNumber} <span>${priceWithMarkup.toFixed(2)}</span></span>`
-        );
-      } else {
-        selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
-        totalPrice -= priceWithMarkup;
+        let priceWithMarkup = seatPrice + markupAmount;
 
-        $('.selected-seat-details span').each(function() {
-          if ($(this).text().includes(seatNumber)) {
-            $(this).remove();
-          }
-        });
-      }
+        $(this).toggleClass('selected-by-you');
 
-      $('input[name="seats"]').val(selectedSeats.join(','));
-      $('input[name="price"]').val(totalPrice.toFixed(2));
+        if (!selectedSeats.includes(seatNumber)) {
+            selectedSeats.push(seatNumber);
+            totalPrice += priceWithMarkup;
 
-      if (selectedSeats.length > 0) {
-        $('.booked-seat-details').removeClass('d-none').addClass('d-block');
-      } else {
-        $('.booked-seat-details').removeClass('d-block').addClass('d-none');
-      }
+            $('.selected-seat-details').append(
+                `<span class="list-group-item d-flex justify-content-between">
+                    @lang("Seat") ${seatNumber} <span>${priceWithMarkup.toFixed(2)}</span></span>`
+            );
+        } else {
+            selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
+            totalPrice -= priceWithMarkup;
+
+            $('.selected-seat-details span').each(function () {
+                if ($(this).text().includes(seatNumber)) {
+                    $(this).remove();
+                }
+            });
+        }
+
+        $('input[name="seats"]').val(selectedSeats.join(','));
+        $('input[name="price"]').val(totalPrice.toFixed(2));
+
+        if (selectedSeats.length > 0) {
+            $('.booked-seat-details').removeClass('d-none').addClass('d-block');
+        } else {
+            $('.booked-seat-details').removeClass('d-block').addClass('d-none');
+        }
     });
+
+
 
 
     // Handle form submission

@@ -307,37 +307,41 @@ class ManageTripController extends Controller
     
 
     public function markup()
-    {
-        $currentMarkup = MarkupTable::orderBy('id', 'desc')->first();
+{
+    $currentMarkup = MarkupTable::orderBy('id', 'desc')->first();
 
-    
-        if (!$currentMarkup) {
-            $currentMarkup = (object)[
-                'title' => 'Default Markup',
-                'type' => 'fixed',
-                'amount' => 0.00
-            ];
-        }
-    
-        $pageTitle = 'Manage Markup';
-    
-        return view('admin.trip.markup', compact('currentMarkup', 'pageTitle'));
+    if (!$currentMarkup) {
+        $currentMarkup = (object)[
+            'title' => 'Default Markup',
+            'flat_markup' => 0.00,
+            'percentage_markup' => 0.00,
+            'threshold' => 0.00,
+        ];
     }
-// In ManageTripController
+
+    $pageTitle = 'Manage Markup';
+
+    return view('admin.trip.markup', compact('currentMarkup', 'pageTitle'));
+}
 public function updateMarkup(Request $request)
 {
     $request->validate([
-        'amount' => 'required|numeric|min:0'
+        'flat_markup' => 'required|numeric|min:0',
+        'percentage_markup' => 'required|numeric|min:0',
+        'threshold' => 'required|numeric|min:0',
     ]);
 
     MarkupTable::create([
-        'amount' => $request->amount,
-        'type' => 'fixed'
+        'flat_markup' => $request->flat_markup,
+        'percentage_markup' => $request->percentage_markup,
+        'threshold' => $request->threshold,
+        'title' => 'Updated Markup',
     ]);
 
-    $notify[] = ['success', 'Markup amount updated successfully.'];
+    $notify[] = ['success', 'Markup settings updated successfully.'];
     return back()->withNotify($notify);
 }
+
     
     
     

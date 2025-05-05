@@ -165,12 +165,12 @@ class SiteController extends Controller
         $this->validateSearchRequest($request);
         $resp = $this->fetchAndProcessAPIResponse($request);
         
-        // Check if $resp is a RedirectResponse
+    
         if ($resp instanceof \Illuminate\Http\RedirectResponse) {
             abort(404, 'No buses found for this route and date');
         }
         
-        // Check if $resp is null or doesn't have the expected structure
+ 
         if (!is_array($resp) || !isset($resp['Result']) || empty($resp['Result'])) {
             abort(404, 'No buses found for this route and date');
         }
@@ -183,17 +183,26 @@ class SiteController extends Controller
     {
         $trips = $this->sortTripsByDepartureTime($resp['Result']);
     
-        // Fetch markup once
-        $markup = MarkupTable::orderBy('id', 'desc')->value('amount') ?? 0;
-
+        // Fetch markup details
+        $markup = MarkupTable::orderBy('id', 'desc')->first();
     
-        // Modify PublishedPrice in each trip directly
+        $flatMarkup = $markup->flat_markup ?? 0;
+        $percentageMarkup = $markup->percentage_markup ?? 0;
+        $threshold = $markup->threshold ?? 0;
+    
+        // Modify PublishedPrice based on new markup rules
         foreach ($trips as &$trip) {
             if (isset($trip['BusPrice']['PublishedPrice'])) {
                 $originalPrice = $trip['BusPrice']['PublishedPrice'];
-                $trip['BusPrice']['PublishedPrice'] = $originalPrice + ($originalPrice * $markup / 100);
+    
+                if ($originalPrice <= $threshold) {
+                    // Apply flat markup
+                    $trip['BusPrice']['PublishedPrice'] = $originalPrice + $flatMarkup;
+                } else {
+                    // Apply percentage markup
+                    $trip['BusPrice']['PublishedPrice'] = $originalPrice + ($originalPrice * $percentageMarkup / 100);
+                }
             }
-            
         }
     
         // Apply filters
@@ -217,6 +226,7 @@ class SiteController extends Controller
     
         return view($this->activeTemplate . 'ticket', $viewData);
     }
+    
     
 
     private function validateSearchRequest(Request $request)

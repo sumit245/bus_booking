@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use App\Models\Ticket;
 
 class UserController extends Controller
 {
@@ -127,10 +128,26 @@ class UserController extends Controller
         return view($this->activeTemplate.'user.booking_history', compact('pageTitle', 'emptyMessage','bookedTickets'));
     }
 
-    public function printTicket($id){
-        $pageTitle = "Ticket Print";
-        $ticket = BookedTicket::with(['trip.fleetType','trip.startFrom', 'trip.endTo', 'trip.schedule', 'trip.assignedVehicle.vehicle' ,'pickup', 'drop', 'user'])->where('user_id', auth()->user()->id)->findOrFail($id);
-        return view($this->activeTemplate.'user.print_ticket', compact('ticket', 'pageTitle'));
+    public function printTicket($bookingId)
+{
+    // Find the ticket by booking ID (PNR number)
+    $ticket = BookedTicket::where('pnr_number', $bookingId)->firstOrFail();
+
+    // Check if the ticket belongs to the authenticated user
+    if ($ticket->user_id != Auth::id() && !Auth::user()->isAdmin) {
+        abort(403, 'Unauthorized access');
     }
+
+    $pageTitle = 'Print Ticket';
+
+    $general = (object) [
+        'sitename' => function($title) {
+            return config('app.name') . ' - ' . $title;
+        }
+    ];
+
+    return view('print-ticket', compact('ticket', 'pageTitle', 'general'));
+}
+
 
 }

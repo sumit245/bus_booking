@@ -9,7 +9,8 @@ use App\Models\SupportTicket;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-
+use App\Models\BookedTicket;
+use Illuminate\Support\Facades\Log;
 class TicketController extends Controller
 {
 
@@ -18,7 +19,76 @@ class TicketController extends Controller
         $this->activeTemplate = activeTemplate();
     }
 
+    
 
+    // Add this new method for printing bus tickets
+    public function printTicket($bookingId)
+    {
+        try {
+            // Find the ticket by booking ID (PNR number)
+            $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
+                ->where('pnr_number', $bookingId)
+                ->firstOrFail();
+            
+            // Log ticket data for debugging
+            Log::info('Ticket data for printing', [
+                'ticket_id' => $ticket->id,
+                'pnr' => $ticket->pnr_number,
+                'user' => $ticket->user ? $ticket->user->toArray() : 'Guest',
+                'journey_date' => $ticket->date_of_journey,
+                'trip' => $ticket->trip ? $ticket->trip->toArray() : null
+            ]);
+            
+            $pageTitle = 'Print Ticket';
+            
+            // Get the general site settings - with fallback values
+            $general = (object) [
+                'cur_sym' => '₹', // Default currency symbol as fallback
+                'sitename' => 'Bus Booking System' // Default site name as fallback
+            ];
+            
+            // Try to get actual general settings if the function exists
+            if (function_exists('getContent')) {
+                $generalSettings = getContent('general_setting.content', true);
+                if ($generalSettings) {
+                    $general = $generalSettings;
+                }
+            }
+            
+            // Determine the layout based on authentication status
+            $layout = 'layouts.frontend';
+            
+            // Parse journey date to ensure it's in the correct format
+            if ($ticket->date_of_journey) {
+                $journeyDate = Carbon::parse($ticket->date_of_journey);
+                $ticket->formatted_date = $journeyDate->format('F d, Y');
+                $ticket->journey_day = $journeyDate->format('l');
+            }
+            
+            // Get passenger details from session if available
+            $sessionBookingInfo = session()->get('booking_info', []);
+            $passengerName = null;
+            
+            // Check if we have passenger details in the session
+            if (isset($sessionBookingInfo['passenger_firstname'])) {
+                $passengerName = $sessionBookingInfo['passenger_firstname'] . ' ' . 
+                                ($sessionBookingInfo['passenger_lastname'] ?? '');
+                $ticket->passenger_name = $passengerName;
+                $ticket->passenger_phone = $sessionBookingInfo['passenger_phone'] ?? null;
+                $ticket->passenger_email = $sessionBookingInfo['passenger_email'] ?? null;
+            }
+            
+            return view('templates.basic.user.print_ticket', compact('ticket', 'pageTitle', 'general', 'layout'));
+        } catch (\Exception $e) {
+            Log::error('Error in printTicket method: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            abort(500, 'Error generating ticket: ' . $e->getMessage());
+        }
+    }
     // Support Ticket
     public function supportTicket()
     {

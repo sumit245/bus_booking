@@ -632,7 +632,70 @@ class SiteController extends Controller
 
     public function bookTicketApi(Request $request)
     {
-        Log::info($request->all());
-        echo "Booked Successfuly";
+        try {
+            Log::info('Booking ticket after payment', $request->all());
+            
+            // Validate request
+            $request->validate([
+                'booking_id' => 'required|string',
+                'payment_id' => 'required|string',
+                'payment_status' => 'required|string'
+            ]);
+            
+            // Get booking info from session
+            $bookingInfo = session()->get('booking_info');
+            
+            if (!$bookingInfo) {
+                Log::error('Booking info not found in session');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking information not found'
+                ], 400);
+            }
+            
+            // Log the actual price vs test price
+            Log::info('Booking with test payment', [
+                'booking_id' => $request->booking_id,
+                'payment_id' => $request->payment_id,
+                'actual_price' => $bookingInfo['price'],
+                'test_payment_amount' => 1 // 1 rupee test payment
+            ]);
+            
+            // Get user ID (if authenticated) or use 0 for guest
+            $userId = auth()->check() ? auth()->id() : 0;
+            
+            // Create a ticket record in the database
+            $ticket = new \App\Models\BookedTicket();
+            $ticket->pnr_number = $request->booking_id;
+            $ticket->user_id = $userId;
+            $ticket->date_of_journey = date('Y-m-d'); // You may want to get this from session
+            $ticket->seats = explode(',', $bookingInfo['seats']);
+            $ticket->pickup_point = $bookingInfo['boarding_point_index'];
+            $ticket->dropping_point = $bookingInfo['dropping_point_index'];
+            $ticket->unit_price = $bookingInfo['price'];
+            $ticket->sub_total = $bookingInfo['price'];
+            $ticket->ticket_count = count(explode(',', $bookingInfo['seats']));
+            $ticket->gender = $bookingInfo['gender'] ?? 1;
+            $ticket->status = 1; // Confirmed
+            $ticket->save();
+            
+            // Clear the booking info from session
+            session()->forget('booking_info');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Ticket booked successfully',
+                'booking_id' => $request->booking_id
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to book ticket: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to book ticket: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

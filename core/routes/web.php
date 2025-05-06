@@ -337,6 +337,10 @@ Route::namespace('Admin')->prefix('admin')->name('admin.')->group(function () {
 
 
 Route::name('user.')->group(function () {
+    Route::get('/print-ticket/{booking_id}', 'TicketController@printTicket')->name('print.ticket');
+
+
+
     Route::get('/login', 'Auth\LoginController@showLoginForm')->name('login');
     Route::post('/login', 'Auth\LoginController@login');
     Route::get('logout', 'Auth\LoginController@logout')->name('logout');
@@ -392,6 +396,9 @@ Route::post('/get-boarding-points', 'SiteController@getBoardingPoints')->name('g
 // Add this route for blocking seats
 Route::post('/block-seat', 'SiteController@blockSeat')->name('block.seat');
 Route::post('/book-seat', 'SiteController@bookTicketApi')->name('book.ticket');
+// Razorpay routes
+Route::post('/razorpay/create-order', 'RazorpayController@createOrder')->name('razorpay.create-order');
+Route::post('/razorpay/verify-payment', 'RazorpayController@verifyPayment')->name('razorpay.verify-payment');
 // Add these routes to your web.php file
 Route::post('/create-razorpay-order', [App\Http\Controllers\RazorpayController::class, 'createOrder'])->name('create.razorpay.order');
 Route::post('/verify-razorpay-payment', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('verify.razorpay.payment');

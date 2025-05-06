@@ -6,7 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="{{ getImage('assets/images/logoIcon/favicon.png') }}">
-    <title>{{ $general->sitename($pageTitle) }}</title>
+    <title>{{ $general && method_exists($general, 'sitename') ? $general->sitename($pageTitle ?? 'Print Ticket') : ($pageTitle ?? 'Print Ticket') }}</title>
+
     <style>
         @media screen,
         print {
@@ -147,7 +148,33 @@
                 margin-bottom: 15px;
             }
 
+            .journey-details {
+                background-color: #f8f9fa;
+                padding: 15px;
+                border-radius: 5px;
+                margin-top: 20px;
+                border: 1px solid #eef;
+            }
 
+            .journey-details h5 {
+                margin-bottom: 10px;
+                color: #456;
+            }
+
+            .journey-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+            }
+
+            .journey-info .label {
+                font-weight: bold;
+                color: #456;
+            }
+
+            .journey-info .value {
+                color: #678;
+            }
         }
 
         @media print {
@@ -166,7 +193,7 @@
                 <div class="ticket-header">
                     <div class="ticket-logo"><img src="{{ getImage(imagePath()['logoIcon']['path'].'/logo.png') }}" alt="Logo"></div>
                     <div class="ticket-header-content">
-                        <h4 class="title">{{ __(@$ticket->trip->assignedVehicle->vehicle->nick_name) }}</h4>
+                        <h4 class="title">{{ __(@$ticket->trip->assignedVehicle->vehicle->nick_name ?? (@$ticket->trip->title ?? 'Bus Ticket')) }}</h4>
                         <p class="info">@lang('E-Ticket/ Reservation Voucher')</p>
                     </div>
                 </div>
@@ -194,7 +221,34 @@
                                         <b>:</b>
                                     </td>
                                     <td class="text-left">
-                                        <h5 class="value">{{ __($ticket->user->fullname) }}</h5>
+                                        <h5 class="value">
+                                            @if(isset($ticket->passenger_name))
+                                                {{ __($ticket->passenger_name) }}
+                                            @elseif(isset($ticket->user) && $ticket->user)
+                                                {{ __($ticket->user->fullname) }}
+                                            @else
+                                                Guest User
+                                            @endif
+                                        </h5>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">
+                                        <p class="title">@lang('Contact')</p>
+                                    </td>
+                                    <td>
+                                        <b>:</b>
+                                    </td>
+                                    <td class="text-left">
+                                        <h5 class="value">
+                                            @if(isset($ticket->passenger_phone))
+                                                {{ __($ticket->passenger_phone) }}
+                                            @elseif(isset($ticket->user) && $ticket->user && $ticket->user->mobile)
+                                                {{ __($ticket->user->mobile) }}
+                                            @else
+                                                N/A
+                                            @endif
+                                        </h5>
                                     </td>
                                 </tr>
                                 <tr>
@@ -205,7 +259,7 @@
                                         <b>:</b>
                                     </td>
                                     <td class="text-left">
-                                        <h5 class="value">{{ showDateTime($ticket->date_of_journey, 'F d, Y') }}</h5>
+                                        <h5 class="value">{{ $ticket->formatted_date ?? showDateTime($ticket->date_of_journey, 'F d, Y') }}</h5>
                                     </td>
                                 </tr>
                             </tbody>
@@ -222,7 +276,7 @@
                                         <b>:</b>
                                     </td>
                                     <td class="text-left">
-                                        <h5 class="value">{{ showDateTime($ticket->date_of_journey, 'l') }}</h5>
+                                        <h5 class="value">{{ $ticket->journey_day ?? showDateTime($ticket->date_of_journey, 'l') }}</h5>
                                     </td>
                                 </tr>
                                 <tr>
@@ -233,7 +287,7 @@
                                         <b>:</b>
                                     </td>
                                     <td class="text-left">
-                                        <h5 class="value">{{ sizeof($ticket->seats) }}</h5>
+                                        <h5 class="value">{{ is_array($ticket->seats) ? sizeof($ticket->seats) : 1 }}</h5>
                                     </td>
                                 </tr>
                                 <tr>
@@ -244,11 +298,43 @@
                                         <b>:</b>
                                     </td>
                                     <td class="text-left">
-                                        <h5 class="value">{{ __(implode(',', $ticket->seats)) }}</h5>
+                                        <h5 class="value">{{ is_array($ticket->seats) ? __(implode(', ', $ticket->seats)) : __($ticket->seats) }}</h5>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-right">
+                                        <p class="title">@lang('Amount')</p>
+                                    </td>
+                                    <td>
+                                        <b>:</b>
+                                    </td>
+                                    <td class="text-left">
+                                        <h5 class="value">{{ isset($general->cur_sym) ? __($general->cur_sym) : '₹' }}{{ showAmount($ticket->sub_total) }}</h5>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+                
+                <!-- Journey Details Section -->
+                <div class="journey-details">
+                    <h5>@lang('Journey Details')</h5>
+                    <div class="journey-info">
+                        <span class="label">@lang('Bus Name'):</span>
+                        <span class="value">{{ __(@$ticket->trip->assignedVehicle->vehicle->nick_name ?? (@$ticket->trip->title ?? 'N/A')) }}</span>
+                    </div>
+                    <div class="journey-info">
+                        <span class="label">@lang('Departure Time'):</span>
+                        <span class="value">{{ __(@$ticket->trip->start_time ?? 'N/A') }}</span>
+                    </div>
+                    <div class="journey-info">
+                        <span class="label">@lang('Pickup Point'):</span>
+                        <span class="value">{{ __(@$ticket->pickup->name ?? 'N/A') }}</span>
+                    </div>
+                    <div class="journey-info">
+                        <span class="label">@lang('Dropping Point'):</span>
+                        <span class="value">{{ __(@$ticket->drop->name ?? 'N/A') }}</span>
                     </div>
                 </div>
             </div>
@@ -261,7 +347,7 @@
 
 
     @php
-    $fileName = slug($ticket->user->username).'_'.time()
+    $fileName = slug(optional($ticket->user)->username ?? 'guest') . '_' . time();
     @endphp
     <!-- jquery -->
     <script src="{{asset($activeTemplateTrue.'js/jquery-3.3.1.min.js')}}"></script>

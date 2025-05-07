@@ -30,7 +30,7 @@ class BookedTicket extends Model
   'date_of_journey',
   'pnr_number',
   'status',
-  'passenger_names', // Include additional fields if applicable
+  'passenger_names', 
  ];
 
 

@@ -578,7 +578,7 @@ class SiteController extends Controller
         ]);
         // Get selected seats
         $seats = explode(',', $request->seats);
-
+    
         // Create passenger data for each seat
         $passengers = [];
         foreach ($seats as $index => $seatName) {
@@ -604,9 +604,9 @@ class SiteController extends Controller
             $passengers,
             $seats
         );
-
+    
         Log::info('Block Seat Response:', ['response' => $response]);
-
+    
         if (isset($response['Error']['ErrorCode']) && $response['Error']['ErrorCode'] == 0) {
             // Store booking information in session for payment
             session()->put('booking_info', [
@@ -614,37 +614,36 @@ class SiteController extends Controller
                 'dropping_point_index' => $request->dropping_point_index,
                 'seats' => $request->seats,
                 'price' => $request->price,
-                'block_response' => $response
+                'block_response' => $response,
+                'result_index' => session()->get('result_index'), // Add result_index from session
+                'passengers' => $passengers, // Store passenger data
+                'journey_date' => session()->get('date_of_journey') // Store journey date
             ]);
-            // ✅ Return JSON instead of redirecting
+            // Return JSON instead of redirecting
             return response()->json([
                 'response' => $response['Result'],
                 'success' => true,
                 'message' => 'Seats blocked successfully! Proceed to payment.',
             ]);
-            // Redirect to payment page
-            // return redirect()->route('user.deposit');
         }
-
+    
         // If there's an error
         return back()->with('error', $response['Error']['ErrorMessage'] ?? 'Failed to block seats. Please try again.');
     }
-
+    
     public function bookTicketApi(Request $request)
     {
         try {
             Log::info('Booking ticket after payment', $request->all());
-            
-            // Validate request
+    
             $request->validate([
                 'booking_id' => 'required|string',
                 'payment_id' => 'required|string',
                 'payment_status' => 'required|string'
             ]);
-            
-            // Get booking info from session
+    
             $bookingInfo = session()->get('booking_info');
-            
+    
             if (!$bookingInfo) {
                 Log::error('Booking info not found in session');
                 return response()->json([
@@ -652,50 +651,86 @@ class SiteController extends Controller
                     'message' => 'Booking information not found'
                 ], 400);
             }
-            
-            // Log the actual price vs test price
-            Log::info('Booking with test payment', [
+    
+            // Check if result_index exists in booking_info
+            if (!isset($bookingInfo['result_index'])) {
+                Log::error('Missing result_index in booking_info session data', ['booking_info' => $bookingInfo]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing result_index in booking information.'
+                ], 400);
+            }
+    
+            // Get search token ID from block response if not already set
+            if (!isset($bookingInfo['search_token_id'])) {
+                $searchTokenId = $bookingInfo['block_response']['SearchTokenId'] ?? session()->get('search_token_id');
+                $bookingInfo['search_token_id'] = $searchTokenId;
+            }
+    
+            Log::info('Booking with payment', [
                 'booking_id' => $request->booking_id,
                 'payment_id' => $request->payment_id,
                 'actual_price' => $bookingInfo['price'],
-                'test_payment_amount' => 1 // 1 rupee test payment
+                'result_index' => $bookingInfo['result_index'],
+                'search_token_id' => $bookingInfo['search_token_id']
             ]);
-            
-            // Get user ID (if authenticated) or use 0 for guest
+    
+            // Book the ticket via external API
+            $apiResponse = bookAPITicket(
+                request()->ip(),
+                $bookingInfo['search_token_id'],
+                $bookingInfo['result_index'],
+                (int) $bookingInfo['boarding_point_index'],
+                (int) $bookingInfo['dropping_point_index'],
+                $bookingInfo['passengers']
+            );
+    
+            Log::info('Book ticket API response', ['response' => $apiResponse]);
+    
+            if (isset($apiResponse['Error']) && $apiResponse['Error']['ErrorCode'] != 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $apiResponse['Error']['ErrorMessage'] ?? 'Booking failed',
+                    'error' => $apiResponse['Error']
+                ], 500);
+            }
+    
+            // Proceed to save the booking locally
             $userId = auth()->check() ? auth()->id() : 0;
-            
-            // Create a ticket record in the database
+    
             $ticket = new \App\Models\BookedTicket();
             $ticket->pnr_number = $request->booking_id;
             $ticket->user_id = $userId;
-            $ticket->date_of_journey = date('Y-m-d'); // You may want to get this from session
-            $ticket->seats = explode(',', $bookingInfo['seats']);
+            $ticket->date_of_journey = $bookingInfo['journey_date'] ?? date('Y-m-d');
+            $ticket->seats = $bookingInfo['seats'];
             $ticket->pickup_point = $bookingInfo['boarding_point_index'];
             $ticket->dropping_point = $bookingInfo['dropping_point_index'];
             $ticket->unit_price = $bookingInfo['price'];
             $ticket->sub_total = $bookingInfo['price'];
             $ticket->ticket_count = count(explode(',', $bookingInfo['seats']));
-            $ticket->gender = $bookingInfo['gender'] ?? 1;
+            $ticket->gender = $bookingInfo['passengers'][0]['Gender'] ?? 1;
             $ticket->status = 1; // Confirmed
+            $ticket->api_response = json_encode($apiResponse); // Save full API response
             $ticket->save();
-            
-            // Clear the booking info from session
+    
             session()->forget('booking_info');
-            
+    
             return response()->json([
                 'success' => true,
                 'message' => 'Ticket booked successfully',
-                'booking_id' => $request->booking_id
+                'booking_id' => $request->booking_id,
+                'pnr' => $apiResponse['PNRNo'] ?? null
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to book ticket: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
-            
+    
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to book ticket: ' . $e->getMessage()
             ], 500);
         }
     }
-}
+
+}    

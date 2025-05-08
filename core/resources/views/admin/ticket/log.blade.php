@@ -37,9 +37,13 @@
                                     </td>
 
                                     <td data-label="@lang('Trip')">
-                                        <span class="font-weight-bold">{{ __($item->trip->fleetType->name) }}</span>
+                                    <span class="font-weight-bold">{{ $item->trip?->fleetType?->name ?? 'N/A' }}</span>
+
                                         <br>
-                                        <span class="font-weight-bold"> {{ __($item->trip->startFrom->name ) }} - {{ __($item->trip->endTo->name ) }}</span>
+                                        <span class="font-weight-bold">
+    {{ $item->trip?->startFrom?->name ?? 'N/A' }} - {{ $item->trip?->endTo?->name ?? 'N/A' }}
+</span>
+
                                     </td>
 
                                                                         <td data-label="@lang('Pickup Point')">
@@ -59,8 +63,9 @@
                                         @endif
                                     </td>
                                     <td data-label="@lang('Ticket Count')">
-                                        {{ __(sizeof($item->seats)) }}
-                                    </td>
+    {{ is_countable($item->seats) ? count($item->seats) : (is_array(json_decode($item->seats, true)) ? count(json_decode($item->seats, true)) : (is_numeric($item->seats) ? $item->seats : 0)) }}
+</td>
+
                                     <td data-label="@lang('Fare')">
                                         {{ __(showAmount($item->sub_total)) }} {{ __($general->cur_text) }}
                                     </td>

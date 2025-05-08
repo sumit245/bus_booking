@@ -165,14 +165,19 @@ class SiteController extends Controller
         $this->validateSearchRequest($request);
         $resp = $this->fetchAndProcessAPIResponse($request);
         
-    
         if ($resp instanceof \Illuminate\Http\RedirectResponse) {
             abort(404, 'No buses found for this route and date');
         }
         
- 
         if (!is_array($resp) || !isset($resp['Result']) || empty($resp['Result'])) {
             abort(404, 'No buses found for this route and date');
+        }
+        
+        // Store journey date in proper format
+        if ($request->DateOfJourney) {
+            $journeyDate = Carbon::parse($request->DateOfJourney)->format('Y-m-d');
+            session()->put('date_of_journey', $journeyDate);
+            Log::info('Stored journey date in session', ['date' => $journeyDate]);
         }
         
         return $this->prepareAndReturnView($resp, $request);
@@ -502,11 +507,21 @@ class SiteController extends Controller
         session()->put('result_index', $resultIndex);
         // Get seat layout from API
         $response = getAPIBusSeats($resultIndex);
-
+    
         $pageTitle = 'Select Seats';
         $seatHtml = $response['Result']['HTMLLayout'];
         $seatLayout = $response['Result']['SeatLayout'];
-
+    
+        // Store bus details in session if available
+        if (isset($response['Result']['BusType'])) {
+            session()->put('bus_details', [
+                'bus_type' => $response['Result']['BusType'] ?? null,
+                'travel_name' => $response['Result']['TravelName'] ?? null,
+                'departure_time' => $response['Result']['DepartureTime'] ?? null,
+                'arrival_time' => $response['Result']['ArrivalTime'] ?? null
+            ]);
+        }
+    
         if (auth()->user()) {
             $layout = 'layouts.master';
         } else {
@@ -608,6 +623,17 @@ class SiteController extends Controller
         Log::info('Block Seat Response:', ['response' => $response]);
     
         if (isset($response['Error']['ErrorCode']) && $response['Error']['ErrorCode'] == 0) {
+            // Get trip details from the response if available
+            $tripDetails = null;
+            if (isset($response['Result'])) {
+                $tripDetails = [
+                    'departure_time' => $response['Result']['DepartureTime'] ?? null,
+                    'arrival_time' => $response['Result']['ArrivalTime'] ?? null,
+                    'bus_type' => $response['Result']['BusType'] ?? null,
+                    'travel_name' => $response['Result']['TravelName'] ?? null,
+                ];
+            }
+            
             // Store booking information in session for payment
             session()->put('booking_info', [
                 'boarding_point_index' => $request->boarding_point_index,
@@ -615,10 +641,12 @@ class SiteController extends Controller
                 'seats' => $request->seats,
                 'price' => $request->price,
                 'block_response' => $response,
-                'result_index' => session()->get('result_index'), // Add result_index from session
-                'passengers' => $passengers, // Store passenger data
-                'journey_date' => session()->get('date_of_journey') // Store journey date
+                'result_index' => session()->get('result_index'),
+                'passengers' => $passengers,
+                'journey_date' => session()->get('date_of_journey'),
+                'trip_details' => $tripDetails
             ]);
+            
             // Return JSON instead of redirecting
             return response()->json([
                 'response' => $response['Result'],
@@ -697,21 +725,86 @@ class SiteController extends Controller
     
             // Proceed to save the booking locally
             $userId = auth()->check() ? auth()->id() : 0;
-    
+            
+            // Extract passenger details from the first passenger
+            $firstPassenger = $bookingInfo['passengers'][0] ?? [];
+            
+            // Get journey date from session or API response
+            $journeyDate = null;
+            
+            // Try to get date from block response
+            if (isset($bookingInfo['block_response']['Result']['DepartureTime'])) {
+                $departureTime = $bookingInfo['block_response']['Result']['DepartureTime'];
+                $journeyDate = date('Y-m-d', strtotime($departureTime));
+            }
+            
+            // If not found, try session
+            if (!$journeyDate) {
+                $journeyDate = session()->get('date_of_journey');
+            }
+            
+            // If still not found, use current date
+            if (!$journeyDate || $journeyDate == '0000-00-00') {
+                $journeyDate = date('Y-m-d');
+            }
+            
+            Log::info('Journey date for booking', ['date' => $journeyDate]);
+            
+            // Find or create a trip record
+            $tripId = $this->findOrCreateTrip($bookingInfo);
+            
+            // Create source_destination array
+            $sourceDestination = [
+                session()->get('origin_id'),
+                session()->get('destination_id')
+            ];
+            
+            // Ensure pickup and dropping points exist in the Counter table
+            $this->ensureCounterExists($bookingInfo['boarding_point_index'], $bookingInfo['dropping_point_index']);
+            
             $ticket = new \App\Models\BookedTicket();
             $ticket->pnr_number = $request->booking_id;
             $ticket->user_id = $userId;
-            $ticket->date_of_journey = $bookingInfo['journey_date'] ?? date('Y-m-d');
-            $ticket->seats = $bookingInfo['seats'];
+            $ticket->date_of_journey = $journeyDate;
+            $ticket->seats = $bookingInfo['seats']; // This will be cast to array by the model
             $ticket->pickup_point = $bookingInfo['boarding_point_index'];
             $ticket->dropping_point = $bookingInfo['dropping_point_index'];
             $ticket->unit_price = $bookingInfo['price'];
             $ticket->sub_total = $bookingInfo['price'];
             $ticket->ticket_count = count(explode(',', $bookingInfo['seats']));
-            $ticket->gender = $bookingInfo['passengers'][0]['Gender'] ?? 1;
+            $ticket->gender = $firstPassenger['Gender'] ?? 1;
             $ticket->status = 1; // Confirmed
             $ticket->api_response = json_encode($apiResponse); // Save full API response
+            $ticket->trip_id = $tripId;
+            $ticket->source_destination = $sourceDestination;
+            
+            // Save passenger details
+            $ticket->passenger_name = $firstPassenger['FirstName'] . ' ' . $firstPassenger['LastName'];
+            $ticket->passenger_phone = $firstPassenger['Phoneno'] ?? null;
+            $ticket->passenger_email = $firstPassenger['Email'] ?? null;
+            $ticket->passenger_address = $firstPassenger['Address'] ?? null;
+            $ticket->passenger_age = $firstPassenger['Age'] ?? null;
+            
+            // Save all passenger names if multiple
+            $passengerNames = [];
+            foreach ($bookingInfo['passengers'] as $passenger) {
+                $passengerNames[] = $passenger['FirstName'] . ' ' . $passenger['LastName'];
+            }
+            $ticket->passenger_names = json_encode($passengerNames);
+            
             $ticket->save();
+    
+            // Store ticket in session for immediate access
+            session()->put('last_booked_ticket', [
+                'id' => $ticket->id,
+                'pnr_number' => $ticket->pnr_number,
+                'passenger_name' => $ticket->passenger_name,
+                'passenger_phone' => $ticket->passenger_phone,
+                'passenger_email' => $ticket->passenger_email,
+                'date_of_journey' => $ticket->date_of_journey,
+                'trip_id' => $ticket->trip_id,
+                'source_destination' => $ticket->source_destination
+            ]);
     
             session()->forget('booking_info');
     
@@ -730,6 +823,95 @@ class SiteController extends Controller
                 'success' => false,
                 'message' => 'Failed to book ticket: ' . $e->getMessage()
             ], 500);
+        }
+    }
+    
+    /**
+     * Find or create a trip record based on booking information
+     * 
+     * @param array $bookingInfo
+     * @return int Trip ID
+     */
+    private function findOrCreateTrip($bookingInfo)
+    {
+        // Try to find an existing trip with the same route
+        $originId = session()->get('origin_id');
+        $destinationId = session()->get('destination_id');
+        
+        $trip = \App\Models\Trip::where('start_from', $originId)
+            ->where('end_to', $destinationId)
+            ->first();
+        
+        if ($trip) {
+            return $trip->id;
+        }
+        
+        // Extract trip details from block response if available
+        $departureTime = date('H:i:s');
+        $arrivalTime = date('H:i:s', strtotime('+4 hours'));
+        $busType = 'Bus Trip';
+        
+        if (isset($bookingInfo['block_response']['Result'])) {
+            $result = $bookingInfo['block_response']['Result'];
+            
+            if (isset($result['DepartureTime'])) {
+                $departureTime = date('H:i:s', strtotime($result['DepartureTime']));
+            }
+            
+            if (isset($result['ArrivalTime'])) {
+                $arrivalTime = date('H:i:s', strtotime($result['ArrivalTime']));
+            }
+            
+            if (isset($result['BusType'])) {
+                $busType = $result['BusType'];
+            }
+        }
+        
+        // If no trip exists, create a new one
+        $trip = new \App\Models\Trip();
+        $trip->title = $busType;
+        $trip->start_from = $originId;
+        $trip->end_to = $destinationId;
+        $trip->schedule_id = 1; // Default schedule
+        $trip->start_time = $departureTime;
+        $trip->end_time = $arrivalTime;
+        $trip->status = 1;
+        $trip->save();
+        
+        return $trip->id;
+    }
+    
+    /**
+     * Ensure counter records exist for pickup and dropping points
+     * 
+     * @param int $pickupPointId
+     * @param int $droppingPointId
+     * @return void
+     */
+    private function ensureCounterExists($pickupPointId, $droppingPointId)
+    {
+        // Check if pickup point exists
+        $pickupCounter = \App\Models\Counter::find($pickupPointId);
+        if (!$pickupCounter) {
+            // Create pickup counter
+            $pickupCounter = new \App\Models\Counter();
+            $pickupCounter->id = $pickupPointId;
+            $pickupCounter->name = 'Pickup Point ' . $pickupPointId;
+            $pickupCounter->city = session()->get('origin_id') ?? 0;
+            $pickupCounter->status = 1;
+            $pickupCounter->save();
+        }
+        
+        // Check if dropping point exists
+        $droppingCounter = \App\Models\Counter::find($droppingPointId);
+        if (!$droppingCounter) {
+            // Create dropping counter
+            $droppingCounter = new \App\Models\Counter();
+            $droppingCounter->id = $droppingPointId;
+            $droppingCounter->name = 'Dropping Point ' . $droppingPointId;
+            $droppingCounter->city = session()->get('destination_id') ?? 0;
+            $droppingCounter->status = 1;
+            $droppingCounter->save();
         }
     }
 

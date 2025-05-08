@@ -318,7 +318,7 @@
                 </div>
                 
                 <!-- Journey Details Section -->
-                <div class="journey-details">
+                <!-- <div class="journey-details">
                     <h5>@lang('Journey Details')</h5>
                     <div class="journey-info">
                         <span class="label">@lang('Bus Name'):</span>
@@ -336,7 +336,7 @@
                         <span class="label">@lang('Dropping Point'):</span>
                         <span class="value">{{ __(@$ticket->drop->name ?? 'N/A') }}</span>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>

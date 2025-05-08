@@ -23,72 +23,149 @@ class TicketController extends Controller
 
     // Add this new method for printing bus tickets
     public function printTicket($bookingId)
-    {
-        try {
-            // Find the ticket by booking ID (PNR number)
-            $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
-                ->where('pnr_number', $bookingId)
-                ->firstOrFail();
-            
-            // Log ticket data for debugging
-            Log::info('Ticket data for printing', [
-                'ticket_id' => $ticket->id,
-                'pnr' => $ticket->pnr_number,
-                'user' => $ticket->user ? $ticket->user->toArray() : 'Guest',
-                'journey_date' => $ticket->date_of_journey,
-                'trip' => $ticket->trip ? $ticket->trip->toArray() : null
-            ]);
-            
-            $pageTitle = 'Print Ticket';
-            
-            // Get the general site settings - with fallback values
-            $general = (object) [
-                'cur_sym' => '₹', // Default currency symbol as fallback
-                'sitename' => 'Bus Booking System' // Default site name as fallback
-            ];
-            
-            // Try to get actual general settings if the function exists
-            if (function_exists('getContent')) {
-                $generalSettings = getContent('general_setting.content', true);
-                if ($generalSettings) {
-                    $general = $generalSettings;
-                }
+{
+    try {
+        // Find the ticket by booking ID (PNR number)
+        $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
+            ->where('pnr_number', $bookingId)
+            ->firstOrFail();
+        
+        // Log ticket data for debugging
+        Log::info('Ticket data for printing', [
+            'ticket_id' => $ticket->id,
+            'pnr' => $ticket->pnr_number,
+            'user' => $ticket->user ? $ticket->user->toArray() : 'Guest',
+            'journey_date' => $ticket->date_of_journey,
+            'passenger_name' => $ticket->passenger_name,
+            'trip' => $ticket->trip ? $ticket->trip->toArray() : null,
+            'pickup' => $ticket->pickup ? $ticket->pickup->toArray() : null,
+            'drop' => $ticket->drop ? $ticket->drop->toArray() : null
+        ]);
+        
+        $pageTitle = 'Print Ticket';
+        
+        // Get the general site settings - with fallback values
+        $general = (object) [
+            'cur_sym' => '₹', // Default currency symbol as fallback
+            'sitename' => 'Bus Booking System' // Default site name as fallback
+        ];
+        
+        // Try to get actual general settings if the function exists
+        if (function_exists('getContent')) {
+            $generalSettings = getContent('general_setting.content', true);
+            if ($generalSettings) {
+                $general = $generalSettings;
             }
+        }
+        
+        // Determine the layout based on authentication status
+        $layout = 'layouts.frontend';
+        
+        // Parse journey date to ensure it's in the correct format
+        if ($ticket->date_of_journey && $ticket->date_of_journey != '0000-00-00') {
+            $journeyDate = Carbon::parse($ticket->date_of_journey);
+            $ticket->formatted_date = $journeyDate->format('F d, Y');
+            $ticket->journey_day = $journeyDate->format('l');
+        } else {
+            // Set default values if date is invalid
+            $ticket->formatted_date = 'Not specified';
+            $ticket->journey_day = 'Not specified';
             
-            // Determine the layout based on authentication status
-            $layout = 'layouts.frontend';
-            
-            // Parse journey date to ensure it's in the correct format
-            if ($ticket->date_of_journey) {
+            // Try to update the date if possible
+            if ($ticket->trip && $ticket->trip->created_at) {
+                $ticket->date_of_journey = $ticket->trip->created_at->format('Y-m-d');
+                $ticket->save();
+                
                 $journeyDate = Carbon::parse($ticket->date_of_journey);
                 $ticket->formatted_date = $journeyDate->format('F d, Y');
                 $ticket->journey_day = $journeyDate->format('l');
             }
-            
-            // Get passenger details from session if available
-            $sessionBookingInfo = session()->get('booking_info', []);
-            $passengerName = null;
-            
-            // Check if we have passenger details in the session
-            if (isset($sessionBookingInfo['passenger_firstname'])) {
-                $passengerName = $sessionBookingInfo['passenger_firstname'] . ' ' . 
-                                ($sessionBookingInfo['passenger_lastname'] ?? '');
-                $ticket->passenger_name = $passengerName;
-                $ticket->passenger_phone = $sessionBookingInfo['passenger_phone'] ?? null;
-                $ticket->passenger_email = $sessionBookingInfo['passenger_email'] ?? null;
-            }
-            
-            return view('templates.basic.user.print_ticket', compact('ticket', 'pageTitle', 'general', 'layout'));
-        } catch (\Exception $e) {
-            Log::error('Error in printTicket method: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            abort(500, 'Error generating ticket: ' . $e->getMessage());
         }
+        
+        // If we don't have passenger details in the ticket, try to get from session
+        if (empty($ticket->passenger_name)) {
+            $lastBookedTicket = session()->get('last_booked_ticket', []);
+            if (!empty($lastBookedTicket) && $lastBookedTicket['pnr_number'] == $bookingId) {
+                $ticket->passenger_name = $lastBookedTicket['passenger_name'] ?? null;
+                $ticket->passenger_phone = $lastBookedTicket['passenger_phone'] ?? null;
+                $ticket->passenger_email = $lastBookedTicket['passenger_email'] ?? null;
+            }
+        }
+        
+        // If trip is missing, try to find it
+        if (!$ticket->trip) {
+            // Try to find a trip with the same route
+            if ($ticket->source_destination && is_array($ticket->source_destination) && count($ticket->source_destination) >= 2) {
+                $trip = \App\Models\Trip::where('start_from', $ticket->source_destination[0])
+                    ->where('end_to', $ticket->source_destination[1])
+                    ->first();
+                
+                if ($trip) {
+                    $ticket->trip_id = $trip->id;
+                    $ticket->save();
+                    
+                    // Reload the ticket with the trip
+                    $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
+                        ->where('pnr_number', $bookingId)
+                        ->firstOrFail();
+                }
+            }
+        }
+        
+        // If pickup or dropping points are missing, create them
+        if (!$ticket->pickup) {
+            $this->createCounterIfMissing($ticket->pickup_point, 'Pickup Point', $ticket->source_destination[0] ?? 0);
+            
+            // Reload the ticket
+            $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
+                ->where('pnr_number', $bookingId)
+                ->firstOrFail();
+        }
+        
+        if (!$ticket->drop) {
+            $this->createCounterIfMissing($ticket->dropping_point, 'Dropping Point', $ticket->source_destination[1] ?? 0);
+            
+            // Reload the ticket
+            $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
+                ->where('pnr_number', $bookingId)
+                ->firstOrFail();
+        }
+        
+        return view('templates.basic.user.print_ticket', compact('ticket', 'pageTitle', 'general', 'layout'));
+    } catch (\Exception $e) {
+        Log::error('Error in printTicket method: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        abort(500, 'Error generating ticket: ' . $e->getMessage());
     }
+}
+
+/**
+ * Create a counter record if it doesn't exist
+ * 
+ * @param int $counterId
+ * @param string $namePrefix
+ * @param int $cityId
+ * @return \App\Models\Counter
+ */
+private function createCounterIfMissing($counterId, $namePrefix, $cityId)
+{
+    $counter = \App\Models\Counter::find($counterId);
+    
+    if (!$counter) {
+        $counter = new \App\Models\Counter();
+        $counter->id = $counterId;
+        $counter->name = $namePrefix . ' ' . $counterId;
+        $counter->city = $cityId;
+        $counter->status = 1;
+        $counter->save();
+    }
+    
+    return $counter;
+}
     // Support Ticket
     public function supportTicket()
     {

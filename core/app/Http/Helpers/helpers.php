@@ -995,8 +995,8 @@ function searchAPIBuses($userIp, $source, $destination, $date)
         ];
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
-            'Username' => $busUser,  // Corrected
-            'Password' => $busPass,  // Corrected
+            'Username' => $busUser,  
+            'Password' => $busPass,  
         ])->post($busUrl, $data);
         return $response->json();
     } catch (\Exception $e) {
@@ -1103,7 +1103,7 @@ function blockSeatHelper($boardingPointId, $droppingPointId, $passengers, $seats
 function bookAPITicket($userIp, $searchTokenId, $resultIndex, $boardingPointId, $droppingPointId, $passengers)
 {
     try {
-        $busUrl = env('LIVE_BUS_API') . '/busservice/rest/book-ticket';
+        $busUrl = env('LIVE_BUS_API') . '/busservice/rest/book';
         $busUser = env('LIVE_BUS_USERNAME');
         $busPass = env('LIVE_BUS_PASSWORD');
 

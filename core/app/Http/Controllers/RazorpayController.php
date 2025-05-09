@@ -5,63 +5,88 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Razorpay\Api\Api;
 use Illuminate\Support\Facades\Log;
+use App\Models\MarkupTable;
+use App\Models\BookedTicket;
 
 class RazorpayController extends Controller
 {
+   
+    
+    
     public function createOrder(Request $request)
 {
     try {
         // Validate request
         $request->validate([
-            'booking_id' => 'required|string'
+            'booking_id' => 'required|string',
+            'amount' => 'required|numeric|min:0', // Ensure amount is provided
         ]);
 
-        // Set static amount to 1 rupee for testing
-        $amount = 1; // Static 1 rupee for testing
+        // Get actual amount with markup from the request
+        $amount = $request->amount; // Assuming the frontend sends the base price (before markup)
         $bookingId = $request->booking_id;
-        
+
+        // Fetch markup details
+        $markup = MarkupTable::orderBy('id', 'desc')->first();
+        $flatMarkup = $markup->flat_markup ?? 0;
+        $percentageMarkup = $markup->percentage_markup ?? 0;
+        $threshold = $markup->threshold ?? 0;
+
+        // Apply markup based on price
+        if ($amount <= $threshold) {
+            // Apply flat markup
+            $finalAmount = $amount + $flatMarkup;
+        } else {
+            // Apply percentage markup
+            $finalAmount = $amount + ($amount * $percentageMarkup / 100);
+        }
+
         // Initialize Razorpay API
         $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
-        
-        // Create order with static amount of 1 rupee (100 paise)
+
+        // Create order with actual amount (including markup)
         $orderData = [
             'receipt' => $bookingId,
-            'amount' => 100, // 1 rupee = 100 paise (static for testing)
+            'amount' => $finalAmount * 100, // Convert to paise (as Razorpay works in paise)
             'currency' => 'INR',
             'notes' => [
                 'booking_id' => $bookingId,
-                'actual_amount' => $request->amount // Store actual amount in notes for reference
+                'actual_amount' => $amount, // Store actual amount in notes for reference
+                'final_amount' => $finalAmount // Store final amount (after markup) in notes
             ]
         ];
-        
-        Log::info('Creating Razorpay test order', [
+
+        Log::info('Creating Razorpay order with actual amount', [
             'booking_id' => $bookingId,
-            'test_amount' => 1,
-            'actual_amount' => $request->amount
+            'amount' => $amount,
+            'final_amount' => $finalAmount
         ]);
-        
+
+        // Create Razorpay order
         $razorpayOrder = $api->order->create($orderData);
-        
-        Log::info('Razorpay test order created successfully', [
+
+        Log::info('Razorpay order created successfully', [
             'order_id' => $razorpayOrder->id
         ]);
-        
+
         return response()->json([
             'success' => true,
             'order_id' => $razorpayOrder->id,
-            'amount' => 1 // Return static amount
+            'amount' => $finalAmount // Return the actual amount with markup
         ]);
     } catch (\Exception $e) {
         Log::error('Razorpay order creation failed: ' . $e->getMessage(), [
             'trace' => $e->getTraceAsString()
         ]);
-        
+
         return response()->json([
             'success' => false,
             'message' => 'Failed to create payment order: ' . $e->getMessage()
         ], 500);
     }
 }
+
+    
     
 public function verifyPayment(Request $request)
 {

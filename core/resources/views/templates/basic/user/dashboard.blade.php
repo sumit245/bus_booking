@@ -60,12 +60,19 @@
                         @forelse ($bookedTickets as $item)
                         <tr>
                             <td class="ticket-no" data-label="@lang('PNR Number')">{{ __($item->pnr_number) }}</td>
-                            <td class="" data-label="@lang('AC / Non-Ac')">{{ $item->trip->fleetType->has_ac ? 'AC' : 'Non-Ac' }}</td>
-                            <td class="pickup" data-label="Starting Point">{{ __($item->pickup->name) }}</td>
+                            <td data-label="@lang('AC / Non-Ac')">
+    {{ isset($item->trip->fleetType) && $item->trip->fleetType->has_ac ? 'AC' : 'Non-Ac' }}
+</td>
+ <td class="pickup" data-label="Starting Point">{{ __($item->pickup->name) }}</td>
                             <td class="drop" data-label="Dropping Point">{{ __($item->drop->name) }}</td>
                             <td class="date" data-label="Journey Date">{{ __(showDateTime($item->date_of_journey , 'd M, Y')) }}</td>
-                            <td class="time" data-label="Pickup Time">{{ __(showDateTime($item->trip->schedule->start_from, 'H:i a')) }}</td>
-                            <td class="seats" data-label="Booked Seats">{{ __(implode(",",$item->seats)) }}</td>
+                            <td class="time" data-label="Pickup Time">
+    {{ optional($item->trip->schedule)->start_from ? __(showDateTime($item->trip->schedule->start_from, 'H:i a')) : 'N/A' }}
+</td>
+<td class="seats" data-label="Booked Seats">
+    {{ is_array($item->seats) ? implode(',', $item->seats) : $item->seats }}
+</td>
+
                             <td data-label="@lang('Status')">
                                 @if($item->status == 1)
                                 <span class="badge badge--success"> @lang('Booked')</span>

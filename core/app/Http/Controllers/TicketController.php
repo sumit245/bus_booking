@@ -20,6 +20,108 @@ class TicketController extends Controller
     }
 
     
+/**
+ * Cancel a booked ticket
+ *
+ * @param Request $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function cancelTicket(Request $request)
+{
+    try {
+        $request->validate([
+            'ticket_id' => 'required|integer',
+            'remarks' => 'nullable|string|max:255'
+        ]);
+
+        // Find the ticket
+        $ticket = BookedTicket::findOrFail($request->ticket_id);
+
+        // Check if the ticket belongs to the authenticated user
+        if (auth()->id() != $ticket->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action'
+            ], 403);
+        }
+
+        // Check if the ticket is already cancelled or past journey date
+        if ($ticket->status != 1 || Carbon::parse($ticket->date_of_journey)->lt(Carbon::today())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This ticket cannot be cancelled'
+            ], 400);
+        }
+
+        // Get the booking ID from the PNR number
+        $bookingId = $ticket->pnr_number;
+        
+        // Get the search token ID from session or use a default one
+        $searchTokenId = session()->get('search_token_id') ?? '5a8e779347e468df8e212714b7bc6b6c0472a765';
+        
+        // Get the seats (may be multiple)
+        $seats = is_array($ticket->seats) ? $ticket->seats : explode(',', $ticket->seats);
+        
+        $cancelSuccess = true;
+        $apiResponses = [];
+        
+        // Cancel each seat
+        foreach ($seats as $seat) {
+            $response = cancelAPITicket(
+                request()->ip(),
+                $searchTokenId,
+                $bookingId,
+                $seat,
+                $request->remarks ?? 'Cancelled by customer'
+            );
+            
+            $apiResponses[] = $response;
+            
+            // Check if any cancellation failed
+            if (isset($response['Error']) && $response['Error']['ErrorCode'] != 0) {
+                $cancelSuccess = false;
+            }
+        }
+        
+        // If API cancellation was successful, update the ticket status
+        if ($cancelSuccess) {
+            $ticket->status = 3; // Cancelled status
+            $ticket->cancellation_remarks = $request->remarks ?? 'Cancelled by customer';
+            $ticket->cancelled_at = now();
+            $ticket->save();
+            
+            // Create an admin notification
+            $adminNotification = new AdminNotification();
+            $adminNotification->user_id = auth()->id();
+            $adminNotification->title = 'Ticket cancelled';
+            $adminNotification->click_url = urlPath('admin.ticket.view', $ticket->id);
+            $adminNotification->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Ticket cancelled successfully',
+                'ticket' => $ticket
+            ]);
+        }
+        
+        // If we got here, something went wrong with the API
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to cancel ticket with the provider',
+            'responses' => $apiResponses
+        ], 500);
+        
+    } catch (\Exception $e) {
+        Log::error('Ticket cancellation error: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
     // Add this new method for printing bus tickets
     public function printTicket($bookingId)

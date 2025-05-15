@@ -12,8 +12,6 @@ use App\Models\Counter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use PHPMailer\PHPMailer\Exception;
-use PHPMailer\PHPMailer\PHPMailer;
-
 
 function sidebarVariation()
 {
@@ -903,6 +901,8 @@ function urlPath($routeName, $routeParam = null)
 }
 
 
+
+
 function sendOtp($mobile, $userName = "Guest", $otp)
 {
     $apiUrl = env('WHATSAPP_API_URL');
@@ -913,33 +913,43 @@ function sendOtp($mobile, $userName = "Guest", $otp)
         "campaignName"        => "whatsapp_otp",
         "destination"         => "91{$mobile}",
         "userName"            => $userName,
-        "templateParams"      => [$otp],
+        "templateParams"      => [ (string) $otp ],
         "source"              => "new-landing-page form",
-        "media"               => [],
-        "buttons"             => [[
-            "type"       => "button",
-            "sub_type"   => "url",
-            "index"      => 0,
-            "parameters" => [
-                [
-                    "type" => "text",
-                    "text" => $otp, // Replace with dynamic or fixed value if needed
-                ],
-            ],
-        ]],
+        "media"               => new \stdClass(), // empty object
+        "buttons"             => [
+            [
+                "type" => "button",
+                "sub_type" => "url",
+                "index" => 0,
+                "parameters" => [
+                    [
+                        "type" => "text",
+                        "text" => "TESTCODE20"
+                    ]
+                ]
+            ]
+        ],
         "carouselCards"       => [],
-        "location"            => [],
-        "paramsFallbackValue" => ["FirstName" => "user"],
+        "location"            => new \stdClass(), // empty object
+        "attributes"          => new \stdClass(), // empty object
+        "paramsFallbackValue" => [
+            "FirstName" => "user"
+        ],
     ];
+
+    Log::info("Generated OTP for {$mobile}: {$otp}");
 
     $response = Http::post($apiUrl, $payload);
 
     if ($response->successful()) {
-        return $otp; // Return OTP if the API call succeeds
+        return $otp;
     } else {
         throw new \Exception("Failed to send OTP. Error: " . $response->body());
     }
 }
+
+
+
 
 
 function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
@@ -1126,6 +1136,41 @@ function bookAPITicket($userIp, $searchTokenId, $resultIndex, $boardingPointId, 
         return $response->json();
     } catch (\Exception $e) {
         Log::error('Book ticket API exception: ' . $e->getMessage());
+        return [
+            'Error' => [
+                'ErrorCode' => 500,
+                'ErrorMessage' => $e->getMessage()
+            ]
+        ];
+    }
+}
+
+
+function cancelAPITicket($userIp, $searchTokenId, $bookingId, $seatId, $remarks)
+{
+    try {
+        $busUrl = env('LIVE_BUS_API') . '/busservice/rest/cancelrequest';
+        $busUser = env('LIVE_BUS_USERNAME');
+        $busPass = env('LIVE_BUS_PASSWORD');
+
+        $data = [
+            'UserIp' => $userIp,
+            'SearchTokenId' => $searchTokenId,
+            'BookingId' => $bookingId,
+            'SeatId' => $seatId,
+            'Remarks' => $remarks
+        ];
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Username' => $busUser,
+            'Password' => $busPass,
+        ])->post($busUrl, $data);
+
+        Log::info('Cancel ticket API response: ' . $response->body());
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Cancel ticket API exception: ' . $e->getMessage());
         return [
             'Error' => [
                 'ErrorCode' => 500,

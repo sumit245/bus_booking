@@ -21,6 +21,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Illuminate\Support\Str;
+
 
 use App\Models\MarkupTable;
 class SiteController extends Controller
@@ -590,7 +595,63 @@ class SiteController extends Controller
             'dropping_point_index' => 'required',
             'gender' => 'required',
             'seats' => 'required',
+            'passenger_phone' => 'required',
+            'passenger_firstname' => 'required',
+            'passenger_lastname' => 'required',
+            'passenger_email' => 'required|email',
         ]);
+        
+        // Check if OTP is verified
+        $phone = $request->passenger_phone;
+        if (strpos($phone, '+91') === 0) {
+            $phone = substr($phone, 3);
+        } else if (strpos($phone, '91') === 0 && strlen($phone) > 10) {
+            $phone = substr($phone, 2);
+        }
+        
+        $verifiedPhone = Session::get('otp_verified_phone');
+        if (!$verifiedPhone || $verifiedPhone !== $phone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Phone number not verified with OTP'
+            ], 400);
+        }
+        
+        // Register user if not already registered
+        if (!Auth::check()) {
+            $fullPhone = '91' . $phone;
+            $user = User::where('mobile', $fullPhone)->first();
+            
+            if (!$user) {
+                // Create new user
+                $user = new User();
+                $user->firstname = $request->passenger_firstname;
+                $user->lastname = $request->passenger_lastname;
+                $user->email = $request->passenger_email;
+                $user->username = 'user' . time(); // Generate a unique username
+                $user->mobile = $fullPhone;
+                $user->password = Hash::make(Str::random(8)); // Generate a random password
+                $user->country_code = '91';
+                $user->address = [
+                    'address' => $request->passenger_address ?? '',
+                    'state' => '',
+                    'zip' => '',
+                    'country' => 'India',
+                    'city' => ''
+                ];
+                $user->status = 1;
+                $user->ev = 1; // Email verified
+                $user->sv = 1; // SMS verified
+                $user->save();
+                
+                // Log the user in
+                Auth::login($user);
+            } else {
+                // Log in existing user
+                Auth::login($user);
+            }
+        }
+        
         // Get selected seats
         $seats = explode(',', $request->seats);
     
@@ -612,6 +673,7 @@ class SiteController extends Controller
                 "SeatName" => $seatName
             ];
         }
+        
         // Call the helper function
         $response = blockSeatHelper(
             $request->boarding_point_index,
@@ -656,7 +718,10 @@ class SiteController extends Controller
         }
     
         // If there's an error
-        return back()->with('error', $response['Error']['ErrorMessage'] ?? 'Failed to block seats. Please try again.');
+        return response()->json([
+            'success' => false,
+            'message' => $response['Error']['ErrorMessage'] ?? 'Failed to block seats. Please try again.'
+        ], 400);
     }
     
     public function bookTicketApi(Request $request)

@@ -238,15 +238,41 @@
                     </div>
 
                     <div class="col-md-6">
-                      <div class="form-group">
-                        <label class="form-label">@lang("Phone Number")
-                          <span class="text-danger">*</span>
-                        </label>
-                        <input type="tel" class="form--control" id="passenger_phone"
-                          placeholder="@lang("Enter Phone Number")" value="">
-                        <div class="invalid-feedback">This field is required!</div>
-                      </div>
-                    </div>
+  <div class="form-group">
+    <label class="form-label">@lang("Phone Number")
+      <span class="text-danger">*</span>
+    </label>
+    <div class="input-group">
+      <input type="tel" class="form--control" id="passenger_phone" name="passenger_phone"
+        placeholder="@lang("Enter Phone Number")" value="">
+      <button type="button" class="btn btn--base" id="sendOtpBtn">
+        @lang("Send OTP")
+      </button>
+    </div>
+    <div class="invalid-feedback">This field is required!</div>
+  </div>
+</div>
+
+<!-- Add OTP verification field (initially hidden) -->
+<div class="col-md-6" id="otpVerificationContainer" style="display: none;">
+  <div class="form-group">
+    <label class="form-label">@lang("Enter OTP")
+      <span class="text-danger">*</span>
+    </label>
+    <div class="input-group">
+      <input type="text" class="form--control" id="otp_code" name="otp_code"
+        placeholder="@lang("Enter OTP sent to WhatsApp")" maxlength="6">
+      <button type="button" class="btn btn--base" id="verifyOtpBtn">
+        @lang("Verify")
+      </button>
+    </div>
+    <div class="invalid-feedback">Invalid OTP!</div>
+    <small class="text-muted">OTP sent to your WhatsApp number</small>
+  </div>
+</div>
+
+<!-- Add hidden field to track OTP verification status -->
+<input type="hidden" name="is_otp_verified" id="is_otp_verified" value="0">
 
                     <div class="col-12">
                       <div class="form-group">
@@ -631,7 +657,112 @@ function processPaymentSuccess(response, bookingId) {
       alert(xhr.responseJSON?.message || "Failed to verify payment.");
     }
   });
+  
 }
+$(document).ready(function() {
+  // Send OTP button click handler
+  $('#sendOtpBtn').on('click', function() {
+    const phoneNumber = $('#passenger_phone').val().trim();
+    if (!phoneNumber) {
+      alert('Please enter a valid phone number');
+      return;
+    }
+    
+    // Disable button and show loading state
+    const $btn = $(this);
+    $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Sending...');
+    
+    // Send AJAX request to send OTP
+    $.ajax({
+      url: "{{ route('send.otp') }}",
+      type: "POST",
+      data: {
+        _token: "{{ csrf_token() }}",
+        phone: phoneNumber,
+        name: $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val()
+      },
+      success: function(response) {
+        if (response.success) {
+          // Show OTP verification field
+          $('#otpVerificationContainer').show();
+          alert('OTP sent to your WhatsApp number');
+        } else {
+          alert(response.message || 'Failed to send OTP. Please try again.');
+        }
+      },
+      error: function(xhr) {
+        alert('Error: ' + (xhr.responseJSON?.message || 'Failed to send OTP'));
+      },
+      complete: function() {
+        // Reset button state
+        $btn.prop('disabled', false).html('@lang("Send OTP")');
+      }
+    });
+  });
+  
+  // Verify OTP button click handler
+  $('#verifyOtpBtn').on('click', function() {
+    const otp = $('#otp_code').val().trim();
+    const phone = $('#passenger_phone').val().trim();
+    
+    if (!otp) {
+      alert('Please enter the OTP');
+      return;
+    }
+    
+    // Disable button and show loading state
+    const $btn = $(this);
+    $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Verifying...');
+    
+    // Send AJAX request to verify OTP
+    $.ajax({
+      url: "{{ route('verify.otp') }}",
+      type: "POST",
+      data: {
+        _token: "{{ csrf_token() }}",
+        phone: phone,
+        otp: otp
+      },
+      success: function(response) {
+        if (response.success) {
+          // Mark OTP as verified
+          $('#is_otp_verified').val('1');
+          $('#otpVerificationContainer').removeClass('has-error').addClass('has-success');
+          $('#otp_code').prop('disabled', true);
+          $btn.html('<i class="las la-check"></i> Verified').addClass('btn--success');
+          
+          // If user is logged in through OTP
+          if (response.user_logged_in) {
+            alert('You have been logged in successfully!');
+          }
+        } else {
+          $('#otpVerificationContainer').addClass('has-error');
+          alert(response.message || 'Invalid OTP. Please try again.');
+          $btn.prop('disabled', false).html('@lang("Verify")');
+        }
+      },
+      error: function(xhr) {
+        alert('Error: ' + (xhr.responseJSON?.message || 'Failed to verify OTP'));
+        $btn.prop('disabled', false).html('@lang("Verify")');
+      }
+    });
+  });
+  
+  // Modify the confirm passenger button to check OTP verification
+  $('#confirmPassengerBtn').on('click', function(e) {
+    if ($('#is_otp_verified').val() !== '1') {
+      e.preventDefault();
+      e.stopPropagation();
+      alert('Please verify your phone number with OTP before proceeding');
+      return false;
+    }
+    
+    // Continue with the existing functionality
+    $('#payment-tab').tab('show');
+    
+    // Rest of your existing code...
+  });
+});
 </script>
 
 @endpush

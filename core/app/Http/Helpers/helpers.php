@@ -1161,13 +1161,23 @@ function cancelAPITicket($userIp, $searchTokenId, $bookingId, $seatId, $remarks)
             'Remarks' => $remarks
         ];
 
-        $response = Http::withHeaders([
+        $headers = [
             'Content-Type' => 'application/json',
             'Username' => $busUser,
             'Password' => $busPass,
-        ])->post($busUrl, $data);
+        ];
+
+        // 🔍 Log full request data
+        Log::info('Sending cancel ticket API request', [
+            'url' => $busUrl,
+            'headers' => $headers,
+            'body' => $data,
+        ]);
+
+        $response = Http::withHeaders($headers)->post($busUrl, $data);
 
         Log::info('Cancel ticket API response: ' . $response->body());
+
         return $response->json();
     } catch (\Exception $e) {
         Log::error('Cancel ticket API exception: ' . $e->getMessage());

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
+
 class UserController extends Controller
 {
     public function __construct()
@@ -18,21 +19,32 @@ class UserController extends Controller
         $this->activeTemplate = activeTemplate();
     }
 
-    public function home()
-    {
-        $pageTitle = 'Dashboard';
-        $emptyMessage = 'No booked ticket found';
-        $user = auth()->user();
-        $widget['booked'] = $user->tickets()->booked()->count();
-        $widget['pending'] = $user->tickets()->pending()->count();
-        $widget['rejected'] = $user->tickets()->rejected()->count();
+   public function home()
+{
+    $pageTitle = 'Dashboard';
+    $emptyMessage = 'No booked ticket found';
+    $user = auth()->user();
 
-        $widget['booked'] = BookedTicket::booked()->where('user_id', auth()->user()->id)->count();
-        $widget['pending'] = BookedTicket::pending()->where('user_id', auth()->user()->id)->count();
-        $widget['rejected'] = BookedTicket::rejected()->where('user_id', auth()->user()->id)->count();
-        $bookedTickets = BookedTicket::with(['trip.fleetType','trip.startFrom', 'trip.endTo', 'trip.schedule' ,'pickup', 'drop'])->where('user_id', auth()->user()->id)->orderBy('id', 'desc')->paginate(getPaginate());
-        return view($this->activeTemplate . 'user.dashboard', compact('pageTitle', 'bookedTickets', 'widget', 'emptyMessage'));
-    }
+    $widget['total']     = BookedTicket::where('user_id', $user->id)->count();
+    $widget['booked']    = BookedTicket::booked()->where('user_id', $user->id)->count();
+    $widget['pending']   = BookedTicket::pending()->where('user_id', $user->id)->count();
+    $widget['rejected']  = BookedTicket::rejected()->where('user_id', $user->id)->count();
+    $widget['cancelled'] = BookedTicket::where('user_id', $user->id)->where('status', 3)->count();
+
+    $bookedTickets = BookedTicket::with([
+        'trip.fleetType',
+        'trip.startFrom',
+        'trip.endTo',
+        'trip.schedule',
+        'pickup',
+        'drop'
+    ])->where('user_id', $user->id)
+      ->orderBy('id', 'desc')
+      ->paginate(getPaginate());
+
+    return view($this->activeTemplate . 'user.dashboard', compact('pageTitle', 'bookedTickets', 'widget', 'emptyMessage'));
+}
+
 
     public function profile()
     {

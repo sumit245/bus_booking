@@ -11,10 +11,11 @@ class AddCancellationFieldsToBookedTicketsTable extends Migration
      *
      * @return void
      */
-    public function up()
+     public function up()
     {
         Schema::table('booked_tickets', function (Blueprint $table) {
-            //
+            $table->text('cancellation_remarks')->nullable()->after('status');
+            $table->timestamp('cancelled_at')->nullable()->after('cancellation_remarks');
         });
     }
 

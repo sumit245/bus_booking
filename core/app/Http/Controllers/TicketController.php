@@ -54,7 +54,16 @@ public function cancelTicket(Request $request)
         }
 
         // Get the booking ID from the PNR number
-        $bookingId = $ticket->pnr_number;
+        $apiResponse = json_decode($ticket->api_response, true);
+$bookingId = $apiResponse['Result']['BookingID'] ?? null;
+
+if (!$bookingId) {
+    return response()->json([
+        'success' => false,
+        'message' => 'Booking ID not found in API response.'
+    ], 500);
+}
+
         
         // Get the search token ID from session or use a default one
         $searchTokenId = session()->get('search_token_id') ?? '5a8e779347e468df8e212714b7bc6b6c0472a765';

@@ -9,7 +9,7 @@
                     <thead>
                         <tr>
                             <th>@lang('PNR Number')</th>
-                            <th>@lang('AC / Non-Ac')</th>
+                            <th>@lang('Bus Type')</th>
                             <th>@lang('Starting Point')</th>
                             <th>@lang('Dropping Point')</th>
                             <th>@lang('Journey Date')</th>
@@ -22,19 +22,70 @@
                     </thead>
                     <tbody>
                         @forelse ($bookedTickets as $item)
+                        @php
+                            // Parse bus details from JSON if available
+                            $busDetails = null;
+                            if (!empty($item->bus_details)) {
+                                $busDetails = json_decode($item->bus_details, true);
+                            }
+                            
+                            // Parse boarding point details from JSON if available
+                            $boardingPointDetails = null;
+                            if (!empty($item->boarding_point_details)) {
+                                $boardingPointDetails = json_decode($item->boarding_point_details, true);
+                            }
+                            
+                            // Parse dropping point details from JSON if available
+                            $droppingPointDetails = null;
+                            if (!empty($item->dropping_point_details)) {
+                                $droppingPointDetails = json_decode($item->dropping_point_details, true);
+                            }
+                            
+                            // Format departure time
+                            $departureTime = null;
+                            if (isset($busDetails['departure_time'])) {
+                                $departureTime = date('h:i A', strtotime($busDetails['departure_time']));
+                            } elseif ($item->departure_time && $item->departure_time != '00:00:00') {
+                                $departureTime = date('h:i A', strtotime($item->departure_time));
+                            }
+                        @endphp
                         <tr>
                             <td class="ticket-no" data-label="@lang('PNR Number')">{{ __($item->pnr_number) }}</td>
-                            <td data-label="@lang('AC / Non-Ac')">
-                                {{ $item->trip?->fleetType?->has_ac ? 'AC' : 'Non-Ac' }}
+                            <td data-label="@lang('Bus Type')">
+                                {{ $item->bus_type ?? ($busDetails['bus_type'] ?? ($item->trip?->fleetType?->has_ac ? 'AC' : 'Non-Ac')) }}
                             </td>
-                            <td class="pickup" data-label="Starting Point">{{ __($item->pickup->name) }}</td>
-                            <td class="drop" data-label="Dropping Point">{{ __($item->drop->name) }}</td>
+                            <td class="pickup" data-label="Starting Point">
+                                @if(isset($boardingPointDetails['CityPointName']))
+                                    {{ __($boardingPointDetails['CityPointName']) }}
+                                @elseif(isset($item->pickup->name))
+                                    {{ __($item->pickup->name) }}
+                                @else
+                                    N/A
+                                @endif
+                            </td>
+                            <td class="drop" data-label="Dropping Point">
+                                @if(isset($droppingPointDetails['CityPointName']))
+                                    {{ __($droppingPointDetails['CityPointName']) }}
+                                @elseif(isset($item->drop->name))
+                                    {{ __($item->drop->name) }}
+                                @else
+                                    N/A
+                                @endif
+                            </td>
                             <td class="date" data-label="Journey Date">{{ __(showDateTime($item->date_of_journey , 'd M, Y')) }}</td>
                             <td class="time" data-label="Pickup Time">
-                                {{ $item->trip?->schedule?->start_from ? __(showDateTime($item->trip->schedule->start_from, 'H:i a')) : '--' }}
+                                @if(isset($boardingPointDetails['CityPointTime']))
+                                    {{ __(date('h:i A', strtotime($boardingPointDetails['CityPointTime']))) }}
+                                @elseif($departureTime)
+                                    {{ $departureTime }}
+                                @elseif($item->trip?->schedule?->start_from)
+                                    {{ __(showDateTime($item->trip->schedule->start_from, 'H:i a')) }}
+                                @else
+                                    N/A
+                                @endif
                             </td>
                             <td class="seats" data-label="Booked Seats">
-                                {{ __($item->seats ?? '--') }}
+                                {{ is_array($item->seats) ? implode(',', $item->seats) : __($item->seats ?? '--') }}
                             </td>
                             <td data-label="@lang('Status')">
                                 @if($item->status == 1)
@@ -57,7 +108,7 @@
                                         <a href="javascript:void(0)" class="cancel-ticket text-danger" 
                                            data-id="{{ $item->id }}" 
                                            data-pnr="{{ $item->pnr_number }}"
-                                           data-seats="{{ $item->seats }}"
+                                           data-seats="{{ is_array($item->seats) ? implode(',', $item->seats) : $item->seats }}"
                                            data-bs-toggle="modal" 
                                            data-bs-target="#cancelModal">
                                             <i class="las la-times-circle"></i>
@@ -171,14 +222,71 @@
     $('.checkinfo').on('click', function() {
         var info = $(this).data('info');
         var modal = $('#infoModal');
-        var html = '';
-        html += `
-                    <p class="d-flex flex-wrap justify-content-between pt-0"><strong>@lang('Journey Date')</strong>  <span>${info.date_of_journey}</span></p>
-                    <p class="d-flex flex-wrap justify-content-between"><strong>@lang('PNR Number')</strong>  <span>${info.pnr_number}</span></p>
-                    <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Route')</strong>  <span>${info.trip.start_from.name} @lang('to') ${info.trip.end_to.name}</span></p>
-                    <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Fare')</strong>  <span>${parseInt(info.sub_total).toFixed(2)} {{ __($general->cur_text) }}</span></p>
-                    <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Status')</strong>  <span>${info.status == 1 ? '<span class="badge badge--success">@lang('Successful')</span>' : info.status == 2 ? '<span class="badge badge--warning">@lang('Pending')</span>' : info.status == 3 ? '<span class="badge badge--danger">@lang('Cancelled')</span>' : '<span class="badge badge--danger">@lang('Rejected')</span>'}</span></p>
-                `;
+        
+        // Parse JSON data if available
+        var busDetails = null;
+        if (info.bus_details) {
+            try {
+                busDetails = typeof info.bus_details === 'object' ? info.bus_details : JSON.parse(info.bus_details);
+            } catch (e) {
+                console.error('Error parsing bus details:', e);
+            }
+        }
+        
+        var boardingPointDetails = null;
+        if (info.boarding_point_details) {
+            try {
+                boardingPointDetails = typeof info.boarding_point_details === 'object' ? info.boarding_point_details : JSON.parse(info.boarding_point_details);
+            } catch (e) {
+                console.error('Error parsing boarding point details:', e);
+            }
+        }
+        
+        var droppingPointDetails = null;
+        if (info.dropping_point_details) {
+            try {
+                droppingPointDetails = typeof info.dropping_point_details === 'object' ? info.dropping_point_details : JSON.parse(info.dropping_point_details);
+            } catch (e) {
+                console.error('Error parsing dropping point details:', e);
+            }
+        }
+        
+        // Format departure and arrival times
+        var departureTime = null;
+        var arrivalTime = null;
+        
+        if (busDetails && busDetails.departure_time) {
+            departureTime = new Date(busDetails.departure_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        } else if (info.departure_time && info.departure_time !== '00:00:00') {
+            departureTime = new Date('2000-01-01T' + info.departure_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        
+        if (busDetails && busDetails.arrival_time) {
+            arrivalTime = new Date(busDetails.arrival_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        } else if (info.arrival_time && info.arrival_time !== '00:00:00') {
+            arrivalTime = new Date('2000-01-01T' + info.arrival_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+        
+        // Get pickup and dropping point names
+        var pickupName = boardingPointDetails ? boardingPointDetails.CityPointName : (info.pickup ? info.pickup.name : 'N/A');
+        var droppingName = droppingPointDetails ? droppingPointDetails.CityPointName : (info.drop ? info.drop.name : 'N/A');
+        
+        // Get bus type and travel name
+        var busType = info.bus_type || (busDetails ? busDetails.bus_type : 'N/A');
+        var travelName = info.travel_name || (busDetails ? busDetails.travel_name : 'N/A');
+        
+        var html = `
+            <p class="d-flex flex-wrap justify-content-between pt-0"><strong>@lang('Journey Date')</strong>  <span>${info.date_of_journey}</span></p>
+            <p class="d-flex flex-wrap justify-content-between"><strong>@lang('PNR Number')</strong>  <span>${info.pnr_number}</span></p>
+            <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Bus Type')</strong>  <span>${busType}</span></p>
+            <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Bus Name')</strong>  <span>${travelName}</span></p>
+            <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Pickup Point')</strong>  <span>${pickupName}</span></p>
+            <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Dropping Point')</strong>  <span>${droppingName}</span></p>
+            ${departureTime ? `<p class="d-flex flex-wrap justify-content-between"><strong>@lang('Departure Time')</strong>  <span>${departureTime}</span></p>` : ''}
+            ${arrivalTime ? `<p class="d-flex flex-wrap justify-content-between"><strong>@lang('Arrival Time')</strong>  <span>${arrivalTime}</span></p>` : ''}
+            <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Fare')</strong>  <span>${parseInt(info.sub_total).toFixed(2)} {{ __($general->cur_text) }}</span></p>
+            <p class="d-flex flex-wrap justify-content-between"><strong>@lang('Status')</strong>  <span>${info.status == 1 ? '<span class="badge badge--success">@lang('Successful')</span>' : info.status == 2 ? '<span class="badge badge--warning">@lang('Pending')</span>' : info.status == 3 ? '<span class="badge badge--danger">@lang('Cancelled')</span>' : '<span class="badge badge--danger">@lang('Rejected')</span>'}</span></p>
+        `;
         modal.find('.modal-body').html(html);
     });
     

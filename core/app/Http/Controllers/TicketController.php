@@ -11,272 +11,305 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Models\BookedTicket;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Models\Counter;
+
 class TicketController extends Controller
 {
-
     public function __construct()
     {
         $this->activeTemplate = activeTemplate();
     }
 
-    
-/**
- * Cancel a booked ticket
- *
- * @param Request $request
- * @return \Illuminate\Http\JsonResponse
- */
-public function cancelTicket(Request $request)
+    // Add this new method for printing bus tickets
+ public function printTicket($id)
 {
-    try {
-        $request->validate([
-            'ticket_id' => 'required|integer',
-            'remarks' => 'nullable|string|max:255'
-        ]);
-
-        // Find the ticket
-        $ticket = BookedTicket::findOrFail($request->ticket_id);
-
-        // Check if the ticket belongs to the authenticated user
-        if (auth()->id() != $ticket->user_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized action'
-            ], 403);
+    $pageTitle = 'Print Ticket';
+    $ticket = \App\Models\BookedTicket::where('id', $id)->orWhere('pnr_number', $id)->with(['trip', 'user'])->firstOrFail();
+    
+    // Get pickup and drop counters
+    $ticket->pickup = \App\Models\Counter::find($ticket->pickup_point);
+    $ticket->drop = \App\Models\Counter::find($ticket->dropping_point);
+    
+    // Format journey date
+    if ($ticket->date_of_journey) {
+        $journeyDate = \Carbon\Carbon::parse($ticket->date_of_journey);
+        $ticket->formatted_date = $journeyDate->format('F d, Y');
+        $ticket->journey_day = $journeyDate->format('l');
+    }
+    
+    // Extract and update bus details if not already set
+    if ((!$ticket->travel_name || !$ticket->bus_type || $ticket->departure_time == '00:00:00' || $ticket->arrival_time == '00:00:00') && !empty($ticket->bus_details)) {
+        $busDetails = json_decode($ticket->bus_details, true);
+        if ($busDetails) {
+            // Update the ticket with bus details
+            $this->updateTicketWithBusDetails($ticket, $busDetails);
         }
-
-        // Check if the ticket is already cancelled or past journey date
-        if ($ticket->status != 1 || Carbon::parse($ticket->date_of_journey)->lt(Carbon::today())) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This ticket cannot be cancelled'
-            ], 400);
-        }
-
-        // Get the booking ID from the PNR number
+    }
+    
+    // Extract boarding and dropping point details from API response if not already set
+    if ((!$ticket->boarding_point_details || !$ticket->dropping_point_details) && !empty($ticket->api_response)) {
         $apiResponse = json_decode($ticket->api_response, true);
-$bookingId = $apiResponse['Result']['BookingID'] ?? null;
-
-if (!$bookingId) {
-    return response()->json([
-        'success' => false,
-        'message' => 'Booking ID not found in API response.'
-    ], 500);
+        if ($apiResponse) {
+            $this->extractAndUpdatePointDetails($ticket, $apiResponse);
+        }
+    }
+    
+    if (auth()->user()) {
+        $layout = 'layouts.master';
+    } else {
+        $layout = 'layouts.frontend';
+    }
+    
+    return view($this->activeTemplate . 'user.print_ticket', compact('pageTitle', 'ticket', 'layout'));
 }
 
+/**
+ * Update ticket with bus details from JSON
+ */
+private function updateTicketWithBusDetails($ticket, $busDetails)
+{
+    $updateData = [];
+    
+    if (isset($busDetails['travel_name']) && (!$ticket->travel_name || $ticket->travel_name == '')) {
+        $updateData['travel_name'] = $busDetails['travel_name'];
+    }
+    
+    if (isset($busDetails['bus_type']) && (!$ticket->bus_type || $ticket->bus_type == '')) {
+        $updateData['bus_type'] = $busDetails['bus_type'];
+    }
+    
+    if (isset($busDetails['departure_time']) && ($ticket->departure_time == '00:00:00' || $ticket->departure_time == null)) {
+        // Format the departure time correctly for database storage
+        $updateData['departure_time'] = date('H:i:s', strtotime($busDetails['departure_time']));
+    }
+    
+    if (isset($busDetails['arrival_time']) && ($ticket->arrival_time == '00:00:00' || $ticket->arrival_time == null)) {
+        // Format the arrival time correctly for database storage
+        $updateData['arrival_time'] = date('H:i:s', strtotime($busDetails['arrival_time']));
+    }
+    
+    if (!empty($updateData)) {
+        \App\Models\BookedTicket::where('id', $ticket->id)->update($updateData);
         
-        // Get the search token ID from session or use a default one
-        $searchTokenId = session()->get('search_token_id') ?? '5a8e779347e468df8e212714b7bc6b6c0472a765';
-        
-        // Get the seats (may be multiple)
-        $seats = is_array($ticket->seats) ? $ticket->seats : explode(',', $ticket->seats);
-        
-        $cancelSuccess = true;
-        $apiResponses = [];
-        
-        // Cancel each seat
-        foreach ($seats as $seat) {
-            $response = cancelAPITicket(
-                request()->ip(),
-                $searchTokenId,
-                $bookingId,
-                $seat,
-                $request->remarks ?? 'Cancelled by customer'
-            );
-            
-            $apiResponses[] = $response;
-            
-            // Check if any cancellation failed
-            if (isset($response['Error']) && $response['Error']['ErrorCode'] != 0) {
-                $cancelSuccess = false;
-            }
+        // Update the ticket object with new values
+        foreach ($updateData as $key => $value) {
+            $ticket->$key = $value;
         }
-        
-        // If API cancellation was successful, update the ticket status
-        if ($cancelSuccess) {
-            $ticket->status = 3; // Cancelled status
-            $ticket->cancellation_remarks = $request->remarks ?? 'Cancelled by customer';
-            $ticket->cancelled_at = now();
-            $ticket->save();
-            
-            // Create an admin notification
-            $adminNotification = new AdminNotification();
-            $adminNotification->user_id = auth()->id();
-            $adminNotification->title = 'Ticket cancelled';
-            $adminNotification->click_url = urlPath('admin.ticket.view', $ticket->id);
-            $adminNotification->save();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Ticket cancelled successfully',
-                'ticket' => $ticket
-            ]);
-        }
-        
-        // If we got here, something went wrong with the API
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to cancel ticket with the provider',
-            'responses' => $apiResponses
-        ], 500);
-        
-    } catch (\Exception $e) {
-        Log::error('Ticket cancellation error: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString()
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'An error occurred: ' . $e->getMessage()
-        ], 500);
     }
 }
 
-    // Add this new method for printing bus tickets
-    public function printTicket($bookingId)
+/**
+ * Extract and update boarding and dropping point details from API response
+ */
+private function extractAndUpdatePointDetails($ticket, $apiResponse)
 {
-    try {
-        // Find the ticket by booking ID (PNR number)
-        $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
-            ->where('pnr_number', $bookingId)
-            ->firstOrFail();
-        
-        // Log ticket data for debugging
-        Log::info('Ticket data for printing', [
-            'ticket_id' => $ticket->id,
-            'pnr' => $ticket->pnr_number,
-            'user' => $ticket->user ? $ticket->user->toArray() : 'Guest',
-            'journey_date' => $ticket->date_of_journey,
-            'passenger_name' => $ticket->passenger_name,
-            'trip' => $ticket->trip ? $ticket->trip->toArray() : null,
-            'pickup' => $ticket->pickup ? $ticket->pickup->toArray() : null,
-            'drop' => $ticket->drop ? $ticket->drop->toArray() : null
-        ]);
-        
-        $pageTitle = 'Print Ticket';
-        
-        // Get the general site settings - with fallback values
-        $general = (object) [
-            'cur_sym' => '₹', // Default currency symbol as fallback
-            'sitename' => 'Bus Booking System' // Default site name as fallback
-        ];
-        
-        // Try to get actual general settings if the function exists
-        if (function_exists('getContent')) {
-            $generalSettings = getContent('general_setting.content', true);
-            if ($generalSettings) {
-                $general = $generalSettings;
-            }
-        }
-        
-        // Determine the layout based on authentication status
-        $layout = 'layouts.frontend';
-        
-        // Parse journey date to ensure it's in the correct format
-        if ($ticket->date_of_journey && $ticket->date_of_journey != '0000-00-00') {
-            $journeyDate = Carbon::parse($ticket->date_of_journey);
-            $ticket->formatted_date = $journeyDate->format('F d, Y');
-            $ticket->journey_day = $journeyDate->format('l');
-        } else {
-            // Set default values if date is invalid
-            $ticket->formatted_date = 'Not specified';
-            $ticket->journey_day = 'Not specified';
-            
-            // Try to update the date if possible
-            if ($ticket->trip && $ticket->trip->created_at) {
-                $ticket->date_of_journey = $ticket->trip->created_at->format('Y-m-d');
-                $ticket->save();
+    $updateData = [];
+    
+    // Extract boarding point details
+    if (isset($apiResponse['BoardingPointsDetails']) && is_array($apiResponse['BoardingPointsDetails'])) {
+        foreach ($apiResponse['BoardingPointsDetails'] as $point) {
+            if ($point['CityPointIndex'] == $ticket->pickup_point) {
+                $updateData['boarding_point_details'] = json_encode($point);
                 
-                $journeyDate = Carbon::parse($ticket->date_of_journey);
-                $ticket->formatted_date = $journeyDate->format('F d, Y');
-                $ticket->journey_day = $journeyDate->format('l');
+                // Update the counter record with details
+                $this->updateCounterWithDetails($ticket->pickup_point, $point);
+                break;
             }
         }
-        
-        // If we don't have passenger details in the ticket, try to get from session
-        if (empty($ticket->passenger_name)) {
-            $lastBookedTicket = session()->get('last_booked_ticket', []);
-            if (!empty($lastBookedTicket) && $lastBookedTicket['pnr_number'] == $bookingId) {
-                $ticket->passenger_name = $lastBookedTicket['passenger_name'] ?? null;
-                $ticket->passenger_phone = $lastBookedTicket['passenger_phone'] ?? null;
-                $ticket->passenger_email = $lastBookedTicket['passenger_email'] ?? null;
-            }
-        }
-        
-        // If trip is missing, try to find it
-        if (!$ticket->trip) {
-            // Try to find a trip with the same route
-            if ($ticket->source_destination && is_array($ticket->source_destination) && count($ticket->source_destination) >= 2) {
-                $trip = \App\Models\Trip::where('start_from', $ticket->source_destination[0])
-                    ->where('end_to', $ticket->source_destination[1])
-                    ->first();
+    } elseif (isset($apiResponse['Result']['BoardingPointsDetails']) && is_array($apiResponse['Result']['BoardingPointsDetails'])) {
+        foreach ($apiResponse['Result']['BoardingPointsDetails'] as $point) {
+            if ($point['CityPointIndex'] == $ticket->pickup_point) {
+                $updateData['boarding_point_details'] = json_encode($point);
                 
-                if ($trip) {
-                    $ticket->trip_id = $trip->id;
-                    $ticket->save();
-                    
-                    // Reload the ticket with the trip
-                    $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
-                        ->where('pnr_number', $bookingId)
-                        ->firstOrFail();
+                // Update the counter record with details
+                $this->updateCounterWithDetails($ticket->pickup_point, $point);
+                break;
+            }
+        }
+    }
+    
+    // Extract dropping point details
+    if (isset($apiResponse['DroppingPointsDetails']) && is_array($apiResponse['DroppingPointsDetails'])) {
+        foreach ($apiResponse['DroppingPointsDetails'] as $point) {
+            if ($point['CityPointIndex'] == $ticket->dropping_point) {
+                $updateData['dropping_point_details'] = json_encode($point);
+                
+                // Update the counter record with details
+                $this->updateCounterWithDetails($ticket->dropping_point, $point);
+                break;
+            }
+        }
+    } elseif (isset($apiResponse['Result']['DroppingPointsDetails']) && is_array($apiResponse['Result']['DroppingPointsDetails'])) {
+        foreach ($apiResponse['Result']['DroppingPointsDetails'] as $point) {
+            if ($point['CityPointIndex'] == $ticket->dropping_point) {
+                $updateData['dropping_point_details'] = json_encode($point);
+                
+                // Update the counter record with details
+                $this->updateCounterWithDetails($ticket->dropping_point, $point);
+                break;
+            }
+        }
+    }
+    
+    // Extract operator PNR if available
+    if (isset($apiResponse['Result']['TravelOperatorPNR']) && !$ticket->operator_pnr) {
+        $updateData['operator_pnr'] = $apiResponse['Result']['TravelOperatorPNR'];
+    }
+    
+    if (!empty($updateData)) {
+        \App\Models\BookedTicket::where('id', $ticket->id)->update($updateData);
+        
+        // Update the ticket object with new values
+        foreach ($updateData as $key => $value) {
+            $ticket->$key = $value;
+        }
+    }
+}
+
+/**
+ * Update counter record with detailed information
+ */
+private function updateCounterWithDetails($counterId, $details)
+{
+    $counter = \App\Models\Counter::find($counterId);
+    
+    if ($counter) {
+        $updateData = [];
+        
+        if (isset($details['CityPointName']) && (!$counter->name || $counter->name == 'Boarding Point ' . $counterId || $counter->name == 'Dropping Point ' . $counterId)) {
+            $updateData['name'] = $details['CityPointName'];
+        }
+        
+        if (isset($details['CityPointLocation']) && !$counter->address) {
+            $updateData['address'] = $details['CityPointLocation'];
+        }
+        
+        if (isset($details['CityPointContactNumber']) && !$counter->contact) {
+            $updateData['contact'] = $details['CityPointContactNumber'];
+        }
+        
+        if (!empty($updateData)) {
+            \App\Models\Counter::where('id', $counterId)->update($updateData);
+        }
+    } else {
+        // Create counter if it doesn't exist
+        $counter = new \App\Models\Counter();
+        $counter->id = $counterId;
+        $counter->name = $details['CityPointName'] ?? 'Point ' . $counterId;
+        $counter->address = $details['CityPointLocation'] ?? null;
+        $counter->contact = $details['CityPointContactNumber'] ?? null;
+        $counter->status = 1;
+        $counter->save();
+    }
+}
+
+    /**
+     * Get boarding point details from database or API
+     */
+    private function getBoardingPointDetails($pointId)
+    {
+        // First try to get from database
+        $counter = \App\Models\Counter::find($pointId);
+        
+        if ($counter) {
+            return [
+                'CityPointIndex' => $counter->id,
+                'CityPointName' => $counter->name,
+                'CityPointLocation' => $counter->address ?? $counter->name,
+                'CityPointTime' => null, // We don't have this in the database
+                'CityPointContactNumber' => $counter->contact ?? null,
+                'CityPointLandmark' => null
+            ];
+        }
+        
+        // If not found in database, try to get from API
+        $response = getBoardingPoints();
+        
+        if ($response && isset($response['Result']['BoardingPointsDetails'])) {
+            foreach ($response['Result']['BoardingPointsDetails'] as $point) {
+                if ($point['CityPointIndex'] == $pointId) {
+                    return $point;
                 }
             }
         }
         
-        // If pickup or dropping points are missing, create them
-        if (!$ticket->pickup) {
-            $this->createCounterIfMissing($ticket->pickup_point, 'Pickup Point', $ticket->source_destination[0] ?? 0);
-            
-            // Reload the ticket
-            $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
-                ->where('pnr_number', $bookingId)
-                ->firstOrFail();
-        }
-        
-        if (!$ticket->drop) {
-            $this->createCounterIfMissing($ticket->dropping_point, 'Dropping Point', $ticket->source_destination[1] ?? 0);
-            
-            // Reload the ticket
-            $ticket = BookedTicket::with(['trip', 'user', 'pickup', 'drop'])
-                ->where('pnr_number', $bookingId)
-                ->firstOrFail();
-        }
-        
-        return view('templates.basic.user.print_ticket', compact('ticket', 'pageTitle', 'general', 'layout'));
-    } catch (\Exception $e) {
-        Log::error('Error in printTicket method: ' . $e->getMessage(), [
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        
-        abort(500, 'Error generating ticket: ' . $e->getMessage());
+        // If still not found, create a basic record
+        return [
+            'CityPointIndex' => $pointId,
+            'CityPointName' => 'Boarding Point ' . $pointId,
+            'CityPointLocation' => 'Location not available',
+            'CityPointTime' => null,
+            'CityPointContactNumber' => null,
+            'CityPointLandmark' => null
+        ];
     }
-}
+    
+    /**
+     * Get dropping point details from database or API
+     */
+    private function getDroppingPointDetails($pointId)
+    {
+        // First try to get from database
+        $counter = \App\Models\Counter::find($pointId);
+        
+        if ($counter) {
+            return [
+                'CityPointIndex' => $counter->id,
+                'CityPointName' => $counter->name,
+                'CityPointLocation' => $counter->address ?? $counter->name,
+                'CityPointTime' => null, // We don't have this in the database
+                'CityPointContactNumber' => $counter->contact ?? null,
+                'CityPointLandmark' => null
+            ];
+        }
+        
+        // If not found in database, try to get from API
+        $response = getBoardingPoints();
+        
+        if ($response && isset($response['Result']['DroppingPointsDetails'])) {
+            foreach ($response['Result']['DroppingPointsDetails'] as $point) {
+                if ($point['CityPointIndex'] == $pointId) {
+                    return $point;
+                }
+            }
+        }
+        
+        // If still not found, create a basic record
+        return [
+            'CityPointIndex' => $pointId,
+            'CityPointName' => 'Dropping Point ' . $pointId,
+            'CityPointLocation' => 'Location not available',
+            'CityPointTime' => null,
+            'CityPointContactNumber' => null,
+            'CityPointLandmark' => null
+        ];
+    }
 
-/**
- * Create a counter record if it doesn't exist
- * 
- * @param int $counterId
- * @param string $namePrefix
- * @param int $cityId
- * @return \App\Models\Counter
- */
-private function createCounterIfMissing($counterId, $namePrefix, $cityId)
-{
-    $counter = \App\Models\Counter::find($counterId);
-    
-    if (!$counter) {
-        $counter = new \App\Models\Counter();
-        $counter->id = $counterId;
-        $counter->name = $namePrefix . ' ' . $counterId;
-        $counter->city = $cityId;
-        $counter->status = 1;
-        $counter->save();
+    /**
+     * Create a counter record if it doesn't exist
+     * 
+     * @param int $counterId
+     * @param string $namePrefix
+     * @param int $cityId
+     * @return \App\Models\Counter
+     */
+    private function createCounterIfMissing($counterId, $namePrefix, $cityId)
+    {
+        $counter = \App\Models\Counter::find($counterId);
+        
+        if (!$counter) {
+            $counter = new \App\Models\Counter();
+            $counter->id = $counterId;
+            $counter->name = $namePrefix . ' ' . $counterId;
+            $counter->city = $cityId;
+            $counter->status = 1;
+            $counter->save();
+        }
+        
+        return $counter;
     }
-    
-    return $counter;
-}
+
     // Support Ticket
     public function supportTicket()
     {
@@ -287,7 +320,6 @@ private function createCounterIfMissing($counterId, $namePrefix, $cityId)
         $supports = SupportTicket::where('user_id', Auth::id())->orderBy('priority', 'desc')->orderBy('id', 'desc')->paginate(getPaginate());
         return view($this->activeTemplate . 'user.support.index', compact('supports', 'pageTitle'));
     }
-
 
     public function openSupportTicket()
     {
@@ -455,6 +487,7 @@ private function createCounterIfMissing($counterId, $namePrefix, $cityId)
         }
         return back()->withNotify($notify);
     }
+    
     public function ticketDownload($ticket_id)
     {
         $attachment = SupportAttachment::findOrFail(decrypt($ticket_id));
@@ -468,4 +501,117 @@ private function createCounterIfMissing($counterId, $namePrefix, $cityId)
         header("Content-Type: " . $mimetype);
         return readfile($full_path);
     }
+    
+       
+/**
+ * Cancel a booked ticket
+ *
+ * @param Request $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function cancelTicket(Request $request)
+{
+    try {
+        $request->validate([
+            'ticket_id' => 'required|integer',
+            'remarks' => 'nullable|string|max:255'
+        ]);
+
+        // Find the ticket
+        $ticket = BookedTicket::findOrFail($request->ticket_id);
+
+        // Check if the ticket belongs to the authenticated user
+        if (auth()->id() != $ticket->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized action'
+            ], 403);
+        }
+
+        // Check if the ticket is already cancelled or past journey date
+        if ($ticket->status != 1 || Carbon::parse($ticket->date_of_journey)->lt(Carbon::today())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This ticket cannot be cancelled'
+            ], 400);
+        }
+
+        // Get the booking ID from the PNR number
+        $apiResponse = json_decode($ticket->api_response, true);
+$bookingId = $apiResponse['Result']['BookingID'] ?? null;
+
+if (!$bookingId) {
+    return response()->json([
+        'success' => false,
+        'message' => 'Booking ID not found in API response.'
+    ], 500);
+}
+
+        
+        // Get the search token ID from session or use a default one
+        $searchTokenId = session()->get('search_token_id') ?? '5a8e779347e468df8e212714b7bc6b6c0472a765';
+        
+        // Get the seats (may be multiple)
+        $seats = is_array($ticket->seats) ? $ticket->seats : explode(',', $ticket->seats);
+        
+        $cancelSuccess = true;
+        $apiResponses = [];
+        
+        // Cancel each seat
+        foreach ($seats as $seat) {
+            $response = cancelAPITicket(
+                request()->ip(),
+                $searchTokenId,
+                $bookingId,
+                $seat,
+                $request->remarks ?? 'Cancelled by customer'
+            );
+            
+            $apiResponses[] = $response;
+            
+            // Check if any cancellation failed
+            if (isset($response['Error']) && $response['Error']['ErrorCode'] != 0) {
+                $cancelSuccess = false;
+            }
+        }
+        
+        // If API cancellation was successful, update the ticket status
+        if ($cancelSuccess) {
+            $ticket->status = 3; // Cancelled status
+            $ticket->cancellation_remarks = $request->remarks ?? 'Cancelled by customer';
+            $ticket->cancelled_at = now();
+            $ticket->save();
+            
+            // Create an admin notification
+            $adminNotification = new AdminNotification();
+            $adminNotification->user_id = auth()->id();
+            $adminNotification->title = 'Ticket cancelled';
+            $adminNotification->click_url = urlPath('admin.ticket.view', $ticket->id);
+            $adminNotification->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Ticket cancelled successfully',
+                'ticket' => $ticket
+            ]);
+        }
+        
+        // If we got here, something went wrong with the API
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to cancel ticket with the provider',
+            'responses' => $apiResponses
+        ], 500);
+        
+    } catch (\Exception $e) {
+        Log::error('Ticket cancellation error: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'An error occurred: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }

@@ -763,6 +763,40 @@ $(document).ready(function() {
     // Rest of your existing code...
   });
 });
+
+
+
+
+
+
+
+  
+    // When a boarding point is selected, store its details
+    $('.boarding-point-card').on('click', function() {
+        // Get the boarding point details
+        const pointName = $(this).find('.card-title').text();
+        const pointLocation = $(this).find('.card-text:first').text();
+        const pointTime = $(this).find('.card-text:contains("clock")').text();
+        
+        // Store in hidden fields for later use
+        $('#bookingForm').append(`<input type="hidden" name="boarding_point_name" value="${pointName}">`);
+        $('#bookingForm').append(`<input type="hidden" name="boarding_point_location" value="${pointLocation}">`);
+        $('#bookingForm').append(`<input type="hidden" name="boarding_point_time" value="${pointTime}">`);
+    });
+    
+    // When a dropping point is selected, store its details
+    $('.dropping-point-card').on('click', function() {
+        // Get the dropping point details
+        const pointName = $(this).find('.card-title').text();
+        const pointLocation = $(this).find('.card-text:first').text();
+        const pointTime = $(this).find('.card-text:contains("clock")').text();
+        
+        // Store in hidden fields for later use
+        $('#bookingForm').append(`<input type="hidden" name="dropping_point_name" value="${pointName}">`);
+        $('#bookingForm').append(`<input type="hidden" name="dropping_point_location" value="${pointLocation}">`);
+        $('#bookingForm').append(`<input type="hidden" name="dropping_point_time" value="${pointTime}">`);
+    });
+
 </script>
 
 @endpush

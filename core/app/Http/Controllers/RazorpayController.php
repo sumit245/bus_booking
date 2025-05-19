@@ -19,7 +19,6 @@ class RazorpayController extends Controller
             'amount' => 'required|numeric|min:0',
         ]);
 
-        // Extract data from request
         $amount = $request->amount;
         $bookingId = $request->booking_id;
 

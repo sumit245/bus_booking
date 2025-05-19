@@ -74,7 +74,7 @@ $content = getContent('contact.content', true);
                 </li>
             </ul>
             <div class="d-flex flex-wrap algin-items-center">
-                <a href="#" class="cmn--btn btn--sm">@lang('Buy Tickets')</a>
+                <a href="{{ route('home') }}" class="cmn--btn btn--sm">@lang('Buy Tickets')</a>
                 <div class="header-trigger-wrapper d-flex d-lg-none ms-4">
                     <div class="header-trigger d-block d-lg-none">
                         <span></span>

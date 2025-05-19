@@ -22,7 +22,6 @@ class RazorpayController extends Controller
         $amount = $request->amount;
         $bookingId = $request->booking_id;
 
-        // Fetch markup settings
         $markup = MarkupTable::orderBy('id', 'desc')->first();
         $flatMarkup = $markup->flat_markup ?? 0;
         $percentageMarkup = $markup->percentage_markup ?? 0;
@@ -33,7 +32,6 @@ class RazorpayController extends Controller
             // Apply flat markup
             $finalAmount = $amount + $flatMarkup;
         } else {
-            // Apply percentage markup
             $finalAmount = $amount + ($amount * $percentageMarkup / 100);
         }
 

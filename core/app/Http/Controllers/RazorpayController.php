@@ -10,7 +10,7 @@ use App\Models\BookedTicket;
 
 class RazorpayController extends Controller
 {
- public function createOrder(Request $request)
+public function createOrder(Request $request)
 {
     try {
         // Validate request
@@ -35,13 +35,16 @@ class RazorpayController extends Controller
             $finalAmount = $amount + ($amount * $percentageMarkup / 100);
         }
 
+        // Convert final amount to integer paise for Razorpay
+        $razorpayAmount = (int) round($finalAmount * 100); // This fixes the float-to-integer issue
+
         // Initialize Razorpay API
         $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
 
         // Prepare order data
         $orderData = [
             'receipt' => $bookingId,
-            'amount' => $finalAmount * 100, // Razorpay works in paise
+            'amount' => $razorpayAmount,
             'currency' => 'INR',
             'notes' => [
                 'booking_id' => $bookingId,
@@ -54,6 +57,7 @@ class RazorpayController extends Controller
             'booking_id' => $bookingId,
             'amount' => $amount,
             'final_amount' => $finalAmount,
+            'razorpay_amount' => $razorpayAmount
         ]);
 
         // Create the order
@@ -78,6 +82,7 @@ class RazorpayController extends Controller
         ], 500);
     }
 }
+
     
 public function verifyPayment(Request $request)
 {

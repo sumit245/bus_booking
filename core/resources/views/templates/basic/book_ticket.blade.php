@@ -242,11 +242,37 @@
                         <label class="form-label">@lang("Phone Number")
                           <span class="text-danger">*</span>
                         </label>
-                        <input type="tel" class="form--control" id="passenger_phone"
-                          placeholder="@lang("Enter Phone Number")" value="">
+                        <div class="input-group">
+                          <input type="tel" class="form--control" id="passenger_phone" name="passenger_phone"
+                            placeholder="@lang("Enter Phone Number")" value="">
+                          <button type="button" class="btn btn--base" id="sendOtpBtn">
+                            @lang("Send OTP")
+                          </button>
+                        </div>
                         <div class="invalid-feedback">This field is required!</div>
                       </div>
                     </div>
+
+                    <!-- Add OTP verification field (initially hidden) -->
+                    <div class="col-md-6" id="otpVerificationContainer" style="display: none;">
+                      <div class="form-group">
+                        <label class="form-label">@lang("Enter OTP")
+                          <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                          <input type="text" class="form--control" id="otp_code" name="otp_code"
+                            placeholder="@lang("Enter OTP sent to WhatsApp")" maxlength="6">
+                          <button type="button" class="btn btn--base" id="verifyOtpBtn">
+                            @lang("Verify")
+                          </button>
+                        </div>
+                        <div class="invalid-feedback">Invalid OTP!</div>
+                        <small class="text-muted">OTP sent to your WhatsApp number</small>
+                      </div>
+                    </div>
+
+                    <!-- Add hidden field to track OTP verification status -->
+                    <input type="hidden" name="is_otp_verified" id="is_otp_verified" value="0">
 
                     <div class="col-12">
                       <div class="form-group">
@@ -289,45 +315,59 @@
   </div>
 @endsection
 
+@php
+  use App\Models\MarkupTable;
+  $markupData = \App\Models\MarkupTable::orderBy("id", "desc")->first();
+  $flatMarkup = $markupData->flat_markup ?? 0;
+  $percentageMarkup = $markupData->percentage_markup ?? 0;
+  $threshold = $markupData->threshold ?? 0;
+@endphp
+
 @push("script")
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script>
     let selectedSeats = [];
-    let selectedSeatsCount = 0;
     let totalPrice = 0;
+
+    const flatMarkup = parseFloat("{{ $flatMarkup }}");
+    const percentageMarkup = parseFloat("{{ $percentageMarkup }}");
+    const threshold = parseFloat("{{ $threshold }}");
+
     $('.seat-wrapper .seat').on('click', function() {
       let seatNumber = $(this).attr('data-seat');
-      let seatPrice = $(this).attr('data-price');
-      $(this).toggleClass('selected-by-you')
+      let seatPrice = parseFloat($(this).attr('data-price'));
+
+      // Apply flat markup if price < threshold, else percentage
+      let markupAmount = seatPrice < threshold ?
+        flatMarkup :
+        (seatPrice * percentageMarkup / 100);
+
+      let priceWithMarkup = seatPrice + markupAmount;
+
+      $(this).toggleClass('selected-by-you');
 
       if (!selectedSeats.includes(seatNumber)) {
         selectedSeats.push(seatNumber);
-        totalPrice += parseFloat(seatPrice);
-        // Add to display
+        totalPrice += priceWithMarkup;
+
         $('.selected-seat-details').append(
           `<span class="list-group-item d-flex justify-content-between">
-              @lang("Seat") ${seatNumber} <span>${seatPrice}</span></span>`
+                    @lang("Seat") ${seatNumber} <span>${priceWithMarkup.toFixed(2)}</span></span>`
         );
-
-        // Update hidden fields with selected seats and total price
-        $('input[name="seats"]').val(selectedSeats.join(','));
-        $('input[name="price"]').val(totalPrice);
       } else {
-        // Remove from display
         selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
-        totalPrice -= parseFloat(seatPrice);
+        totalPrice -= priceWithMarkup;
+
         $('.selected-seat-details span').each(function() {
           if ($(this).text().includes(seatNumber)) {
             $(this).remove();
           }
         });
-
-        // Update hidden fields with selected seats and total price
-        $('input[name="seats"]').val(selectedSeats.join(','));
-        $('input[name="price"]').val(totalPrice);
       }
-      console.log(selectedSeats.length, seatNumber, seatPrice, totalPrice);
-      // Show/hide booked seat details
+
+      $('input[name="seats"]').val(selectedSeats.join(','));
+      $('input[name="price"]').val(totalPrice.toFixed(2));
+
       if (selectedSeats.length > 0) {
         $('.booked-seat-details').removeClass('d-none').addClass('d-block');
       } else {
@@ -467,7 +507,6 @@
         .appendTo('head');
     });
 
-
     // Handle next button click to go to passenger details
     $('#nextToPassengerBtn').on('click', function() {
       $('#passenger-tab').tab('show');
@@ -500,8 +539,8 @@
         `<input type="hidden" name="passenger_age" value="${$('#passenger_age').val()}">`);
       $('#bookingForm').append(
         `<input type="hidden" name="passenger_address" value="${$('#passenger_address').val()}">`);
-      // Submit the booking form before opening the payment tab
 
+      // Submit the booking form before opening the payment tab
       let formData = $('#bookingForm').serialize();
       const serverGeneratedTrx = "{{ getTrx(10) }}";
 
@@ -512,10 +551,14 @@
         dataType: "json",
         success: function(response) {
           if (response.success) {
-            // Redirect to Razorpay payment page with booking ID
             // Call Razorpay Payment Handler
-            console.log(response.response?.Passenger)
-            initiateRazorpayPayment(serverGeneratedTrx, response.response?.Passenger[0]?.SeatFare);
+            console.log(response.response?.Passenger);
+            // Get the booking ID from the response or use the server generated one
+            const bookingId = response.booking_id || serverGeneratedTrx;
+            const amount = response.response?.Passenger[0]?.Seat?.SeatFare || totalPrice;
+
+            // First create a Razorpay order
+            createRazorpayOrder(bookingId, amount);
           } else {
             alert(response.message || "An error occurred. Please try again.");
           }
@@ -525,54 +568,85 @@
           alert(xhr.responseJSON?.message || "Failed to process booking. Please check your details.");
         }
       });
-    })
-
-    //   Handle confirm details button click to go to payment
-    $('#confirmDetailsBtn').on('click', function() {
-
     });
 
-    function initiateRazorpayPayment(bookingId, amount) {
+    // Step 1: Create a Razorpay order
+    function createRazorpayOrder(bookingId, amount) {
+      $.ajax({
+        url: "{{ route("razorpay.create-order") }}",
+        type: "POST",
+        data: {
+          _token: "{{ csrf_token() }}",
+          amount: amount,
+          booking_id: bookingId
+        },
+        dataType: "json",
+        success: function(response) {
+          if (response.success) {
+            // Step 2: Open Razorpay payment modal with the order ID
+            openRazorpayModal(response.order_id, bookingId, amount);
+          } else {
+            alert(response.message || "Failed to create payment order");
+          }
+        },
+        error: function(xhr) {
+          console.log(xhr.responseJSON);
+          alert(xhr.responseJSON?.message || "Failed to create payment order. Please try again.");
+        }
+      });
+    }
+
+    // Step 2: Open Razorpay payment modal
+    function openRazorpayModal(orderId, bookingId, amount) {
       var options = {
-        "key": "{{ env("RAZORPAY_KEY") }}", // Razorpay API Key
-        "amount": amount * 100, // Convert to paise (₹1 = 100 paise)
+        "key": "{{ env("RAZORPAY_KEY") }}",
+        "amount": amount * 100, // Convert to paise
         "currency": "INR",
         "name": "Ghumantoo",
         "description": "Seat Booking Payment",
+        "order_id": orderId, // This is important!
         "image": "https://vindhyashrisolutions.com/assets/images/logoIcon/logo.png",
-        "order_id": bookingId, // Unique booking ID
-        "handler": function(response) {
-          // Payment success callback
-          processPaymentSuccess(response, bookingId);
-        },
         "prefill": {
-          "name": "{{ auth()->user()->name ?? "Guest" }}",
-          "email": "{{ auth()->user()->email ?? "info@vindhyashrisolutions.com" }}",
-          "contact": "{{ auth()->user()->phone ?? "" }}"
+          "name": $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val(),
+          "email": $('#passenger_email').val(),
+          "contact": $('#passenger_phone').val()
+        },
+        "handler": function(response) {
+          // Step 3: Process payment success with all required parameters
+          processPaymentSuccess(response, bookingId);
         },
         "theme": {
           "color": "#3399cc"
         }
       };
 
-      // Open Razorpay Payment Modal
       var rzp = new Razorpay(options);
       rzp.open();
     }
 
+    // Step 3: Process payment success
+    // Step 3: Process payment success
+    // Step 3: Process payment success
+    // Step 3: Process payment success
     function processPaymentSuccess(response, bookingId) {
       $.ajax({
-        url: "{{ route("book.ticket") }}",
+        url: "{{ route("razorpay.verify-payment") }}",
         type: "POST",
         data: {
           _token: "{{ csrf_token() }}",
-          payment_id: response.razorpay_payment_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature,
           booking_id: bookingId
         },
         dataType: "json",
         success: function(res) {
           if (res.success) {
-            alert("Payment successful! Booking confirmed.");
+            // Show success message
+            alert("Payment successful! Redirecting to ticket page...");
+
+            // Redirect to the print ticket page
+            window.location.href = res.redirect;
           } else {
             alert("Payment verification failed. Please contact support.");
           }
@@ -582,6 +656,144 @@
           alert(xhr.responseJSON?.message || "Failed to verify payment.");
         }
       });
+
     }
+    $(document).ready(function() {
+      // Send OTP button click handler
+      $('#sendOtpBtn').on('click', function() {
+        const phoneNumber = $('#passenger_phone').val().trim();
+        if (!phoneNumber) {
+          alert('Please enter a valid phone number');
+          return;
+        }
+
+        // Disable button and show loading state
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Sending...');
+
+        // Send AJAX request to send OTP
+        $.ajax({
+          url: "{{ route("send.otp") }}",
+          type: "POST",
+          data: {
+            _token: "{{ csrf_token() }}",
+            phone: phoneNumber,
+            name: $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val()
+          },
+          success: function(response) {
+            if (response.success) {
+              // Show OTP verification field
+              $('#otpVerificationContainer').show();
+              alert('OTP sent to your WhatsApp number');
+            } else {
+              alert(response.message || 'Failed to send OTP. Please try again.');
+            }
+          },
+          error: function(xhr) {
+            alert('Error: ' + (xhr.responseJSON?.message || 'Failed to send OTP'));
+          },
+          complete: function() {
+            // Reset button state
+            $btn.prop('disabled', false).html('@lang("Send OTP")');
+          }
+        });
+      });
+
+      // Verify OTP button click handler
+      $('#verifyOtpBtn').on('click', function() {
+        const otp = $('#otp_code').val().trim();
+        const phone = $('#passenger_phone').val().trim();
+
+        if (!otp) {
+          alert('Please enter the OTP');
+          return;
+        }
+
+        // Disable button and show loading state
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Verifying...');
+
+        // Send AJAX request to verify OTP
+        $.ajax({
+          url: "{{ route("verify.otp") }}",
+          type: "POST",
+          data: {
+            _token: "{{ csrf_token() }}",
+            phone: phone,
+            otp: otp
+          },
+          success: function(response) {
+            if (response.success) {
+              // Mark OTP as verified
+              $('#is_otp_verified').val('1');
+              $('#otpVerificationContainer').removeClass('has-error').addClass('has-success');
+              $('#otp_code').prop('disabled', true);
+              $btn.html('<i class="las la-check"></i> Verified').addClass('btn--success');
+
+              // If user is logged in through OTP
+              if (response.user_logged_in) {
+                alert('You have been logged in successfully!');
+              }
+            } else {
+              $('#otpVerificationContainer').addClass('has-error');
+              alert(response.message || 'Invalid OTP. Please try again.');
+              $btn.prop('disabled', false).html('@lang("Verify")');
+            }
+          },
+          error: function(xhr) {
+            alert('Error: ' + (xhr.responseJSON?.message || 'Failed to verify OTP'));
+            $btn.prop('disabled', false).html('@lang("Verify")');
+          }
+        });
+      });
+
+      // Modify the confirm passenger button to check OTP verification
+      $('#confirmPassengerBtn').on('click', function(e) {
+        if ($('#is_otp_verified').val() !== '1') {
+          e.preventDefault();
+          e.stopPropagation();
+          alert('Please verify your phone number with OTP before proceeding');
+          return false;
+        }
+
+        // Continue with the existing functionality
+        $('#payment-tab').tab('show');
+
+        // Rest of your existing code...
+      });
+    });
+
+
+
+
+
+
+
+
+    // When a boarding point is selected, store its details
+    $('.boarding-point-card').on('click', function() {
+      // Get the boarding point details
+      const pointName = $(this).find('.card-title').text();
+      const pointLocation = $(this).find('.card-text:first').text();
+      const pointTime = $(this).find('.card-text:contains("clock")').text();
+
+      // Store in hidden fields for later use
+      $('#bookingForm').append(`<input type="hidden" name="boarding_point_name" value="${pointName}">`);
+      $('#bookingForm').append(`<input type="hidden" name="boarding_point_location" value="${pointLocation}">`);
+      $('#bookingForm').append(`<input type="hidden" name="boarding_point_time" value="${pointTime}">`);
+    });
+
+    // When a dropping point is selected, store its details
+    $('.dropping-point-card').on('click', function() {
+      // Get the dropping point details
+      const pointName = $(this).find('.card-title').text();
+      const pointLocation = $(this).find('.card-text:first').text();
+      const pointTime = $(this).find('.card-text:contains("clock")').text();
+
+      // Store in hidden fields for later use
+      $('#bookingForm').append(`<input type="hidden" name="dropping_point_name" value="${pointName}">`);
+      $('#bookingForm').append(`<input type="hidden" name="dropping_point_location" value="${pointLocation}">`);
+      $('#bookingForm').append(`<input type="hidden" name="dropping_point_time" value="${pointTime}">`);
+    });
   </script>
 @endpush

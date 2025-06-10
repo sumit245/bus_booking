@@ -233,17 +233,20 @@
                             @forelse($soldTickets as $item)
                                 <tr>
                                     <td data-label="@lang('User')">
-                                        <span class="font-weight-bold">{{ __($item->user->fullname) }}</span>
+                                        <span class="font-weight-bold">{{ __($item->user->fullname ?? 'User N/A') }}</span>
                                         <br>
                                         <span class="small">
-                                        <a href="{{ route('admin.users.detail', $item->user_id) }}"><span>@</span>{{ $item->user->username }}</a>
-                                        </span>
+                                        <a href="{{ route('admin.users.detail', $item->user_id) }}">
+    <span>@</span>{{ $item->user?->username ?? 'N/A' }}
+</a>
+  </span>
                                     </td>
                                     <td data-label="@lang('PNR Number')">
                                         <strong>{{ __($item->pnr_number) }}</strong>
                                     </td>
                                     <td data-label="@lang('Ticket Count')">
-                                        <strong>{{ __(sizeof($item->seats)) }}</strong>
+                                    <strong>{{ is_countable($item->seats) ? count($item->seats) : (is_array(json_decode($item->seats, true)) ? count(json_decode($item->seats, true)) : (is_numeric($item->seats) ? $item->seats : 0)) }}</strong>
+
                                     </td>
                                     <td data-label="@lang('Amount')">
                                        {{ showAmount($item->sub_total ) }} {{ __($general->cur_text) }}

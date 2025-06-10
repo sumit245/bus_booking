@@ -5,7 +5,7 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title> {{ $general->sitename(__($pageTitle)) }}</title>
+    <title>{{ $general->sitename($pageTitle ?? 'Site Title') }}</title>
     @include("partials.seo")
 
     <!-- BootStrap Link -->

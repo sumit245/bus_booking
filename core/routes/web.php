@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Admin\ManageTripController;
+use App\Http\Controllers\OtpController;
+use App\Http\Controllers\TicketController;
 Route::get('/clear', function () {
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
 });
@@ -170,6 +172,8 @@ Route::namespace('Admin')->prefix('admin')->name('admin.')->group(function () {
             Route::get('markup', 'ManageTripController@markup')->name('markup');
         });
 
+        
+
 
         // DEPOSIT SYSTEM
         Route::name('deposit.')->prefix('payment')->group(function () {
@@ -335,6 +339,10 @@ Route::namespace('Admin')->prefix('admin')->name('admin.')->group(function () {
 
 
 Route::name('user.')->group(function () {
+    Route::get('/print-ticket/{booking_id}', 'TicketController@printTicket')->name('print.ticket');
+
+
+
     Route::get('/login', 'Auth\LoginController@showLoginForm')->name('login');
     Route::post('/login', 'Auth\LoginController@login');
     Route::get('logout', 'Auth\LoginController@logout')->name('logout');
@@ -390,6 +398,30 @@ Route::post('/get-boarding-points', 'SiteController@getBoardingPoints')->name('g
 // Add this route for blocking seats
 Route::post('/block-seat', 'SiteController@blockSeat')->name('block.seat');
 Route::post('/book-seat', 'SiteController@bookTicketApi')->name('book.ticket');
+// Razorpay routes
+Route::post('/razorpay/create-order', 'RazorpayController@createOrder')->name('razorpay.create-order');
+Route::post('/razorpay/verify-payment', 'RazorpayController@verifyPayment')->name('razorpay.verify-payment');
+// Add these routes to your web.php file
+Route::post('/create-razorpay-order', [App\Http\Controllers\RazorpayController::class, 'createOrder'])->name('create.razorpay.order');
+Route::post('/verify-razorpay-payment', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('verify.razorpay.payment');
+
+// Update your existing book.ticket route to use the verification method
+Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('book.ticket');
+Route::get('/admin/markup', [SiteController::class, 'showMarkupPage'])->name('admin.markup');
+Route::put('admin/markup/update', [ManageTripController::class, 'updateMarkup'])->name('markup.update');
+
+// Add these routes to your web.php file
+
+
+
+Route::post('/send-otp', [OtpController::class, 'sendOtp'])->name('send.otp');
+Route::post('/verify-otp', [OtpController::class, 'verifyOtp'])->name('verify.otp');
+// Add this to your routes/web.php file
+
+
+
+Route::post('/user/ticket/cancel', [TicketController::class, 'cancelTicket'])->name('user.ticket.cancel')->middleware('auth');
+
 // Route::get('/ticket/get-price', 'SiteController@getTicketPrice')->name('ticket.get-price');
 // Route::post('/ticket/book/{id}', 'SiteController@bookTicket')->name('ticket.book');
 Route::post('/contact', 'SiteController@contactSubmit');

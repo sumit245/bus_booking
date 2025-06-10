@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /* Flip the entire upper seat container horizontally */
+        .outerseat .seatcontainer {
+            transform: translateX(10);
+        }
+
+        /* Flip seat content back to normal */
+        .outerseat .seatcontainer>div {
+            transform: translateX(10);
+        }
+
+        .bus {
+            background-color: #f5f5f5;
+            padding: 8px;
+            width: 400px;
+        }
+
+        .seatcontainer {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .seatcontainer .hseat,
+        .seatcontainer .nseat,
+        .seatcontainer .bhseat,
+        .seatcontainer .bseat {
+            background-color: #fff;
+            position: absolute;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+
+
+        /* Style for available seats */
+        .nseat {
+            width: 22px;
+            height: 29px;
+            border: 1px solid #ccc;
+        }
+
+        /* Style for not available seats */
+        .bseat {
+            background-color: #6c757d !important;
+            width: 24px;
+            height: 29px;
+            border: 1px solid #ccc;
+            cursor: not-allowed;
+        }
+
+        .hseat {
+            width: 42px;
+            height: 29px;
+            border: 1px solid #ccc;
+        }
+
+        .bhseat {
+            background-color: #6c757d !important;
+            width: 42px;
+            height: 29px;
+            border: 1px solid #ccc;
+            cursor: not-allowed;
+        }
+
+
+        .outerseat,
+        .outerlowerseat {
+            margin: 30px 0;
+        }
+
+        .busSeatlft,
+        .busSeatrgt {
+            display: inline-block;
+        }
+
+        .busSeatlft {
+            width: 15%;
+        }
+
+        .busSeatrgt {
+            width: 80%;
+        }
+
+        .clearfix {
+            overflow: none;
+        }
+
+        .clr {
+            clear: both;
+            content: "";
+            display: table;
+        }
+
+        .price {
+            align-self: center;
+            text-align: center;
+            font-size: 10px;
+            line-height: 20px;
+        }
+
+        .selected {
+            background-color: forestgreen;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="bus"></div>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            function AddRemoveSeat(el, seatId, price) {
+                if (el.classList.contains('bseat') || el.classList.contains('bhseat')) return;
+                el.classList.toggle('selected');
+                // You can also handle selection list or booking logic here
+            }
+
+            function loadSeatHTML() {
+                fetch('./seathtml.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to load seathtml.json');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const busDiv = document.querySelector('.bus');
+                        if (busDiv && data && data.HTMLLayout) {
+                            busDiv.innerHTML = data.HTMLLayout;
+                            // const tempDiv = document.createElement('div');
+                            // tempDiv.innerHTML = data.HTMLLayout;
+                            // while (tempDiv.firstChild) {
+                            // busDiv.appendChild(tempDiv.firstChild);
+                            // }
+                            setTimeout(() => {
+                                const seatElements = document.querySelectorAll('[onclick^="javascript:AddRemoveSeat"]');
+                                console.log(seatElements)
+                                seatElements.forEach(el => {
+                                    const onclickStr = el.getAttribute('onclick');
+                                    const matches = onclickStr.match(/AddRemoveSeat\(this,'(.*?)','(.*?)'\)/);
+                                    if (!matches) return;
+
+                                    const seatId = matches[1];
+                                    const isSleeper = seatId.match(/UD|DL|SL|US|A|L|U/i); // heuristic
+                                    el.classList.add(isSleeper ? 'sleeper' : 'seat');
+                                    // Add seat number and price
+                                    const number = document.createElement('div');
+                                    number.textContent = seatId;
+                                    number.className = 'price'
+                                    el.appendChild(number);
+                                });
+
+                            }, 0)
+                        } else {
+                            console.error('No .bus div or invalid JSON structure');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading seat layout:', error);
+                    });
+            }
+
+            loadSeatHTML();
+        });
+
+    </script>
+</body>
+
+</html>

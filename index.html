@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /* Flip the entire upper seat container horizontally */
+        .outerseat .seatcontainer {
+            transform: translateX(10);
+        }
+
+        /* Flip seat content back to normal */
+        .outerseat .seatcontainer>div {
+            transform: translateX(10);
+        }
+
+        /* Bus */
+        .bus {
+            background-color: #f5f5f5;
+            padding: 8px;
+            width: 460px;
+        }
+
+        .busSeat {
+            width: 300px;
+            height: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 40px !important;
+        }
+
+        /* In Sitting area container for seats and aisle */
+        .seatcontainer {
+            position: relative;
+
+        }
+
+        .seatcontainer .hseat,
+        .seatcontainer .nseat,
+        .seatcontainer .bhseat,
+        .seatcontainer .bseat,
+        .seatcontainer .vseat,
+        .seatcontainer .bvseat {
+            background-color: #fff;
+            position: absolute;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+
+
+        /* Style for available seats */
+        .nseat {
+            width: 22px;
+            height: 29px;
+            border: 1px solid #ccc;
+        }
+
+        /* Vertical seat usually at the end of bus */
+        .vseat {
+            height: 42px;
+            width: 29px;
+            border: 1px solid #ccc;
+        }
+
+        /*  Blocked Vertical seat usually at the end of bus  */
+        .bvseat {
+            height: 42px;
+            width: 29px;
+            border: 1px solid #ccc;
+            cursor: not-allowed;
+            background-color: #6c757d !important;
+        }
+
+        /* Style for not available seats */
+        .bseat {
+            background-color: #6c757d !important;
+            width: 24px;
+            height: 29px;
+            border: 1px solid #ccc;
+            cursor: not-allowed;
+        }
+
+        /* sleeper */
+        .hseat {
+            width: 42px;
+            height: 29px;
+            border: 1px solid #ccc;
+        }
+
+        /* sleeper blocked */
+        .bhseat {
+            background-color: #6c757d !important;
+            width: 42px;
+            height: 29px;
+            border: 1px solid #ccc;
+            cursor: not-allowed;
+        }
+
+
+        /* Containers for seatcontainer and driver cabin and toilet etc */
+        .outerseat,
+        .outerlowerseat {
+            margin: 4px 0;
+        }
+
+
+        .busSeatlft,
+        .busSeatrgt {
+            display: inline-block;
+        }
+
+        /* Container for cabin and entry gate */
+        .busSeatlft {
+            width: 15%;
+        }
+
+        /* Container for sitting area */
+        .busSeatrgt {
+            width: 80%;
+        }
+
+        .clearfix {
+            overflow: none;
+        }
+
+        .clr {
+            clear: both;
+            content: "";
+            display: table;
+        }
+
+        .price {
+            align-self: center;
+            text-align: center;
+            font-size: 10px;
+            line-height: 20px;
+        }
+
+        .selected {
+            background-color: forestgreen;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="bus">
+        <div class='outerseat'>
+            <div class='busSeatlft'>
+                <div class='upper'></div>
+            </div>
+            <!-- TODO:Insert upper deck text manually inside busSeatlft -->
+            <div class='busSeatrgt'>
+                <div class='busSeat'>
+                    <div class='seatcontainer clearfix'>
+                        <div id="5000008452810862833B" style="top:0px;left:0px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'B','1258.95')"></div>
+                        <div id="5000008452810862833H" style="top:0px;left:45px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'H','1258.95')"></div>
+                        <div id="5000008452810862833J" style="top:0px;left:90px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'J','1258.95')"></div>
+                        <div id="5000008452810862833P" style="top:0px;left:135px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'P','1258.95')"></div>
+                        <div id="5000008452810862833R" style="top:0px;left:180px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'R','1258.95')"></div>
+                        <div id="5000008452810862833T3" style="top:0px;left:225px;display:block;" class="bvseat"></div>
+                        <div id="5000008452810862833T4" style="top:0px;left:250px;display:block;" class="bvseat"></div>
+                        <div id="5000008452810862833A" style="top:30px;left:50px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'A','1258.95')"></div>
+                        <div id="5000008452810862833G" style="top:30px;left:95px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'G','1258.95')"></div>
+                        <div id="5000008452810862833I" style="top:30px;left:140px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'I','1258.95')"></div>
+                        <div id="5000008452810862833O" style="top:30px;left:185px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'O','1258.95')"></div>
+                        <div id="5000008452810862833Q" style="top:30px;left:230px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'Q','1258.95')"></div>
+                        <div id="5000008452810862833D" style="top:100px;left:0px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'D','1258.95')"></div>
+                        <div id="5000008452810862833E" style="top:100px;left:45px;display:block;" class="bhseat"></div>
+                        <div id="5000008452810862833L" style="top:100px;left:90px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'L','1258.95')"></div>
+                        <div id="5000008452810862833K" style="top:100px;left:135px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'K','1258.95')"></div>
+                        <div id="5000008452810862833M" style="top:100px;left:180px;display:block;" class="bhseat"></div>
+                    </div>
+                </div>
+            </div>
+            <div class='clr'></div>
+        </div>
+        <div class='outerlowerseat'>
+            <div class='busSeatlft'>
+                <div class='lower'></div>
+            </div>
+            <!-- TODO:Insert Steering icon and lower deck text manually inside busSeatlft -->
+            <div class='busSeatrgt'>
+                <div class='busSeat'>
+                    <div class='seatcontainer clearfix'>
+                        <div id="5000008452810862833L2" style="top:0px;left:0px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'L2','1363.95')">
+                        </div>
+                        <div id="5000008452810862833L4" style="top:0px;left:45px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'L4','1363.95')">
+                        </div>
+                        <div id="5000008452810862833V" style="top:0px;left:90px;display:block;" class="bhseat"></div>
+                        <div id="5000008452810862833X" style="top:0px;left:135px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'X','1363.95')">
+                        </div>
+                        <div id="5000008452810862833Z" style="top:0px;left:180px;display:block;" class="bhseat"></div>
+                        <div id="5000008452810862833T1" style="top:0px;left:225px;display:block;" class="vseat"
+                            onclick="javascript:AddRemoveSeat(this,'T1','1363.95')">
+                        </div>
+                        <div id="5000008452810862833T2" style="top:0px;left:255px;display:block;" class="vseat"
+                            onclick="javascript:AddRemoveSeat(this,'T2','1363.95')">
+                        </div>
+                        <div id="5000008452810862833L1" style="top:30px;left:0px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'L1','1363.95')">
+                        </div>
+                        <div id="5000008452810862833L3" style="top:30px;left:45px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'L3','1363.95')">
+                        </div>
+                        <div id="5000008452810862833U" style="top:30px;left:90px;display:block;" class="bhseat"></div>
+                        <div id="5000008452810862833W" style="top:30px;left:135px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'W','1363.95')">
+                        </div>
+                        <div id="5000008452810862833Y" style="top:30px;left:180px;display:block;" class="bhseat"></div>
+                        <div id="5000008452810862833C" style="top:80px;left:0px;display:block;" class="bhseat"></div>
+                        <div id="5000008452810862833F" style="top:80px;left:45px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'F','1363.95')">
+                        </div>
+                        <div id="5000008452810862833S3" style="top:80px;left:90px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'S3','1363.95')">
+                        </div>
+                        <div id="5000008452810862833S4" style="top:80px;left:135px;display:block;" class="bhseat"></div>
+                        <div id="5000008452810862833S5" style="top:80px;left:180px;display:block;" class="hseat"
+                            onclick="javascript:AddRemoveSeat(this,'S5','1363.95')">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class='clr'></div>
+        </div>
+    </div>
+</body>
+
+</html>

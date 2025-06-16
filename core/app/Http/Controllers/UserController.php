@@ -19,38 +19,38 @@ class UserController extends Controller
         $this->activeTemplate = activeTemplate();
     }
 
-   public function home()
-{
-    $pageTitle = 'Dashboard';
-    $emptyMessage = 'No booked ticket found';
-    $user = auth()->user();
+    public function home()
+    {
+        $pageTitle = 'Dashboard';
+        $emptyMessage = 'No booked ticket found';
+        $user = auth()->user();
 
-    $widget['total']     = BookedTicket::where('user_id', $user->id)->count();
-    $widget['booked']    = BookedTicket::booked()->where('user_id', $user->id)->count();
-    $widget['pending']   = BookedTicket::pending()->where('user_id', $user->id)->count();
-    $widget['rejected']  = BookedTicket::rejected()->where('user_id', $user->id)->count();
-    $widget['cancelled'] = BookedTicket::where('user_id', $user->id)->where('status', 3)->count();
+        $widget['total']     = BookedTicket::where('user_id', $user->id)->count();
+        $widget['booked']    = BookedTicket::booked()->where('user_id', $user->id)->count();
+        $widget['pending']   = BookedTicket::pending()->where('user_id', $user->id)->count();
+        $widget['rejected']  = BookedTicket::rejected()->where('user_id', $user->id)->count();
+        $widget['cancelled'] = BookedTicket::where('user_id', $user->id)->where('status', 3)->count();
 
-    $bookedTickets = BookedTicket::with([
-        'trip.fleetType',
-        'trip.startFrom',
-        'trip.endTo',
-        'trip.schedule',
-        'pickup',
-        'drop'
-    ])->where('user_id', $user->id)
-      ->orderBy('id', 'desc')
-      ->paginate(getPaginate());
+        $bookedTickets = BookedTicket::with([
+            'trip.fleetType',
+            'trip.startFrom',
+            'trip.endTo',
+            'trip.schedule',
+            'pickup',
+            'drop'
+        ])->where('user_id', $user->id)
+            ->orderBy('id', 'desc')
+            ->paginate(getPaginate());
 
-    return view($this->activeTemplate . 'user.dashboard', compact('pageTitle', 'bookedTickets', 'widget', 'emptyMessage'));
-}
+        return view($this->activeTemplate . 'user.dashboard', compact('pageTitle', 'bookedTickets', 'widget', 'emptyMessage'));
+    }
 
 
     public function profile()
     {
         $pageTitle = "Profile Setting";
         $user = Auth::user();
-        return view($this->activeTemplate. 'user.profile_setting', compact('pageTitle','user'));
+        return view($this->activeTemplate . 'user.profile_setting', compact('pageTitle', 'user'));
     }
 
     public function submitProfile(Request $request)
@@ -62,10 +62,10 @@ class UserController extends Controller
             'state' => 'sometimes|required|max:80',
             'zip' => 'sometimes|required|max:40',
             'city' => 'sometimes|required|max:50',
-            'image' => ['image',new FileTypeValidate(['jpg','jpeg','png'])]
-        ],[
-            'firstname.required'=>'First name field is required',
-            'lastname.required'=>'Last name field is required'
+            'image' => ['image', new FileTypeValidate(['jpg', 'jpeg', 'png'])]
+        ], [
+            'firstname.required' => 'First name field is required',
+            'lastname.required' => 'Last name field is required'
         ]);
 
         $user = Auth::user();
@@ -110,7 +110,7 @@ class UserController extends Controller
 
         $this->validate($request, [
             'current_password' => 'required',
-            'password' => ['required','confirmed',$password_validation]
+            'password' => ['required', 'confirmed', $password_validation]
         ]);
 
 
@@ -132,17 +132,18 @@ class UserController extends Controller
         }
     }
 
-    public function ticketHistory(){
+    public function ticketHistory()
+    {
         $pageTitle = 'Booking History';
         $emptyMessage = 'No booked ticket found';
-        $bookedTickets = BookedTicket::with(['trip.fleetType','trip.startFrom', 'trip.endTo', 'trip.schedule' ,'pickup', 'drop'])->where('user_id', auth()->user()->id)->orderBy('id', 'desc')->paginate(getPaginate());
-        return view($this->activeTemplate.'user.booking_history', compact('pageTitle', 'emptyMessage','bookedTickets'));
+        $bookedTickets = BookedTicket::with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'trip.schedule', 'pickup', 'drop'])->where('user_id', auth()->user()->id)->orderBy('id', 'desc')->paginate(getPaginate());
+        return view($this->activeTemplate . 'user.booking_history', compact('pageTitle', 'emptyMessage', 'bookedTickets'));
     }
 
-    public function printTicket($id){
+    public function printTicket($id)
+    {
         $pageTitle = "Ticket Print";
-        $ticket = BookedTicket::with(['trip.fleetType','trip.startFrom', 'trip.endTo', 'trip.schedule', 'trip.assignedVehicle.vehicle' ,'pickup', 'drop', 'user'])->where('user_id', auth()->user()->id)->findOrFail($id);
-        return view($this->activeTemplate.'user.print_ticket', compact('ticket', 'pageTitle'));
+        $ticket = BookedTicket::with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'trip.schedule', 'trip.assignedVehicle.vehicle', 'pickup', 'drop', 'user'])->where('user_id', auth()->user()->id)->findOrFail($id);
+        return view($this->activeTemplate . 'user.print_ticket', compact('ticket', 'pageTitle'));
     }
-
 }

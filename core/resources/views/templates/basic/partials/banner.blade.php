@@ -27,7 +27,7 @@
               <div id="autocomplete-list-origin" class="autocomplete-items"></div>
             </div>
           </div>
-          
+
           <div class="col-md-6 my-2">
             <div class="form--group">
               <i class="las la-map-marker"></i>

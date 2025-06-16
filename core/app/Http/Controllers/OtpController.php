@@ -30,10 +30,10 @@ class OtpController extends Controller
             } else if (strpos($phone, '91') === 0 && strlen($phone) > 10) {
                 $phone = substr($phone, 2);
             }
-            
+
             // Generate OTP
-            $otp = rand(100000, 999999);
-            
+            $otp = (string)rand(100000, 999999);
+
             // Store OTP in database
             $otpVerification = OtpVerification::updateOrCreate(
                 ['phone' => $phone],
@@ -42,11 +42,11 @@ class OtpController extends Controller
                     'expires_at' => now()->addMinutes(10)
                 ]
             );
-            
+
             // Send OTP via WhatsApp
             $userName = $request->name ?: 'Guest';
             sendOtp($phone, $userName, $otp);
-            
+
             // Return success response
             return response()->json([
                 'success' => true,
@@ -54,14 +54,14 @@ class OtpController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send OTP: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send OTP: ' . $e->getMessage()
             ], 500);
         }
     }
-    
+
     /**
      * Verify OTP and login/register user
      */
@@ -71,7 +71,7 @@ class OtpController extends Controller
             'phone' => 'required|string',
             'otp' => 'required|string'
         ]);
-        
+
         try {
             // Extract phone number (remove country code if present)
             $phone = $request->phone;
@@ -80,38 +80,38 @@ class OtpController extends Controller
             } else if (strpos($phone, '91') === 0 && strlen($phone) > 10) {
                 $phone = substr($phone, 2);
             }
-            
+
             // Check if OTP exists and is valid
             $otpVerification = OtpVerification::where('phone', $phone)
                 ->where('otp', $request->otp)
                 ->where('expires_at', '>', now())
                 ->first();
-            
+
             if (!$otpVerification) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid or expired OTP'
                 ], 400);
             }
-            
+
             // Mark OTP as verified in session
             Session::put('otp_verified_phone', $phone);
-            
+
             // Check if user exists with this phone number
             $fullPhone = '91' . $phone;
             $user = User::where('mobile', $fullPhone)->first();
-            
+
             $userLoggedIn = false;
-            
+
             // If user exists, log them in
             if ($user) {
                 Auth::login($user);
                 $userLoggedIn = true;
             }
-            
+
             // Delete the OTP record
             $otpVerification->delete();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'OTP verified successfully',
@@ -119,7 +119,7 @@ class OtpController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to verify OTP: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to verify OTP: ' . $e->getMessage()

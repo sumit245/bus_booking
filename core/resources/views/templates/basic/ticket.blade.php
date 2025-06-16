@@ -57,6 +57,7 @@
       <div class="row gy-5">
         <div class="col-lg-3">
           <form action="{{ route("search") }}" id="filterFordsm">
+            @csrf
             <input type="hidden" name="OriginId" value="{{ request()->OriginId }}" />
             <input type="hidden" name="DestinationId" value="{{ request()->DestinationId }}" />
             <input type="hidden" name="DateOfJourney" value="{{ request()->DateOfJourney }}" />

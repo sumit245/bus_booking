@@ -28,6 +28,7 @@ use Illuminate\Support\Str;
 
 
 use App\Models\MarkupTable;
+
 class SiteController extends Controller
 {
     public function __construct()
@@ -169,42 +170,42 @@ class SiteController extends Controller
     {
         $this->validateSearchRequest($request);
         $resp = $this->fetchAndProcessAPIResponse($request);
-        
+
         if ($resp instanceof \Illuminate\Http\RedirectResponse) {
             abort(404, 'No buses found for this route and date');
         }
-        
+
         if (!is_array($resp) || !isset($resp['Result']) || empty($resp['Result'])) {
             abort(404, 'No buses found for this route and date');
         }
-        
+
         // Store journey date in proper format
         if ($request->DateOfJourney) {
             $journeyDate = Carbon::parse($request->DateOfJourney)->format('Y-m-d');
             session()->put('date_of_journey', $journeyDate);
             Log::info('Stored journey date in session', ['date' => $journeyDate]);
         }
-        
+
         return $this->prepareAndReturnView($resp, $request);
     }
-    
+
 
     private function prepareAndReturnView($resp, $request)
     {
         $trips = $this->sortTripsByDepartureTime($resp['Result']);
-    
+
         // Fetch markup details
         $markup = MarkupTable::orderBy('id', 'desc')->first();
-    
+
         $flatMarkup = $markup->flat_markup ?? 0;
         $percentageMarkup = $markup->percentage_markup ?? 0;
         $threshold = $markup->threshold ?? 0;
-    
+
         // Modify PublishedPrice based on new markup rules
         foreach ($trips as &$trip) {
             if (isset($trip['BusPrice']['PublishedPrice'])) {
                 $originalPrice = $trip['BusPrice']['PublishedPrice'];
-    
+
                 if ($originalPrice <= $threshold) {
                     // Apply flat markup
                     $trip['BusPrice']['PublishedPrice'] = $originalPrice + $flatMarkup;
@@ -214,7 +215,7 @@ class SiteController extends Controller
                 }
             }
         }
-    
+
         // Apply filters
         if (
             $request->has('departure_time') || $request->has('amenities') ||
@@ -223,7 +224,7 @@ class SiteController extends Controller
         ) {
             $trips = $this->applyFilters($trips, $request);
         }
-    
+
         $viewData = [
             'pageTitle' => 'Search Result',
             'emptyMessage' => 'There is no trip available',
@@ -233,11 +234,11 @@ class SiteController extends Controller
             'trips' => $trips,
             'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
         ];
-    
+
         return view($this->activeTemplate . 'ticket', $viewData);
     }
-    
-    
+
+
 
     private function validateSearchRequest(Request $request)
     {
@@ -452,10 +453,10 @@ class SiteController extends Controller
     private function fetchAndProcessAPIResponse(Request $request)
     {
         $resp = searchAPIBuses(
-            $request->ip(),
             $request->OriginId,
             $request->DestinationId,
-            Carbon::parse($request->DateOfJourney)->format('Y-m-d')
+            Carbon::parse($request->DateOfJourney)->format('Y-m-d'),
+            $request->ip(),
         );
         Log::info($resp);
 
@@ -480,22 +481,6 @@ class SiteController extends Controller
         ]);
     }
 
-    // private function prepareAndReturnView($resp, $request)
-    // {
-    //     $trips = $this->sortTripsByDepartureTime($resp['Result']);
-
-    //     $viewData = [
-    //         'pageTitle' => 'Search Result',
-    //         'emptyMessage' => 'There is no trip available',
-    //         'fleetType' => FleetType::active()->get(),
-    //         'schedules' => Schedule::all(),
-    //         'routes' => VehicleRoute::active()->get(),
-    //         'trips' => $trips,
-    //         'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
-    //     ];
-
-    //     return view($this->activeTemplate . 'ticket', $viewData);
-    // }
 
     private function sortTripsByDepartureTime($trips)
     {
@@ -510,13 +495,15 @@ class SiteController extends Controller
     {
         // Store ResultIndex in session
         session()->put('result_index', $resultIndex);
+        $token = session()->get('search_token_id');
+        $userIp = session()->get('user_ip');
         // Get seat layout from API
-        $response = getAPIBusSeats($resultIndex);
-    
+        $response = getAPIBusSeats($resultIndex, $token, $userIp);
+
         $pageTitle = 'Select Seats';
         $seatHtml = $response['Result']['HTMLLayout'];
         $seatLayout = $response['Result']['SeatLayout'];
-    
+
         // Store bus details in session if available
         if (isset($response['Result']['BusType'])) {
             session()->put('bus_details', [
@@ -526,7 +513,7 @@ class SiteController extends Controller
                 'arrival_time' => $response['Result']['ArrivalTime'] ?? null
             ]);
         }
-    
+
         if (auth()->user()) {
             $layout = 'layouts.master';
         } else {
@@ -571,7 +558,10 @@ class SiteController extends Controller
     public function getBoardingPoints(Request $request)
     {
 
-        $response = getBoardingPoints();
+        $SearchTokenID = session()->get('search_token_id');
+        $ResultIndex = session()->get('result_index');
+        $UserIp = $request->ip();
+        $response = getBoardingPoints($SearchTokenID, $ResultIndex, $UserIp);
 
         if (!$response || isset($response['Error']['ErrorCode']) && $response['Error']['ErrorCode'] != 0) {
             return response()->json([
@@ -587,503 +577,510 @@ class SiteController extends Controller
     }
 
     // 4. Apply api for seat block
-  public function blockSeat(Request $request)
-{
-    Log::info('Block Seat Request:', ['request' => $request->all()]);
-    $request->validate([
-        'boarding_point_index' => 'required',
-        'dropping_point_index' => 'required',
-        'gender' => 'required',
-        'seats' => 'required',
-        'passenger_phone' => 'required',
-        'passenger_firstname' => 'required',
-        'passenger_lastname' => 'required',
-        'passenger_email' => 'required|email',
-    ]);
-    
-    // Check if OTP is verified
-    $phone = $request->passenger_phone;
-    if (strpos($phone, '+91') === 0) {
-        $phone = substr($phone, 3);
-    } else if (strpos($phone, '91') === 0 && strlen($phone) > 10) {
-        $phone = substr($phone, 2);
-    }
-    
-    $verifiedPhone = Session::get('otp_verified_phone');
-    if (!$verifiedPhone || $verifiedPhone !== $phone) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Phone number not verified with OTP'
-        ], 400);
-    }
-    
-    // Register user if not already registered
-    if (!Auth::check()) {
-        $fullPhone = '91' . $phone;
-        $user = User::where('mobile', $fullPhone)->first();
-        
-        if (!$user) {
-            // Create new user
-            $user = new User();
-            $user->firstname = $request->passenger_firstname;
-            $user->lastname = $request->passenger_lastname;
-            $user->email = $request->passenger_email;
-            $user->username = 'user' . time(); // Generate a unique username
-            $user->mobile = $fullPhone;
-            $user->password = Hash::make(Str::random(8)); // Generate a random password
-            $user->country_code = '91';
-            $user->address = [
-                'address' => $request->passenger_address ?? '',
-                'state' => '',
-                'zip' => '',
-                'country' => 'India',
-                'city' => ''
-            ];
-            $user->status = 1;
-            $user->ev = 1; // Email verified
-            $user->sv = 1; // SMS verified
-            $user->save();
-            
-            // Log the user in
-            Auth::login($user);
-        } else {
-            // Log in existing user
-            Auth::login($user);
-        }
-    }
-    
-    // Get selected seats
-    $seats = explode(',', $request->seats);
-
-    // Create passenger data for each seat
-    $passengers = [];
-    foreach ($seats as $index => $seatName) {
-        $passengers[] = [
-            "LeadPassenger" => $index === 0, // First passenger is the lead
-            "Title" => $request->passenger_title,
-            "FirstName" => $request->passenger_firstname,
-            "LastName" => $request->passenger_lastname,
-            "Email" => $request->passenger_email,
-            "Phoneno" => $request->passenger_phone,
-            "Gender" => $request->gender,
-            "IdType" => null,
-            "IdNumber" => null,
-            "Address" => $request->passenger_address,
-            "Age" => $request->passenger_age,
-            "SeatName" => $seatName
-        ];
-    }
-    
-    // Get boarding and dropping point details before blocking seats
-    $boardingPointDetails = null;
-    $droppingPointDetails = null;
-    
-    // Get boarding points from API
-    $boardingResponse = getBoardingPoints();
-    if ($boardingResponse && isset($boardingResponse['Result'])) {
-        // Store boarding points in session for later use
-        session()->put('boarding_points', $boardingResponse['Result']['BoardingPointsDetails'] ?? []);
-        session()->put('dropping_points', $boardingResponse['Result']['DroppingPointsDetails'] ?? []);
-        
-        // Find the selected boarding point
-        if (isset($boardingResponse['Result']['BoardingPointsDetails'])) {
-            foreach ($boardingResponse['Result']['BoardingPointsDetails'] as $point) {
-                if ($point['CityPointIndex'] == $request->boarding_point_index) {
-                    $boardingPointDetails = $point;
-                    break;
-                }
-            }
-        }
-        
-        // Find the selected dropping point
-        if (isset($boardingResponse['Result']['DroppingPointsDetails'])) {
-            foreach ($boardingResponse['Result']['DroppingPointsDetails'] as $point) {
-                if ($point['CityPointIndex'] == $request->dropping_point_index) {
-                    $droppingPointDetails = $point;
-                    break;
-                }
-            }
-        }
-    }
-    
-    // Call the helper function to block seats
-    $response = blockSeatHelper(
-        $request->boarding_point_index,
-        $request->dropping_point_index,
-        $passengers,
-        $seats
-    );
-
-    Log::info('Block Seat Response:', ['response' => $response]);
-
-    if (isset($response['Error']['ErrorCode']) && $response['Error']['ErrorCode'] == 0) {
-        // Get trip details from the response if available
-        $tripDetails = null;
-        if (isset($response['Result'])) {
-            $tripDetails = [
-                'departure_time' => $response['Result']['DepartureTime'] ?? null,
-                'arrival_time' => $response['Result']['ArrivalTime'] ?? null,
-                'bus_type' => $response['Result']['BusType'] ?? null,
-                'travel_name' => $response['Result']['TravelName'] ?? null,
-            ];
-        }
-        
-        // Store booking information in session for payment
-        session()->put('booking_info', [
-            'boarding_point_index' => $request->boarding_point_index,
-            'dropping_point_index' => $request->dropping_point_index,
-            'boarding_point_details' => $boardingPointDetails,
-            'dropping_point_details' => $droppingPointDetails,
-            'seats' => $request->seats,
-            'price' => $request->price,
-            'block_response' => $response,
-            'result_index' => session()->get('result_index'),
-            'passengers' => $passengers,
-            'journey_date' => session()->get('date_of_journey'),
-            'trip_details' => $tripDetails
-        ]);
-        
-        // Return JSON instead of redirecting
-        return response()->json([
-            'response' => $response['Result'],
-            'success' => true,
-            'message' => 'Seats blocked successfully! Proceed to payment.',
-        ]);
-    }
-
-    // If there's an error
-    return response()->json([
-        'success' => false,
-        'message' => $response['Error']['ErrorMessage'] ?? 'Failed to block seats. Please try again.'
-    ], 400);
-}
-
-/**
- * Update the bookTicketApi method to properly store bus details and boarding/dropping points
- */
-public function bookTicketApi(Request $request)
-{
-    try {
-        Log::info('Booking ticket after payment', $request->all());
-
+    public function blockSeat(Request $request)
+    {
+        Log::info('Block Seat Request:', ['request' => $request->all()]);
         $request->validate([
-            'booking_id' => 'required|string',
-            'payment_id' => 'required|string',
-            'payment_status' => 'required|string'
+            'boarding_point_index' => 'required',
+            'dropping_point_index' => 'required',
+            'gender' => 'required',
+            'seats' => 'required',
+            'passenger_phone' => 'required',
+            'passenger_firstname' => 'required',
+            'passenger_lastname' => 'required',
+            'passenger_email' => 'required|email',
         ]);
 
-        $bookingInfo = session()->get('booking_info');
+        // Check if OTP is verified
+        $phone = $request->passenger_phone;
+        if (strpos($phone, '+91') === 0) {
+            $phone = substr($phone, 3);
+        } else if (strpos($phone, '91') === 0 && strlen($phone) > 10) {
+            $phone = substr($phone, 2);
+        }
 
-        if (!$bookingInfo) {
-            Log::error('Booking info not found in session');
+        $verifiedPhone = Session::get('otp_verified_phone');
+        if (!$verifiedPhone || $verifiedPhone !== $phone) {
             return response()->json([
                 'success' => false,
-                'message' => 'Booking information not found'
+                'message' => 'Phone number not verified with OTP'
             ], 400);
         }
 
-        // Check if result_index exists in booking_info
-        if (!isset($bookingInfo['result_index'])) {
-            Log::error('Missing result_index in booking_info session data', ['booking_info' => $bookingInfo]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Missing result_index in booking information.'
-            ], 400);
+        // Register user if not already registered
+        if (!Auth::check()) {
+            $fullPhone = '91' . $phone;
+            $user = User::where('mobile', $fullPhone)->first();
+
+            if (!$user) {
+                // Create new user
+                $user = new User();
+                $user->firstname = $request->passenger_firstname;
+                $user->lastname = $request->passenger_lastname;
+                $user->email = $request->passenger_email;
+                $user->username = 'user' . time(); // Generate a unique username
+                $user->mobile = $fullPhone;
+                $user->password = Hash::make(Str::random(8)); // Generate a random password
+                $user->country_code = '91';
+                $user->address = [
+                    'address' => $request->passenger_address ?? '',
+                    'state' => '',
+                    'zip' => '',
+                    'country' => 'India',
+                    'city' => ''
+                ];
+                $user->status = 1;
+                $user->ev = 1; // Email verified
+                $user->sv = 1; // SMS verified
+                $user->save();
+
+                // Log the user in
+                Auth::login($user);
+            } else {
+                // Log in existing user
+                Auth::login($user);
+            }
         }
 
-        // Get search token ID from block response if not already set
-        if (!isset($bookingInfo['search_token_id'])) {
-            $searchTokenId = $bookingInfo['block_response']['SearchTokenId'] ?? session()->get('search_token_id');
-            $bookingInfo['search_token_id'] = $searchTokenId;
+        // Get selected seats
+        $seats = explode(',', $request->seats);
+
+        // Create passenger data for each seat
+        $passengers = [];
+        foreach ($seats as $index => $seatName) {
+            $passengers[] = [
+                "LeadPassenger" => $index === 0, // First passenger is the lead
+                "Title" => $request->passenger_title,
+                "FirstName" => $request->passenger_firstname,
+                "LastName" => $request->passenger_lastname,
+                "Email" => $request->passenger_email,
+                "Phoneno" => $request->passenger_phone,
+                "Gender" => $request->gender,
+                "IdType" => null,
+                "IdNumber" => null,
+                "Address" => $request->passenger_address,
+                "Age" => $request->passenger_age,
+                "SeatName" => $seatName
+            ];
         }
 
-        Log::info('Booking with payment', [
-            'booking_id' => $request->booking_id,
-            'payment_id' => $request->payment_id,
-            'actual_price' => $bookingInfo['price'],
-            'result_index' => $bookingInfo['result_index'],
-            'search_token_id' => $bookingInfo['search_token_id']
-        ]);
+        // Get boarding and dropping point details before blocking seats
+        $boardingPointDetails = null;
+        $droppingPointDetails = null;
+        $SearchTokenID = session()->get('search_token_id');
+        $ResultIndex = session()->get('result_index');
+        $UserIp = $request->ip();
 
-        // Book the ticket via external API
-        $apiResponse = bookAPITicket(
-            request()->ip(),
-            $bookingInfo['search_token_id'],
-            $bookingInfo['result_index'],
-            (int) $bookingInfo['boarding_point_index'],
-            (int) $bookingInfo['dropping_point_index'],
-            $bookingInfo['passengers']
+        // Get boarding points from API
+        $boardingResponse = getBoardingPoints($SearchTokenID, $ResultIndex, $UserIp);
+        if ($boardingResponse && isset($boardingResponse['Result'])) {
+            // Store boarding points in session for later use
+            session()->put('boarding_points', $boardingResponse['Result']['BoardingPointsDetails'] ?? []);
+            session()->put('dropping_points', $boardingResponse['Result']['DroppingPointsDetails'] ?? []);
+
+            // Find the selected boarding point
+            if (isset($boardingResponse['Result']['BoardingPointsDetails'])) {
+                foreach ($boardingResponse['Result']['BoardingPointsDetails'] as $point) {
+                    if ($point['CityPointIndex'] == $request->boarding_point_index) {
+                        $boardingPointDetails = $point;
+                        break;
+                    }
+                }
+            }
+
+            // Find the selected dropping point
+            if (isset($boardingResponse['Result']['DroppingPointsDetails'])) {
+                foreach ($boardingResponse['Result']['DroppingPointsDetails'] as $point) {
+                    if ($point['CityPointIndex'] == $request->dropping_point_index) {
+                        $droppingPointDetails = $point;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Call the helper function to block seats
+        $response = blockSeatHelper(
+            $SearchTokenID,
+            $ResultIndex,
+            $request->boarding_point_index,
+            $request->dropping_point_index,
+            $passengers,
+            $seats,
+            $UserIp
         );
 
-        Log::info('Book ticket API response', ['response' => $apiResponse]);
+        Log::info('Block Seat Response:', ['response' => $response]);
 
-        if (isset($apiResponse['Error']) && $apiResponse['Error']['ErrorCode'] != 0) {
+        // TODO:Need to rectify here according to rectified helper
+        if (isset($response['success'])) {
+            // Get trip details from the response if available
+            $tripDetails = null;
+            if (isset($response['Result'])) {
+                $tripDetails = [
+                    'departure_time' => $response['Result']['DepartureTime'] ?? null,
+                    'arrival_time' => $response['Result']['ArrivalTime'] ?? null,
+                    'bus_type' => $response['Result']['BusType'] ?? null,
+                    'travel_name' => $response['Result']['TravelName'] ?? null,
+                ];
+            }
+
+            // Store booking information in session for payment
+            session()->put('booking_info', [
+                'boarding_point_index' => $request->boarding_point_index,
+                'dropping_point_index' => $request->dropping_point_index,
+                'boarding_point_details' => $boardingPointDetails,
+                'dropping_point_details' => $droppingPointDetails,
+                'seats' => $request->seats,
+                'price' => $request->price,
+                'block_response' => $response,
+                'result_index' => session()->get('result_index'),
+                'passengers' => $passengers,
+                'journey_date' => session()->get('date_of_journey'),
+                'trip_details' => $tripDetails
+            ]);
+
+            // Return JSON instead of redirecting
             return response()->json([
-                'success' => false,
-                'message' => $apiResponse['Error']['ErrorMessage'] ?? 'Booking failed',
-                'error' => $apiResponse['Error']
-            ], 500);
+                'response' => $response['Result'],
+                'success' => true,
+                'message' => 'Seats blocked successfully! Proceed to payment.',
+            ]);
         }
 
-        // Proceed to save the booking locally
-        $userId = auth()->check() ? auth()->id() : 0;
-        
-        // Extract passenger details from the first passenger
-        $firstPassenger = $bookingInfo['passengers'][0] ?? [];
-        
-        // Get journey date from session or API response
-        $journeyDate = null;
-        
-        // Try to get date from block response
-        if (isset($bookingInfo['block_response']['Result']['DepartureTime'])) {
-            $departureTime = $bookingInfo['block_response']['Result']['DepartureTime'];
-            $journeyDate = date('Y-m-d', strtotime($departureTime));
-        }
-        
-        // If not found, try session
-        if (!$journeyDate) {
-            $journeyDate = session()->get('date_of_journey');
-        }
-        
-        // If still not found, use current date
-        if (!$journeyDate || $journeyDate == '0000-00-00') {
-            $journeyDate = date('Y-m-d');
-        }
-        
-        Log::info('Journey date for booking', ['date' => $journeyDate]);
-        
-        // Find or create a trip record
-        $tripId = $this->findOrCreateTrip($bookingInfo);
-        
-        // Create source_destination array
-        $sourceDestination = [
-            session()->get('origin_id'),
-            session()->get('destination_id')
-        ];
-        
-        // Ensure pickup and dropping points exist in the Counter table
-        $this->ensureCounterExists($bookingInfo['boarding_point_index'], $bookingInfo['dropping_point_index']);
-        
-        // Get boarding and dropping point details
-        $boardingPointDetails = $bookingInfo['boarding_point_details'] ?? null;
-        $droppingPointDetails = $bookingInfo['dropping_point_details'] ?? null;
-        
-        // If boarding/dropping details weren't captured during seat blocking, try to get them from API response
-        if (!$boardingPointDetails && isset($apiResponse['BoardingPointsDetails'])) {
-            foreach ($apiResponse['BoardingPointsDetails'] as $point) {
-                if ($point['CityPointIndex'] == $bookingInfo['boarding_point_index']) {
-                    $boardingPointDetails = $point;
-                    break;
-                }
-            }
-        } elseif (!$boardingPointDetails && isset($apiResponse['Result']['BoardingPointsDetails'])) {
-            foreach ($apiResponse['Result']['BoardingPointsDetails'] as $point) {
-                if ($point['CityPointIndex'] == $bookingInfo['boarding_point_index']) {
-                    $boardingPointDetails = $point;
-                    break;
-                }
-            }
-        }
-        
-        if (!$droppingPointDetails && isset($apiResponse['DroppingPointsDetails'])) {
-            foreach ($apiResponse['DroppingPointsDetails'] as $point) {
-                if ($point['CityPointIndex'] == $bookingInfo['dropping_point_index']) {
-                    $droppingPointDetails = $point;
-                    break;
-                }
-            }
-        } elseif (!$droppingPointDetails && isset($apiResponse['Result']['DroppingPointsDetails'])) {
-            foreach ($apiResponse['Result']['DroppingPointsDetails'] as $point) {
-                if ($point['CityPointIndex'] == $bookingInfo['dropping_point_index']) {
-                    $droppingPointDetails = $point;
-                    break;
-                }
-            }
-        }
-        
-        // If still not found, try to get from session
-        if (!$boardingPointDetails) {
-            $boardingPoints = session()->get('boarding_points', []);
-            foreach ($boardingPoints as $point) {
-                if ($point['CityPointIndex'] == $bookingInfo['boarding_point_index']) {
-                    $boardingPointDetails = $point;
-                    break;
-                }
-            }
-        }
-        
-        if (!$droppingPointDetails) {
-            $droppingPoints = session()->get('dropping_points', []);
-            foreach ($droppingPoints as $point) {
-                if ($point['CityPointIndex'] == $bookingInfo['dropping_point_index']) {
-                    $droppingPointDetails = $point;
-                    break;
-                }
-            }
-        }
-        
-        // Get bus details from booking info or API response
-        $busDetails = $bookingInfo['trip_details'] ?? null;
-        
-        if (!$busDetails && isset($apiResponse['Result'])) {
-            $busDetails = [
-                'bus_type' => $apiResponse['Result']['BusType'] ?? null,
-                'travel_name' => $apiResponse['Result']['TravelName'] ?? null,
-                'departure_time' => $apiResponse['Result']['DepartureTime'] ?? null,
-                'arrival_time' => $apiResponse['Result']['ArrivalTime'] ?? null
-            ];
-        }
-        
-        // Create the ticket record
-        $ticket = new \App\Models\BookedTicket();
-        $ticket->pnr_number = $request->booking_id;
-        $ticket->user_id = $userId;
-        $ticket->date_of_journey = $journeyDate;
-        $ticket->seats = $bookingInfo['seats']; // This will be cast to array by the model
-        $ticket->pickup_point = $bookingInfo['boarding_point_index'];
-        $ticket->dropping_point = $bookingInfo['dropping_point_index'];
-        $ticket->unit_price = $bookingInfo['price'];
-        $ticket->sub_total = $bookingInfo['price'];
-        $ticket->ticket_count = count(explode(',', $bookingInfo['seats']));
-        $ticket->gender = $firstPassenger['Gender'] ?? 1;
-        $ticket->status = 1; // Confirmed
-        $ticket->api_response = json_encode($apiResponse); // Save full API response
-        $ticket->trip_id = $tripId;
-        $ticket->source_destination = $sourceDestination;
-        
-        // Save passenger details
-        $ticket->passenger_name = $firstPassenger['FirstName'] . ' ' . $firstPassenger['LastName'];
-        $ticket->passenger_phone = $firstPassenger['Phoneno'] ?? null;
-        $ticket->passenger_email = $firstPassenger['Email'] ?? null;
-        $ticket->passenger_address = $firstPassenger['Address'] ?? null;
-        $ticket->passenger_age = $firstPassenger['Age'] ?? null;
-        
-        // Save all passenger names if multiple
-        $passengerNames = [];
-        foreach ($bookingInfo['passengers'] as $passenger) {
-            $passengerNames[] = $passenger['FirstName'] . ' ' . $passenger['LastName'];
-        }
-        $ticket->passenger_names = json_encode($passengerNames);
-        
-        // Save boarding and dropping point details
-        if ($boardingPointDetails) {
-            $ticket->boarding_point_details = json_encode($boardingPointDetails);
-            
-            // Update the counter record with details
-            $this->updateCounterWithDetails($bookingInfo['boarding_point_index'], $boardingPointDetails);
-        }
-        
-        if ($droppingPointDetails) {
-            $ticket->dropping_point_details = json_encode($droppingPointDetails);
-            
-            // Update the counter record with details
-            $this->updateCounterWithDetails($bookingInfo['dropping_point_index'], $droppingPointDetails);
-        }
-        
-        // Save bus details
-        if ($busDetails) {
-            $ticket->bus_details = json_encode($busDetails);
-            
-            // Also save to individual fields for direct access
-            if (isset($busDetails['bus_type'])) {
-                $ticket->bus_type = $busDetails['bus_type'];
-            }
-            
-            if (isset($busDetails['travel_name'])) {
-                $ticket->travel_name = $busDetails['travel_name'];
-            }
-            
-            if (isset($busDetails['departure_time'])) {
-                // Format the departure time correctly for database storage
-                $ticket->departure_time = date('H:i:s', strtotime($busDetails['departure_time']));
-            }
-            
-            if (isset($busDetails['arrival_time'])) {
-                // Format the arrival time correctly for database storage
-                $ticket->arrival_time = date('H:i:s', strtotime($busDetails['arrival_time']));
-            }
-        }
-        
-        // Save operator PNR if available
-        if (isset($apiResponse['Result']['TravelOperatorPNR'])) {
-            $ticket->operator_pnr = $apiResponse['Result']['TravelOperatorPNR'];
-        }
-        
-        $ticket->save();
-
-        // Store ticket in session for immediate access
-        session()->put('last_booked_ticket', [
-            'id' => $ticket->id,
-            'pnr_number' => $ticket->pnr_number,
-            'passenger_name' => $ticket->passenger_name,
-            'passenger_phone' => $ticket->passenger_phone,
-            'passenger_email' => $ticket->passenger_email,
-            'date_of_journey' => $ticket->date_of_journey,
-            'trip_id' => $ticket->trip_id,
-            'source_destination' => $ticket->source_destination,
-            'boarding_point_details' => $boardingPointDetails,
-            'dropping_point_details' => $droppingPointDetails,
-            'bus_details' => $busDetails
-        ]);
-
-        session()->forget('booking_info');
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Ticket booked successfully',
-            'booking_id' => $request->booking_id,
-            'pnr' => $apiResponse['PNRNo'] ?? null,
-            'redirect' => route('user.ticket.print', $request->booking_id)
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Failed to book ticket: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString()
-        ]);
-
+        // If there's an error
         return response()->json([
             'success' => false,
-            'message' => 'Failed to book ticket: ' . $e->getMessage()
-        ], 500);
+            'message' => $response['Error']['ErrorMessage'] ?? 'Failed to block seats. Please try again.'
+        ], 400);
     }
-}
 
-/**
- * Update counter record with detailed information
- */
-private function updateCounterWithDetails($counterId, $details)
-{
-    $counter = \App\Models\Counter::find($counterId);
-    
-    if ($counter) {
-        $updateData = [];
-        
-        if (isset($details['CityPointName']) && (!$counter->name || $counter->name == 'Boarding Point ' . $counterId || $counter->name == 'Dropping Point ' . $counterId)) {
-            $updateData['name'] = $details['CityPointName'];
+    /**
+     * Update the bookTicketApi method to properly store bus details and boarding/dropping points
+     */
+    public function bookTicketApi(Request $request)
+    {
+        try {
+            Log::info('Booking ticket after payment', $request->all());
+
+            $request->validate([
+                'booking_id' => 'required|string',
+                'payment_id' => 'required|string',
+                'payment_status' => 'required|string'
+            ]);
+
+            $bookingInfo = session()->get('booking_info');
+
+            if (!$bookingInfo) {
+                Log::error('Booking info not found in session');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking information not found'
+                ], 400);
+            }
+
+            // Check if result_index exists in booking_info
+            if (!isset($bookingInfo['result_index'])) {
+                Log::error('Missing result_index in booking_info session data', ['booking_info' => $bookingInfo]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing result_index in booking information.'
+                ], 400);
+            }
+
+            // Get search token ID from block response if not already set
+            if (!isset($bookingInfo['search_token_id'])) {
+                $searchTokenId = $bookingInfo['block_response']['SearchTokenId'] ?? session()->get('search_token_id');
+                $bookingInfo['search_token_id'] = $searchTokenId;
+            }
+
+            Log::info('Booking with payment', [
+                'booking_id' => $request->booking_id,
+                'payment_id' => $request->payment_id,
+                'actual_price' => $bookingInfo['price'],
+                'result_index' => $bookingInfo['result_index'],
+                'search_token_id' => $bookingInfo['search_token_id']
+            ]);
+
+            // Book the ticket via external API
+            $apiResponse = bookAPITicket(
+                request()->ip(),
+                $bookingInfo['search_token_id'],
+                $bookingInfo['result_index'],
+                (int) $bookingInfo['boarding_point_index'],
+                (int) $bookingInfo['dropping_point_index'],
+                $bookingInfo['passengers']
+            );
+
+            Log::info('Book ticket API response', ['response' => $apiResponse]);
+
+            if (isset($apiResponse['Error']) && $apiResponse['Error']['ErrorCode'] != 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $apiResponse['Error']['ErrorMessage'] ?? 'Booking failed',
+                    'error' => $apiResponse['Error']
+                ], 500);
+            }
+
+            // Proceed to save the booking locally
+            $userId = auth()->check() ? auth()->id() : 0;
+
+            // Extract passenger details from the first passenger
+            $firstPassenger = $bookingInfo['passengers'][0] ?? [];
+
+            // Get journey date from session or API response
+            $journeyDate = null;
+
+            // Try to get date from block response
+            if (isset($bookingInfo['block_response']['Result']['DepartureTime'])) {
+                $departureTime = $bookingInfo['block_response']['Result']['DepartureTime'];
+                $journeyDate = date('Y-m-d', strtotime($departureTime));
+            }
+
+            // If not found, try session
+            if (!$journeyDate) {
+                $journeyDate = session()->get('date_of_journey');
+            }
+
+            // If still not found, use current date
+            if (!$journeyDate || $journeyDate == '0000-00-00') {
+                $journeyDate = date('Y-m-d');
+            }
+
+            Log::info('Journey date for booking', ['date' => $journeyDate]);
+
+            // Find or create a trip record
+            $tripId = $this->findOrCreateTrip($bookingInfo);
+
+            // Create source_destination array
+            $sourceDestination = [
+                session()->get('origin_id'),
+                session()->get('destination_id')
+            ];
+
+            // Ensure pickup and dropping points exist in the Counter table
+            $this->ensureCounterExists($bookingInfo['boarding_point_index'], $bookingInfo['dropping_point_index']);
+
+            // Get boarding and dropping point details
+            $boardingPointDetails = $bookingInfo['boarding_point_details'] ?? null;
+            $droppingPointDetails = $bookingInfo['dropping_point_details'] ?? null;
+
+            // If boarding/dropping details weren't captured during seat blocking, try to get them from API response
+            if (!$boardingPointDetails && isset($apiResponse['BoardingPointsDetails'])) {
+                foreach ($apiResponse['BoardingPointsDetails'] as $point) {
+                    if ($point['CityPointIndex'] == $bookingInfo['boarding_point_index']) {
+                        $boardingPointDetails = $point;
+                        break;
+                    }
+                }
+            } elseif (!$boardingPointDetails && isset($apiResponse['Result']['BoardingPointsDetails'])) {
+                foreach ($apiResponse['Result']['BoardingPointsDetails'] as $point) {
+                    if ($point['CityPointIndex'] == $bookingInfo['boarding_point_index']) {
+                        $boardingPointDetails = $point;
+                        break;
+                    }
+                }
+            }
+
+            if (!$droppingPointDetails && isset($apiResponse['DroppingPointsDetails'])) {
+                foreach ($apiResponse['DroppingPointsDetails'] as $point) {
+                    if ($point['CityPointIndex'] == $bookingInfo['dropping_point_index']) {
+                        $droppingPointDetails = $point;
+                        break;
+                    }
+                }
+            } elseif (!$droppingPointDetails && isset($apiResponse['Result']['DroppingPointsDetails'])) {
+                foreach ($apiResponse['Result']['DroppingPointsDetails'] as $point) {
+                    if ($point['CityPointIndex'] == $bookingInfo['dropping_point_index']) {
+                        $droppingPointDetails = $point;
+                        break;
+                    }
+                }
+            }
+
+            // If still not found, try to get from session
+            if (!$boardingPointDetails) {
+                $boardingPoints = session()->get('boarding_points', []);
+                foreach ($boardingPoints as $point) {
+                    if ($point['CityPointIndex'] == $bookingInfo['boarding_point_index']) {
+                        $boardingPointDetails = $point;
+                        break;
+                    }
+                }
+            }
+
+            if (!$droppingPointDetails) {
+                $droppingPoints = session()->get('dropping_points', []);
+                foreach ($droppingPoints as $point) {
+                    if ($point['CityPointIndex'] == $bookingInfo['dropping_point_index']) {
+                        $droppingPointDetails = $point;
+                        break;
+                    }
+                }
+            }
+
+            // Get bus details from booking info or API response
+            $busDetails = $bookingInfo['trip_details'] ?? null;
+
+            if (!$busDetails && isset($apiResponse['Result'])) {
+                $busDetails = [
+                    'bus_type' => $apiResponse['Result']['BusType'] ?? null,
+                    'travel_name' => $apiResponse['Result']['TravelName'] ?? null,
+                    'departure_time' => $apiResponse['Result']['DepartureTime'] ?? null,
+                    'arrival_time' => $apiResponse['Result']['ArrivalTime'] ?? null
+                ];
+            }
+
+            // Create the ticket record
+            $ticket = new \App\Models\BookedTicket();
+            $ticket->pnr_number = $request->booking_id;
+            $ticket->user_id = $userId;
+            $ticket->date_of_journey = $journeyDate;
+            $ticket->seats = $bookingInfo['seats']; // This will be cast to array by the model
+            $ticket->pickup_point = $bookingInfo['boarding_point_index'];
+            $ticket->dropping_point = $bookingInfo['dropping_point_index'];
+            $ticket->unit_price = $bookingInfo['price'];
+            $ticket->sub_total = $bookingInfo['price'];
+            $ticket->ticket_count = count(explode(',', $bookingInfo['seats']));
+            $ticket->gender = $firstPassenger['Gender'] ?? 1;
+            $ticket->status = 1; // Confirmed
+            $ticket->api_response = json_encode($apiResponse); // Save full API response
+            $ticket->trip_id = $tripId;
+            $ticket->source_destination = $sourceDestination;
+
+            // Save passenger details
+            $ticket->passenger_name = $firstPassenger['FirstName'] . ' ' . $firstPassenger['LastName'];
+            $ticket->passenger_phone = $firstPassenger['Phoneno'] ?? null;
+            $ticket->passenger_email = $firstPassenger['Email'] ?? null;
+            $ticket->passenger_address = $firstPassenger['Address'] ?? null;
+            $ticket->passenger_age = $firstPassenger['Age'] ?? null;
+
+            // Save all passenger names if multiple
+            $passengerNames = [];
+            foreach ($bookingInfo['passengers'] as $passenger) {
+                $passengerNames[] = $passenger['FirstName'] . ' ' . $passenger['LastName'];
+            }
+            $ticket->passenger_names = json_encode($passengerNames);
+
+            // Save boarding and dropping point details
+            if ($boardingPointDetails) {
+                $ticket->boarding_point_details = json_encode($boardingPointDetails);
+
+                // Update the counter record with details
+                $this->updateCounterWithDetails($bookingInfo['boarding_point_index'], $boardingPointDetails);
+            }
+
+            if ($droppingPointDetails) {
+                $ticket->dropping_point_details = json_encode($droppingPointDetails);
+
+                // Update the counter record with details
+                $this->updateCounterWithDetails($bookingInfo['dropping_point_index'], $droppingPointDetails);
+            }
+
+            // Save bus details
+            if ($busDetails) {
+                $ticket->bus_details = json_encode($busDetails);
+
+                // Also save to individual fields for direct access
+                if (isset($busDetails['bus_type'])) {
+                    $ticket->bus_type = $busDetails['bus_type'];
+                }
+
+                if (isset($busDetails['travel_name'])) {
+                    $ticket->travel_name = $busDetails['travel_name'];
+                }
+
+                if (isset($busDetails['departure_time'])) {
+                    // Format the departure time correctly for database storage
+                    $ticket->departure_time = date('H:i:s', strtotime($busDetails['departure_time']));
+                }
+
+                if (isset($busDetails['arrival_time'])) {
+                    // Format the arrival time correctly for database storage
+                    $ticket->arrival_time = date('H:i:s', strtotime($busDetails['arrival_time']));
+                }
+            }
+
+            // Save operator PNR if available
+            if (isset($apiResponse['Result']['TravelOperatorPNR'])) {
+                $ticket->operator_pnr = $apiResponse['Result']['TravelOperatorPNR'];
+            }
+
+            $ticket->save();
+
+            // Store ticket in session for immediate access
+            session()->put('last_booked_ticket', [
+                'id' => $ticket->id,
+                'pnr_number' => $ticket->pnr_number,
+                'passenger_name' => $ticket->passenger_name,
+                'passenger_phone' => $ticket->passenger_phone,
+                'passenger_email' => $ticket->passenger_email,
+                'date_of_journey' => $ticket->date_of_journey,
+                'trip_id' => $ticket->trip_id,
+                'source_destination' => $ticket->source_destination,
+                'boarding_point_details' => $boardingPointDetails,
+                'dropping_point_details' => $droppingPointDetails,
+                'bus_details' => $busDetails
+            ]);
+
+            session()->forget('booking_info');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ticket booked successfully',
+                'booking_id' => $request->booking_id,
+                'pnr' => $apiResponse['PNRNo'] ?? null,
+                'redirect' => route('user.ticket.print', $request->booking_id)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to book ticket: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to book ticket: ' . $e->getMessage()
+            ], 500);
         }
-        
-        if (isset($details['CityPointLocation']) && !$counter->address) {
-            $updateData['address'] = $details['CityPointLocation'];
-        }
-        
-        if (isset($details['CityPointContactNumber']) && !$counter->contact) {
-            $updateData['contact'] = $details['CityPointContactNumber'];
-        }
-        
-        if (!empty($updateData)) {
-            \App\Models\Counter::where('id', $counterId)->update($updateData);
-        }
-    } else {
-        // Create counter if it doesn't exist
-        $counter = new \App\Models\Counter();
-        $counter->id = $counterId;
-        $counter->name = $details['CityPointName'] ?? 'Point ' . $counterId;
-        $counter->address = $details['CityPointLocation'] ?? null;
-        $counter->contact = $details['CityPointContactNumber'] ?? null;
-        $counter->status = 1;
-        $counter->save();
     }
-}
-    
+
+    /**
+     * Update counter record with detailed information
+     */
+    private function updateCounterWithDetails($counterId, $details)
+    {
+        $counter = \App\Models\Counter::find($counterId);
+
+        if ($counter) {
+            $updateData = [];
+
+            if (isset($details['CityPointName']) && (!$counter->name || $counter->name == 'Boarding Point ' . $counterId || $counter->name == 'Dropping Point ' . $counterId)) {
+                $updateData['name'] = $details['CityPointName'];
+            }
+
+            if (isset($details['CityPointLocation']) && !$counter->address) {
+                $updateData['address'] = $details['CityPointLocation'];
+            }
+
+            if (isset($details['CityPointContactNumber']) && !$counter->contact) {
+                $updateData['contact'] = $details['CityPointContactNumber'];
+            }
+
+            if (!empty($updateData)) {
+                \App\Models\Counter::where('id', $counterId)->update($updateData);
+            }
+        } else {
+            // Create counter if it doesn't exist
+            $counter = new \App\Models\Counter();
+            $counter->id = $counterId;
+            $counter->name = $details['CityPointName'] ?? 'Point ' . $counterId;
+            $counter->address = $details['CityPointLocation'] ?? null;
+            $counter->contact = $details['CityPointContactNumber'] ?? null;
+            $counter->status = 1;
+            $counter->save();
+        }
+    }
+
     /**
      * Find or create a trip record based on booking information
      * 
@@ -1095,36 +1092,36 @@ private function updateCounterWithDetails($counterId, $details)
         // Try to find an existing trip with the same route
         $originId = session()->get('origin_id');
         $destinationId = session()->get('destination_id');
-        
+
         $trip = \App\Models\Trip::where('start_from', $originId)
             ->where('end_to', $destinationId)
             ->first();
-        
+
         if ($trip) {
             return $trip->id;
         }
-        
+
         // Extract trip details from block response if available
         $departureTime = date('H:i:s');
         $arrivalTime = date('H:i:s', strtotime('+4 hours'));
         $busType = 'Bus Trip';
-        
+
         if (isset($bookingInfo['block_response']['Result'])) {
             $result = $bookingInfo['block_response']['Result'];
-            
+
             if (isset($result['DepartureTime'])) {
                 $departureTime = date('H:i:s', strtotime($result['DepartureTime']));
             }
-            
+
             if (isset($result['ArrivalTime'])) {
                 $arrivalTime = date('H:i:s', strtotime($result['ArrivalTime']));
             }
-            
+
             if (isset($result['BusType'])) {
                 $busType = $result['BusType'];
             }
         }
-        
+
         // If no trip exists, create a new one
         $trip = new \App\Models\Trip();
         $trip->title = $busType;
@@ -1135,10 +1132,10 @@ private function updateCounterWithDetails($counterId, $details)
         $trip->end_time = $arrivalTime;
         $trip->status = 1;
         $trip->save();
-        
+
         return $trip->id;
     }
-    
+
     /**
      * Ensure counter records exist for pickup and dropping points
      * 
@@ -1159,7 +1156,7 @@ private function updateCounterWithDetails($counterId, $details)
             $pickupCounter->status = 1;
             $pickupCounter->save();
         }
-        
+
         // Check if dropping point exists
         $droppingCounter = \App\Models\Counter::find($droppingPointId);
         if (!$droppingCounter) {
@@ -1172,5 +1169,4 @@ private function updateCounterWithDetails($counterId, $details)
             $droppingCounter->save();
         }
     }
-
-}    
+}

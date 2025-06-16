@@ -12,6 +12,8 @@ use App\Models\Counter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use PHPMailer\PHPMailer\Exception;
+use Symfony\Component\DomCrawler\Crawler;
+
 
 function sidebarVariation()
 {
@@ -437,7 +439,6 @@ function siteName()
     return $title;
 }
 
-
 //moveable
 function getTemplates()
 {
@@ -465,7 +466,6 @@ function getPageSections($arr = false)
     return $sections;
 }
 
-
 function getImage($image, $size = null)
 {
     $clean = '';
@@ -483,8 +483,6 @@ function notify($user, $type, $shortCodes = null)
     sendEmail($user, $type, $shortCodes);
     sendSms($user, $type, $shortCodes);
 }
-
-
 
 function sendSms($user, $type, $shortCodes = [])
 {
@@ -907,44 +905,39 @@ function sendOtp($mobile, $userName = "Guest", $otp)
 {
     $apiUrl = env('WHATSAPP_API_URL');
     $apiKey = env('WHATSAPP_API_KEY');
+    // $otp    = (string) rand(100000, 999999);
 
     $payload = [
         "apiKey"              => $apiKey,
         "campaignName"        => "whatsapp_otp",
         "destination"         => "91{$mobile}",
         "userName"            => $userName,
-        "templateParams"      => [ (string) $otp ],
+        "templateParams"      => [$otp],
         "source"              => "new-landing-page form",
-        "media"               => new \stdClass(), // empty object
-        "buttons"             => [
-            [
-                "type" => "button",
-                "sub_type" => "url",
-                "index" => 0,
-                "parameters" => [
-                    [
-                        "type" => "text",
-                        "text" => "TESTCODE20"
-                    ]
-                ]
-            ]
-        ],
+        "media"               => [],
+        "buttons"             => [[
+            "type"       => "button",
+            "sub_type"   => "url",
+            "index"      => 0,
+            "parameters" => [
+                [
+                    "type" => "text",
+                    "text" => $otp, // Replace with dynamic or fixed value if needed
+                ],
+            ],
+        ]],
         "carouselCards"       => [],
-        "location"            => new \stdClass(), // empty object
-        "attributes"          => new \stdClass(), // empty object
-        "paramsFallbackValue" => [
-            "FirstName" => "user"
-        ],
+        "location"            => [],
+        "paramsFallbackValue" => ["FirstName" => "user"],
     ];
 
-    Log::info("Generated OTP for {$mobile}: {$otp}");
-
     $response = Http::post($apiUrl, $payload);
-
+    Log::info($response);
     if ($response->successful()) {
-        return $otp;
+        return $otp; // Return OTP if the API call succeeds
     } else {
         throw new \Exception("Failed to send OTP. Error: " . $response->body());
+        return $response->body();
     }
 }
 
@@ -991,22 +984,22 @@ function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
     }
 }
 
-function searchAPIBuses($userIp, $source, $destination, $date)
+function searchAPIBuses($source, $destination, $date, $userIp = "::1")
 {
     try {
         $busUrl = env('LIVE_BUS_API') . '/busservice/rest/search';
         $busUser = env('LIVE_BUS_USERNAME');
         $busPass = env('LIVE_BUS_PASSWORD');
         $data = [
-            'UserIp' => $userIp,
+            'UserIp' => $userIp ?: "::1",
             'OriginId' => $source,
             'DestinationId' => $destination,
             'DateOfJourney' => $date,
         ];
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
-            'Username' => $busUser,  
-            'Password' => $busPass,  
+            'Username' => $busUser,
+            'Password' => $busPass,
         ])->post($busUrl, $data);
         return $response->json();
     } catch (\Exception $e) {
@@ -1014,7 +1007,7 @@ function searchAPIBuses($userIp, $source, $destination, $date)
     }
 }
 
-function getAPIBusSeats($resultIndex)
+function getAPIBusSeats($resultIndex, $token, $userIp = "::1")
 {
     try {
         $busUrl = env('LIVE_BUS_API') . '/busservice/rest/seatlayout';
@@ -1022,8 +1015,8 @@ function getAPIBusSeats($resultIndex)
         $busPass = env('LIVE_BUS_PASSWORD');
 
         $data = [
-            'UserIp' => session()->get('user_ip'),
-            'SearchTokenId' => session()->get('search_token_id'),
+            'UserIp' => $userIp,
+            'SearchTokenId' => $token,
             'ResultIndex' => $resultIndex
         ];
 
@@ -1039,7 +1032,7 @@ function getAPIBusSeats($resultIndex)
     }
 }
 
-function getBoardingPoints()
+function getBoardingPoints($SearchTokenID, $ResultIndex, $userIp = "::1")
 {
     try {
         $busUrl = env('LIVE_BUS_API') . '/busservice/rest/boardingpoint';
@@ -1047,9 +1040,9 @@ function getBoardingPoints()
         $busPass = env('LIVE_BUS_PASSWORD');
 
         $data = [
-            'UserIp' => session()->get('user_ip'),
-            'SearchTokenId' => session()->get('search_token_id'),
-            'ResultIndex' => session()->get('result_index'),
+            'SearchTokenId' => $SearchTokenID,
+            'ResultIndex' => $ResultIndex,
+            'UserIp' => $userIp,
         ];
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
@@ -1059,7 +1052,6 @@ function getBoardingPoints()
         if ($response->successful()) {
             return $response->json();
         }
-
         Log::error('Boarding points API error: ' . $response->body());
         return null;
     } catch (\Exception $e) {
@@ -1068,7 +1060,7 @@ function getBoardingPoints()
     }
 }
 
-function blockSeatHelper($boardingPointId, $droppingPointId, $passengers, $seats)
+function blockSeatHelper($SearchTokenID, $ResultIndex, $boardingPointId, $droppingPointId, $passengers, $seats, $UserIp = "::1")
 {
     try {
         $busUrl = env('LIVE_BUS_API') . '/busservice/rest/blockseat';
@@ -1076,9 +1068,9 @@ function blockSeatHelper($boardingPointId, $droppingPointId, $passengers, $seats
         $busPass = env('LIVE_BUS_PASSWORD');
 
         $data = [
-            'UserIp' => session()->get('user_ip'),
-            'SearchTokenId' => session()->get('search_token_id'),
-            'ResultIndex' => session()->get('result_index'),
+            'UserIp' => $UserIp,
+            'SearchTokenId' => $SearchTokenID,
+            'ResultIndex' => $ResultIndex,
             'BoardingPointId' => (int)$boardingPointId,
             'DroppingPointId' => (int)$droppingPointId,
             'Passenger' => $passengers
@@ -1091,17 +1083,28 @@ function blockSeatHelper($boardingPointId, $droppingPointId, $passengers, $seats
         ])->post($busUrl, $data);
 
         if ($response->successful()) {
-            return $response->json();
-        }
+            $json = $response->json();
+            // Check if Result exists and has an Error with ErrorCode != 0
+            if (isset($json['Error']) && isset($json['Error']['ErrorCode']) && $json['Error']['ErrorCode'] != 0) {
+                return [
+                    'success' => false,
+                    'message' => $json['Error']['ErrorMessage'] ?? 'Unknown API error',
+                    'code' => $json['Error']['ErrorCode'],
+                    'error' => $json['Error'],
+                ];
+            }
 
-        Log::error('Block seat API error: ' . $response->body());
+            return [
+                'success' => true,
+                'Result' => $json['Result'] ?? $json
+            ];
+        }
         return [
             'success' => false,
             'message' => 'Failed to block seats',
             'error' => $response->body()
         ];
     } catch (\Exception $e) {
-        Log::error('Block seat API exception: ' . $e->getMessage());
         return [
             'success' => false,
             'message' => 'Exception occurred while blocking seats',
@@ -1109,6 +1112,7 @@ function blockSeatHelper($boardingPointId, $droppingPointId, $passengers, $seats
         ];
     }
 }
+
 
 function bookAPITicket($userIp, $searchTokenId, $resultIndex, $boardingPointId, $droppingPointId, $passengers)
 {
@@ -1187,5 +1191,136 @@ function cancelAPITicket($userIp, $searchTokenId, $bookingId, $seatId, $remarks)
                 'ErrorMessage' => $e->getMessage()
             ]
         ];
+    }
+}
+
+
+function parseSeatHtmlToJson($html)
+{
+    $crawler = new Crawler($html);
+    $result = [
+        'seat' => [
+            'upper_deck' => ['rows' => []],
+            'lower_deck' => ['rows' => []]
+        ]
+    ];
+
+    $crawler->filter('.outerseat, .outerlowerseat')->each(function ($deckNode) use (&$result) {
+        $deck = str_contains($deckNode->attr('class'), 'outerseat') ? 'upper_deck' : 'lower_deck';
+        $rowNumber = 1;
+
+        $deckNode->filter('.seatcontainer > div')->each(function ($seatNode) use (&$result, $deck, &$rowNumber) {
+            $classes = explode(' ', $seatNode->attr('class') ?? '');
+            $style = $seatNode->attr('style') ?? '';
+            $onclick = $seatNode->attr('onclick') ?? '';
+            $id = $seatNode->attr('id') ?? '';
+
+            // Extract position
+            preg_match('/top:\s*(\d+)px/', $style, $topMatch);
+            $top = $topMatch[1] ?? 0;
+
+            // Determine row (each 30px is a new row)
+            $currentRow = floor($top / 30) + 1;
+            if ($currentRow > $rowNumber) {
+                $rowNumber = $currentRow;
+            }
+
+            // Initialize row if not exists
+            if (!isset($result['seat'][$deck]['rows'][$rowNumber])) {
+                $result['seat'][$deck]['rows'][$rowNumber] = [];
+            }
+
+            $seatType = $classes[0] ?? '';
+            $isAvailable = false;
+            $isSleeper = false;
+            $price = 0;
+            $seatId = $id;
+
+            // Determine seat characteristics based on class
+            if ($seatType === 'hseat') {
+                $isSleeper = true;
+                $isAvailable = true;
+            } elseif ($seatType === 'bhseat') {
+                $isSleeper = true;
+                $isAvailable = false;
+            } elseif ($seatType === 'nseat') {
+                $isSleeper = false;
+                $isAvailable = true;
+            } elseif ($seatType === 'bseat') {
+                $isSleeper = false;
+                $isAvailable = false;
+            }
+
+            // Override from onclick if available
+            if ($onclick && preg_match("/AddRemoveSeat\(.*?,'(.*?)','(.*?)'/", $onclick, $matches)) {
+                $seatId = $matches[1];
+                $price = (float)$matches[2];
+                // Maintain type from class, only update availability
+                $isAvailable = true;
+            }
+
+            $result['seat'][$deck]['rows'][$rowNumber][] = [
+                'seat_id' => $seatId,
+                'price' => $price,
+                'is_sleeper' => $isSleeper,
+                'type' => $seatType,
+                'category' => $isSleeper ? 'sleeper' : 'seater',
+                'position' => (int)$top,
+                'is_available' => $isAvailable
+            ];
+        });
+    });
+
+    return $result;
+}
+
+
+if (!function_exists('formatCancelPolicy')) {
+    function formatCancelPolicy(array $cancelPolicy)
+    {
+        $formatted = [];
+
+        foreach ($cancelPolicy as $policy) {
+            $charge = $policy['CancellationCharge'];
+            $chargeType = $policy['CancellationChargeType'];
+            $from = Carbon::parse($policy['FromDate']);
+            $to = Carbon::parse($policy['ToDate']);
+
+            // Format times for display
+            $fromTime = $from->format('g:i A');
+            $fromDate = $from->format('d M Y');
+            $toTime = $to->format('g:i A');
+            $toDate = $to->format('d M Y');
+
+            if ($from->isSameDay($to)) {
+                if ($from->eq($to)) {
+                    $label = "After {$fromTime}, {$fromDate}";
+                } elseif ($from->isMidnight()) {
+                    $label = "Before {$toTime}, {$toDate}";
+                } else {
+                    $label = "Between {$fromTime} to {$toTime}, {$fromDate}";
+                }
+            } else {
+                $label = "Between {$fromTime}, {$fromDate} to {$toTime}, {$toDate}";
+            }
+
+            // Decide charge string
+            if ($chargeType == 2) {
+                $chargeStr = "{$charge}% charge";
+            } elseif ($chargeType == 1) {
+                $chargeStr = "₹" . number_format($charge, 2) . " charge";
+            } else {
+                $chargeStr = "No refund";
+            }
+
+            // Special case: 100% = no refund
+            if ($chargeType == 2 && $charge == 100) {
+                $chargeStr = "No refund";
+            }
+
+            $formatted[] = "{$label} – {$chargeStr}";
+        }
+
+        return $formatted;
     }
 }

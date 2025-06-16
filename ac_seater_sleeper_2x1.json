@@ -1,0 +1,108 @@
+{
+    "HTMLLayout": "<div class='outerseat'>
+    <div class='busSeatlft'>
+        <div class='upper'></div>
+    </div>
+    <div class='busSeatrgt'>
+        <div class='busSeat'>
+            <div class='seatcontainer clearfix'>
+                <div id='5046687052924786153U2' style='top: 0px;left: 0px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U2','525.00')'></div>
+                <div id='5046687052924786153U6' style='top: 0px;left: 45px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U6','525.00')'></div>
+                <div id='5046687052924786153U10' style='top: 0px;left: 90px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U10','525.00')'></div>
+                <div id='5046687052924786153U14' style='top: 0px;left: 135px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U14','525.00')'></div>
+                <div id='5046687052924786153U18' style='top: 0px;left: 180px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U18','525.00')'></div>
+                <div id='5046687052924786153U1' style='top: 30px;left: 0px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U1','525.00')'></div>
+                <div id='5046687052924786153U5' style='top: 30px;left: 45px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U5','525.00')'></div>
+                <div id='5046687052924786153U9' style='top: 30px;left: 90px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U9','525.00')'></div>
+                <div id='5046687052924786153U13' style='top: 30px;left: 135px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U13','525.00')'></div>
+                <div id='5046687052924786153U17' style='top: 30px;left: 180px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U17','525.00')'></div>
+                <div id='5046687052924786153U3' style='top: 100px;left: 0px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U3','525.00')'></div>
+                <div id='5046687052924786153U7' style='top: 100px;left: 45px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U7','525.00')'></div>
+                <div id='5046687052924786153U11' style='top: 100px;left: 90px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U11','525.00')'></div>
+                <div id='5046687052924786153U15' style='top: 100px;left: 135px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U15','525.00')'></div>
+                <div id='5046687052924786153U19' style='top: 100px;left: 180px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' U19','525.00')'></div>
+            </div>
+        </div>
+    </div>
+    <div class='clr'></div>
+</div>
+<div class='outerlowerseat'>
+    <div class='busSeatlft'>
+        <div class='lower'></div>
+    </div>
+    <div class='busSeatrgt'>
+        <div class='busSeat'>
+            <div class='seatcontainer clearfix'>
+                <div id='50466870529247861532' style='top: 0px;left: 0px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 2','420.00')'></div>
+                <div id='50466870529247861534' style='top: 0px;left: 25px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 4','420.00')'></div>
+                <div id='50466870529247861536' style='top: 0px;left: 50px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 6','420.00')'></div>
+                <div id='50466870529247861538' style='top: 0px;left: 75px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 8','420.00')'></div>
+                <div id='504668705292478615310' style='top: 0px;left: 100px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 10','420.00')'></div>
+                <div id='504668705292478615312' style='top: 0px;left: 125px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 12','420.00')'></div>
+                <div id='504668705292478615314' style='top: 0px;left: 150px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 14','420.00')'></div>
+                <div id='504668705292478615316' style='top: 0px;left: 175px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 16','420.00')'></div>
+                <div id='504668705292478615318' style='top: 0px;left: 200px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 18','420.00')'></div>
+                <div id='504668705292478615321' style='top: 0px;left: 225px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 21','420.00')'></div>
+                <div id='50466870529247861531' style='top: 30px;left: 0px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 1','420.00')'></div>
+                <div id='50466870529247861533' style='top: 30px;left: 25px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 3','420.00')'></div>
+                <div id='50466870529247861535' style='top: 30px;left: 50px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 5','420.00')'></div>
+                <div id='50466870529247861537' style='top: 30px;left: 75px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 7','420.00')'></div>
+                <div id='50466870529247861539' style='top: 30px;left: 100px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 9','420.00')'></div>
+                <div id='504668705292478615311' style='top: 30px;left: 125px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 11','420.00')'></div>
+                <div id='504668705292478615313' style='top: 30px;left: 150px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 13','420.00')'></div>
+                <div id='504668705292478615315' style='top: 30px;left: 175px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 15','420.00')'></div>
+                <div id='504668705292478615317' style='top: 30px;left: 200px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 17','420.00')'></div>
+                <div id='504668705292478615322' style='top: 30px;left: 225px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 22','420.00')'></div>
+                <div id='504668705292478615320' style='top: 60px;left: 225px;display:block;' class='nseat'
+                    onclick='javascript:AddRemoveSeat(this,' 20','420.00')'></div>
+                <div id='5046687052924786153L4' style='top: 90px;left: 0px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' L4','630.00')'></div>
+                <div id='5046687052924786153L8' style='top: 90px;left: 45px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' L8','630.00')'></div>
+                <div id='5046687052924786153L12' style='top: 90px;left: 90px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' L12','630.00')'></div>
+                <div id='5046687052924786153L16' style='top: 90px;left: 135px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' L16','630.00')'></div>
+                <div id='5046687052924786153L20' style='top: 90px;left: 180px;display:block;' class='hseat'
+                    onclick='javascript:AddRemoveSeat(this,' L20','630.00')'></div>
+            </div>
+        </div>
+    </div>
+    <div class='clr'></div>
+</div>"
+}

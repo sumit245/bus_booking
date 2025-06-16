@@ -1,10 +1,8 @@
+<!-- The below code I want to be sent to my react-native -->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
     <style>
         /* Flip the entire upper seat container horizontally */
         .outerseat .seatcontainer {
@@ -33,12 +31,28 @@
         .seatcontainer .hseat,
         .seatcontainer .nseat,
         .seatcontainer .bhseat,
-        .seatcontainer .bseat {
+        .seatcontainer .bseat,
+        .seatcontainer .vseat,
+        .seatcontainer .bvseat {
             background-color: #fff;
             position: absolute;
             border-radius: 4px;
             cursor: pointer;
             user-select: none;
+        }
+
+        .vseat {
+            height: 42px;
+            width: 29px;
+            border: 1px solid #ccc;
+        }
+
+        .bvseat {
+            height: 42px;
+            width: 29px;
+            border: 1px solid #ccc;
+            cursor: not-allowed;
+            background-color: #6c757d !important;
         }
 
 
@@ -120,12 +134,14 @@
     <div class="bus"></div>
     <script>
         window.addEventListener('DOMContentLoaded', () => {
+            // I will have a react-native function(using hooks in my frontend to handle this)
             function AddRemoveSeat(el, seatId, price) {
                 if (el.classList.contains('bseat') || el.classList.contains('bhseat')) return;
                 el.classList.toggle('selected');
                 // You can also handle selection list or booking logic here
             }
 
+            // I want the previous loaded $html component to be injected in .bus div
             function loadSeatHTML() {
                 fetch('./seathtml.json')
                     .then(response => {

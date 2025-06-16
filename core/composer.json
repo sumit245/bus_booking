@@ -27,6 +27,7 @@
         "razorpay/razorpay": "^2.5",
         "sendgrid/sendgrid": "^7.6",
         "stripe/stripe-php": "^7.72",
+        "symfony/dom-crawler": "^6.4",
         "textmagic/sdk": "dev-master",
         "twilio/sdk": "^6.23",
         "vonage/client": "^2.4"

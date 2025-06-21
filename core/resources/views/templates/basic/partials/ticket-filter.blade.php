@@ -185,7 +185,7 @@
       const priceSlider = document.getElementById('price-slider');
       const minPriceInput = document.getElementById('min-price');
       const maxPriceInput = document.getElementById('max-price');
-      const dynamicMaxPrice = {{ $dynamicMaxPrice }}; // Get dynamic max price from PHP
+      const dynamicMaxPrice = {{ $dynamicMaxPrice }}; 
       const initialMaxPrice = parseInt(maxPriceInput.value) || dynamicMaxPrice;
 
       if (priceSlider) {
@@ -196,7 +196,7 @@
           step: 50,
           range: {
             'min': 0,
-            'max': dynamicMaxPrice // Use dynamic max price instead of hardcoded 5000
+            'max': dynamicMaxPrice 
           },
           format: {
             to: function(value) {
@@ -220,7 +220,7 @@
         if (resetButton) {
           resetButton.addEventListener('click', function(e) {
             e.preventDefault();
-            priceSlider.noUiSlider.set([0, dynamicMaxPrice]); // Use dynamic max price for reset
+            priceSlider.noUiSlider.set([0, dynamicMaxPrice]); 
             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
               checkbox.checked = false;
             });

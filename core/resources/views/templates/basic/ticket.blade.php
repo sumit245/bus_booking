@@ -69,8 +69,8 @@
           @forelse ($trips as $trip)
             @php
               $publishedPrice = isset($trip["BusPrice"]["PublishedPrice"]) ? $trip["BusPrice"]["PublishedPrice"] : 0;
-              $inflatedPrice = $publishedPrice * 1.15; // Add 15% to create "original" price
-              $savingsAmount = $inflatedPrice - $publishedPrice; // Calculate savings
+              $inflatedPrice = $publishedPrice * 1.15;
+              $savingsAmount = $inflatedPrice - $publishedPrice; 
             @endphp
             <div class="ticket-item" 
                  data-departure="{{ isset($trip['DepartureTime']) ? strtotime($trip['DepartureTime']) : 0 }}" 

@@ -3,7 +3,24 @@
   $routes = $routes ?? [];
   $schedules = $schedules ?? [];
   $minPrice = 0; // Always fixed at 0
-  $maxPrice = request()->max_price ?? 5000;
+  
+  // Calculate dynamic max price from trips data
+  $dynamicMaxPrice = 5000; // Default fallback
+  if (isset($trips) && is_array($trips) && count($trips) > 0) {
+    $prices = [];
+    foreach ($trips as $trip) {
+      if (isset($trip['BusPrice']['PublishedPrice'])) {
+        $prices[] = $trip['BusPrice']['PublishedPrice'];
+      }
+    }
+    if (!empty($prices)) {
+      $dynamicMaxPrice = max($prices);
+      // Round up to nearest 100 for better UX
+      $dynamicMaxPrice = ceil($dynamicMaxPrice / 100) * 100;
+    }
+  }
+  
+  $maxPrice = request()->max_price ?? $dynamicMaxPrice;
 @endphp
 
 <div class="ticket-filter">
@@ -13,7 +30,7 @@
   </div>
 
   {{-- Live tracking filter --}}
-  <div class="filter-item">
+  <!-- <div class="filter-item">
     <h5 class="title">@lang("Features")</h5>
     <ul class="bus-type">
       <li class="custom--checkbox">
@@ -22,7 +39,7 @@
         <label for="tracking_enabled"><span><i class="las la-map-marker-alt"></i>@lang("Live Tracking")</span></label>
       </li>
     </ul>
-  </div>
+  </div> -->
 
   {{-- Bus types filter --}}
   <div class="filter-item">
@@ -168,7 +185,8 @@
       const priceSlider = document.getElementById('price-slider');
       const minPriceInput = document.getElementById('min-price');
       const maxPriceInput = document.getElementById('max-price');
-      const initialMaxPrice = parseInt(maxPriceInput.value) || 5000;
+      const dynamicMaxPrice = {{ $dynamicMaxPrice }}; // Get dynamic max price from PHP
+      const initialMaxPrice = parseInt(maxPriceInput.value) || dynamicMaxPrice;
 
       if (priceSlider) {
         noUiSlider.create(priceSlider, {
@@ -178,7 +196,7 @@
           step: 50,
           range: {
             'min': 0,
-            'max': 5000
+            'max': dynamicMaxPrice // Use dynamic max price instead of hardcoded 5000
           },
           format: {
             to: function(value) {
@@ -189,6 +207,7 @@
             }
           }
         });
+        
         priceSlider.noUiSlider.on('update', function(values, handle) {
           if (handle === 0) {
             minPriceInput.value = 0;
@@ -196,16 +215,18 @@
             maxPriceInput.value = values[1];
           }
         });
+        
         const resetButton = document.querySelector('.reset-button');
         if (resetButton) {
           resetButton.addEventListener('click', function(e) {
             e.preventDefault();
-            priceSlider.noUiSlider.set([0, 5000]);
+            priceSlider.noUiSlider.set([0, dynamicMaxPrice]); // Use dynamic max price for reset
             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
               checkbox.checked = false;
             });
           });
         }
+        
         const handles = priceSlider.querySelectorAll('.noUi-handle');
         if (handles.length > 0) {
           handles[0].style.display = 'none';

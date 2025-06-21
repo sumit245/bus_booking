@@ -67,58 +67,68 @@
         <div class="col-lg-9">
           <div class="ticket-wrapper">
           @forelse ($trips as $trip)
-  <div class="ticket-item" 
-       data-departure="{{ isset($trip['DepartureTime']) ? strtotime($trip['DepartureTime']) : 0 }}" 
-       data-price="{{ isset($trip['BusPrice']['PublishedPrice']) ? $trip['BusPrice']['PublishedPrice'] : 0 }}" 
-       data-duration="{{ isset($trip['ArrivalTime']) && isset($trip['DepartureTime']) ? \Carbon\Carbon::parse($trip['ArrivalTime'])->diffInMinutes(\Carbon\Carbon::parse($trip['DepartureTime'])) : 0 }}">
-    <div class="ticket-grid">
-      <div class="bus-details">
-        <h5 class="bus-name">{{ __(isset($trip["TravelName"]) ? $trip["TravelName"] : 'Unknown') }}</h5>
-        <span class="bus-info">{{ __(isset($trip["BusType"]) ? $trip["BusType"] : 'Standard') }}</span>
-      </div>
-      
-      <div class="departure-details">
-        <p class="time">{{ isset($trip["DepartureTime"]) ? \Carbon\Carbon::parse($trip["DepartureTime"])->format("h:i A") : 'N/A' }}</p>
-        <p class="place">{{ __(isset($trip["BoardingPointsDetails"][0]["CityPointLocation"]) ? $trip["BoardingPointsDetails"][0]["CityPointLocation"] : 'Unknown') }}</p>
-      </div>
-      
-      <div class="journey-time">
-        <i class="las la-arrow-right"></i>
-        @php
-          if(isset($trip["DepartureTime"]) && isset($trip["ArrivalTime"])) {
-            $departure = \Carbon\Carbon::parse($trip["DepartureTime"]);
-            $arrival = \Carbon\Carbon::parse($trip["ArrivalTime"]);
-            $diffInMinutes = $arrival->diffInMinutes($departure);
-            $hours = floor($diffInMinutes / 60);
-            $minutes = $diffInMinutes % 60;
-            $duration = $hours . 'h ' . $minutes . 'm';
-          } else {
-            $duration = 'N/A';
-          }
-        @endphp
-        <p>{{ $duration }}</p>
-      </div>
-      
-      <div class="arrival-details">
-        <p class="time">{{ isset($trip["ArrivalTime"]) ? \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") : 'N/A' }}</p>
-        <p class="place">{{ __(isset($trip["DroppingPointsDetails"][0]["CityPointLocation"]) ? $trip["DroppingPointsDetails"][0]["CityPointLocation"] : 'Unknown') }}</p>
-      </div>
-      
-      <div class="seat-price-details">
-        <p class="seats">{{ isset($trip["AvailableSeats"]) ? $trip["AvailableSeats"] : 0 }} Available Seats</p>
-        <p class="price">{{ __($general->cur_sym) }}{{ isset($trip["BusPrice"]["PublishedPrice"]) ? showAmount($trip["BusPrice"]["PublishedPrice"]) : '0.00' }}</p>
-      </div>
-    </div>
-    
-    <div class="select-seat-btn">
-      <a class="btn btn--base" href="{{ route("ticket.seats", [isset($trip["ResultIndex"]) ? $trip["ResultIndex"] : 0, isset($trip["TravelName"]) ? slug($trip["TravelName"]) : 'unknown']) }}">@lang("Select Seat")</a>
-    </div>
-  </div>
-@empty
-  <div class="ticket-item">
-    <h5>{{ __($emptyMessage) }}</h5>
-  </div>
-@endforelse
+            @php
+              $publishedPrice = isset($trip["BusPrice"]["PublishedPrice"]) ? $trip["BusPrice"]["PublishedPrice"] : 0;
+              $inflatedPrice = $publishedPrice * 1.15; // Add 15% to create "original" price
+              $savingsAmount = $inflatedPrice - $publishedPrice; // Calculate savings
+            @endphp
+            <div class="ticket-item" 
+                 data-departure="{{ isset($trip['DepartureTime']) ? strtotime($trip['DepartureTime']) : 0 }}" 
+                 data-price="{{ $publishedPrice }}" 
+                 data-duration="{{ isset($trip['ArrivalTime']) && isset($trip['DepartureTime']) ? \Carbon\Carbon::parse($trip['ArrivalTime'])->diffInMinutes(\Carbon\Carbon::parse($trip['DepartureTime'])) : 0 }}">
+              <div class="ticket-grid">
+                <div class="bus-details">
+                  <h5 class="bus-name">{{ __(isset($trip["TravelName"]) ? $trip["TravelName"] : 'Unknown') }}</h5>
+                  <span class="bus-info">{{ __(isset($trip["BusType"]) ? $trip["BusType"] : 'Standard') }}</span>
+                </div>
+                
+                <div class="departure-details">
+                  <p class="time">{{ isset($trip["DepartureTime"]) ? \Carbon\Carbon::parse($trip["DepartureTime"])->format("h:i A") : 'N/A' }}</p>
+                  <p class="place">{{ __(isset($trip["BoardingPointsDetails"][0]["CityPointLocation"]) ? $trip["BoardingPointsDetails"][0]["CityPointLocation"] : 'Unknown') }}</p>
+                </div>
+                
+                <div class="journey-time">
+                  <i class="las la-arrow-right"></i>
+                  @php
+                    if(isset($trip["DepartureTime"]) && isset($trip["ArrivalTime"])) {
+                      $departure = \Carbon\Carbon::parse($trip["DepartureTime"]);
+                      $arrival = \Carbon\Carbon::parse($trip["ArrivalTime"]);
+                      $diffInMinutes = $arrival->diffInMinutes($departure);
+                      $hours = floor($diffInMinutes / 60);
+                      $minutes = $diffInMinutes % 60;
+                      $duration = $hours . 'h ' . $minutes . 'm';
+                    } else {
+                      $duration = 'N/A';
+                    }
+                  @endphp
+                  <p>{{ $duration }}</p>
+                </div>
+                
+                <div class="arrival-details">
+                  <p class="time">{{ isset($trip["ArrivalTime"]) ? \Carbon\Carbon::parse($trip["ArrivalTime"])->format("h:i A") : 'N/A' }}</p>
+                  <p class="place">{{ __(isset($trip["DroppingPointsDetails"][0]["CityPointLocation"]) ? $trip["DroppingPointsDetails"][0]["CityPointLocation"] : 'Unknown') }}</p>
+                </div>
+                
+                <div class="seat-price-details">
+                  <p class="seats">{{ isset($trip["AvailableSeats"]) ? $trip["AvailableSeats"] : 0 }} Available Seats</p>
+                  <div class="price-container">
+                     <p class="savings">Save {{ __($general->cur_sym) }}{{ showAmount($savingsAmount) }}</p>
+                    <p class="original-price">{{ __($general->cur_sym) }}{{ showAmount($inflatedPrice) }}</p>
+                    <p class="current-price">{{ __($general->cur_sym) }}{{ showAmount($publishedPrice) }}</p>
+                   
+                  </div>
+                </div>
+              </div>
+              
+              <div class="select-seat-btn">
+                <a class="btn btn--base" href="{{ route("ticket.seats", [isset($trip["ResultIndex"]) ? $trip["ResultIndex"] : 0, isset($trip["TravelName"]) ? slug($trip["TravelName"]) : 'unknown']) }}">@lang("Select Seat")</a>
+              </div>
+            </div>
+          @empty
+            <div class="ticket-item">
+              <h5>{{ __($emptyMessage) }}</h5>
+            </div>
+          @endforelse
           </div>
         </div>
       </div>
@@ -353,11 +363,34 @@
     margin: 0;
   }
   
-  .price {
-    font-size: 16px !important;
-    font-weight: 600;
+  .price-container {
+    margin-top: 5px;
+  }
+  
+  .original-price {
+    font-size: 14px !important;
+    color: #999;
+    margin: 0;
+    text-decoration: line-through;
+    font-weight: 400;
+  }
+  
+  .current-price {
+    font-size: 18px !important;
+    font-weight: 700;
     color: #e74c3c;
-    margin: 5px 0 0;
+    margin: 2px 0;
+  }
+  
+  .savings {
+    font-size: 12px !important;
+    color: #27ae60;
+    margin: 0;
+    font-weight: 600;
+    background-color: #e8f5e8;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
   }
   
   .select-seat-btn {

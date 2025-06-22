@@ -4,135 +4,397 @@
 
 <head>
     <style>
-        /* Flip the entire upper seat container horizontally */
-        .outerseat .seatcontainer {
-            transform: translateX(10);
-        }
-
-        /* Flip seat content back to normal */
-        .outerseat .seatcontainer>div {
-            transform: translateX(10);
-        }
-
         .bus {
-            background-color: #f5f5f5;
-            padding: 8px;
-            width: 400px;
+            max-width: 460px;
+            background-color: #f8f8f8;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-
-        .seatcontainer {
-            position: relative;
-            width: 300px;
-            height: 200px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .seatcontainer .hseat,
-        .seatcontainer .nseat,
-        .seatcontainer .bhseat,
-        .seatcontainer .bseat,
-        .seatcontainer .vseat,
-        .seatcontainer .bvseat {
-            background-color: #fff;
-            position: absolute;
-            border-radius: 4px;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .vseat {
-            height: 42px;
-            width: 29px;
-            border: 1px solid #ccc;
-        }
-
-        .bvseat {
-            height: 42px;
-            width: 29px;
-            border: 1px solid #ccc;
-            cursor: not-allowed;
-            background-color: #6c757d !important;
-        }
-
-
-
-        /* Style for available seats */
-        .nseat {
-            width: 22px;
-            height: 29px;
-            border: 1px solid #ccc;
-        }
-
-        /* Style for not available seats */
-        .bseat {
-            background-color: #6c757d !important;
-            width: 24px;
-            height: 29px;
-            border: 1px solid #ccc;
-            cursor: not-allowed;
-        }
-
-        .hseat {
-            width: 42px;
-            height: 29px;
-            border: 1px solid #ccc;
-        }
-
-        .bhseat {
-            background-color: #6c757d !important;
-            width: 42px;
-            height: 29px;
-            border: 1px solid #ccc;
-            cursor: not-allowed;
-        }
-
 
         .outerseat,
         .outerlowerseat {
-            margin: 30px 0;
-        }
-
-        .busSeatlft,
-        .busSeatrgt {
-            display: inline-block;
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 12px 8px;
+            position: relative;
+            border: 1px solid #ddd;
+            display: flex;
         }
 
         .busSeatlft {
-            width: 15%;
+            width: 12%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
         }
 
+        .upper,
+        .lower {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            letter-spacing: 0.5px;
+            transform: rotate(180deg);
+        }
+
+        .upper::before {
+            content: "Upper";
+        }
+
+        .lower::before {
+            content: "Lower";
+        }
+
+        /* Enhanced steering wheel for lower deck */
+        .outerlowerseat .busSeatlft::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 32px;
+            background-color: #555;
+            border-radius: 50%;
+            border: 1px solid #777;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .outerlowerseat .busSeatlft::after {
+            content: '';
+            position: absolute;
+            top: 21px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 18px;
+            height: 18px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 30%, transparent 30%);
+        }
+
+        /* Make busSeatrgt a flexible grid to align rows and columns */
         .busSeatrgt {
-            width: 80%;
+            flex: 1;
+            margin-left: 1rem;
+            display: grid;
+            grid-auto-rows: min-content;
+            justify-items: end;
+            /* Align each row's content to the right (bus back) */
+            gap: 8px;
         }
 
-        .clearfix {
-            overflow: none;
+        .busSeat {
+            width: 100%;
         }
+
+        /* Adjust seatcontainer to be flexible */
+        .seatcontainer {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .seat-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+
+        .nseat {
+            width: 24px;
+            height: 24px;
+            border: 1.5px solid #bbb;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .bseat {
+            width: 24px;
+            height: 24px;
+            border: 1.5px solid #bbb;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        /* Enhanced regular horizontal seats */
+        .hseat {
+            width: 56px;
+            height: 22px;
+            border: 1.5px solid #bbb;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .hseat:hover {
+            background: linear-gradient(145deg, #d0d0d0, #c0c0c0);
+            border-color: #999;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        /* Enhanced booked horizontal seats */
+        .bhseat {
+            /* position: absolute; */
+            width: 56px;
+            height: 22px;
+            background: linear-gradient(145deg, #ffb3d1, #ff9ec7);
+            border: 1.5px solid #ff69b4;
+            border-radius: 4px;
+            cursor: not-allowed;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        /* Enhanced vertical seats (tall seats) */
+        .vseat {
+            /* position: absolute; */
+            width: 22px;
+            height: 55px;
+            background: linear-gradient(145deg, #e0e0e0, #d0d0d0);
+            border: 1.5px solid #bbb;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .vseat:hover {
+            background: linear-gradient(145deg, #d0d0d0, #c0c0c0);
+            border-color: #999;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        /* Enhanced booked vertical seats */
+        .bvseat {
+            /* position: absolute; */
+            width: 22px;
+            height: 55px;
+            background: linear-gradient(145deg, #ffb3d1, #ff9ec7);
+            border: 1.5px solid #ff69b4;
+            border-radius: 4px;
+            cursor: not-allowed;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        /* Enhanced selected seat styles */
+        .hseat.selected,
+        .vseat.selected {
+            background: linear-gradient(145deg, #ff69b4, #e91e63);
+            border-color: #d81b60;
+            box-shadow: 0 2px 6px rgba(233, 30, 99, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        /* Seat labels/numbers */
+        .nseat::after,
+        .hseat::after,
+        .vseat::after {
+            content: attr(data-seat);
+            /* position: absolute;
+            top: 50%;
+            left: 50%; */
+            /* transform: translate(-50%, -50%); */
+            font-size: 8px;
+            font-weight: 600;
+            color: #666;
+            pointer-events: none;
+        }
+
+        .hseat.selected::after,
+        .vseat.selected::after {
+            color: #fff;
+        }
+
+        /* 
+        .bhseat::after,
+        .bvseat::after {
+            color: #fff;
+        } */
 
         .clr {
             clear: both;
+        }
+
+        .clearfix::after {
             content: "";
             display: table;
+            clear: both;
         }
 
-        .price {
-            align-self: center;
-            text-align: center;
-            font-size: 10px;
-            line-height: 20px;
+        /* Enhanced Legend */
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .selected {
-            background-color: forestgreen;
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .legend-seat {
+            width: 20px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1.5px solid #bbb;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-available {
+            background: linear-gradient(145deg, #e0e0e0, #d0d0d0);
+        }
+
+        .legend-selected {
+            background: linear-gradient(145deg, #ff69b4, #e91e63);
+            border-color: #d81b60;
+        }
+
+        .legend-unavailable {
+            background: linear-gradient(145deg, #ffb3d1, #ff9ec7);
+            border-color: #ff69b4;
+        }
+
+        /* Enhanced responsive adjustments */
+        @media (max-width: 768px) {
+            .bus {
+                padding: 10px;
+                max-width: 100%;
+            }
+
+            .outerseat,
+            .outerlowerseat {
+                padding: 15px 10px;
+                min-height: 160px;
+            }
+
+            .busSeatlft {
+                width: 50px;
+            }
+
+            .seatcontainer {
+                transform: scale(0.85);
+                transform-origin: left center;
+                height: 120px;
+            }
+
+            .legend {
+                padding: 10px;
+                gap: 15px;
+            }
+        }
+
+        /* Additional visual enhancements */
+        .outerseat {
+            background: linear-gradient(145deg, #ebebeb, #e0e0e0);
+            border: 1px solid #d5d5d5;
+        }
+
+        .outerlowerseat {
+            background: linear-gradient(145deg, #ebebeb, #e0e0e0);
+            border: 1px solid #d5d5d5;
+        }
+
+        /* Subtle animation for seat selection */
+        @keyframes seatSelect {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .hseat.selected,
+        .vseat.selected {
+            animation: seatSelect 0.3s ease-in-out;
+        }
+
+        /* Target all dynamically generated rows like .row1, .row2, etc. */
+        [class^="row"] {
+            display: flex;
+            justify-content: flex-end;
+            /* Align seats from the back */
+            gap: 6px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        /* Target all dynamically generated rows like .row1, .row2, etc. */
+        [class^="row"] {
+            display: flex;
+            justify-content: flex-end;
+            /* Align seats from the back */
+            gap: 6px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        /* Align aisle rows similarly */
+        [class^="row"].aisle {
+            justify-content: space-between;
+        }
+
+        /* Seat container should never overflow outside the bus */
+        .seatcontainer {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            height: auto;
+        }
+
+        /* Ensure .bus adjusts to seat container's height */
+        .bus {
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        /* Prevent seat overflow */
+        .busSeat {
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 10px;
+        }
+
+        /* Fix vertical alignment in edge cases */
+        [class^="row"]>.vseat,
+        [class^="row"]>.hseat {
+            align-self: flex-end;
         }
     </style>
-
 </head>
 
 <body>
     <div class="bus"></div>
     <script>
+
         window.addEventListener('DOMContentLoaded', () => {
             // I will have a react-native function(using hooks in my frontend to handle this)
             function AddRemoveSeat(el, seatId, price) {
@@ -143,7 +405,7 @@
 
             // I want the previous loaded $html component to be injected in .bus div
             function loadSeatHTML() {
-                fetch('./seathtml.json')
+                fetch('./nagpur_pune_golden_travels.json')
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Failed to load seathtml.json');
@@ -154,29 +416,97 @@
                         const busDiv = document.querySelector('.bus');
                         if (busDiv && data && data.HTMLLayout) {
                             busDiv.innerHTML = data.HTMLLayout;
-                            // const tempDiv = document.createElement('div');
-                            // tempDiv.innerHTML = data.HTMLLayout;
-                            // while (tempDiv.firstChild) {
-                            // busDiv.appendChild(tempDiv.firstChild);
-                            // }
-                            setTimeout(() => {
-                                const seatElements = document.querySelectorAll('[onclick^="javascript:AddRemoveSeat"]');
-                                console.log(seatElements)
-                                seatElements.forEach(el => {
-                                    const onclickStr = el.getAttribute('onclick');
-                                    const matches = onclickStr.match(/AddRemoveSeat\(this,'(.*?)','(.*?)'\)/);
-                                    if (!matches) return;
 
-                                    const seatId = matches[1];
-                                    const isSleeper = seatId.match(/UD|DL|SL|US|A|L|U/i); // heuristic
-                                    el.classList.add(isSleeper ? 'sleeper' : 'seat');
-                                    // Add seat number and price
-                                    const number = document.createElement('div');
-                                    number.textContent = seatId;
-                                    number.className = 'price'
-                                    el.appendChild(number);
+                            setTimeout(() => {
+                                const seatDivs = document.querySelectorAll('.seatcontainer > div');
+                                const seatData = [];
+
+                                // 1. Extract style values and convert to object
+                                seatDivs.forEach(seat => {
+                                    const style = seat.getAttribute('style') || '';
+                                    const topMatch = /top\s*:\s*(\d+)px/i.exec(style);
+                                    const leftMatch = /left\s*:\s*(\d+)px/i.exec(style);
+                                    if (!topMatch || !leftMatch) return;
+
+                                    const top = parseInt(topMatch[1], 10);
+                                    const left = parseInt(leftMatch[1], 10);
+
+                                    seatData.push({
+                                        element: seat,
+                                        top,
+                                        left
+                                    });
                                 });
 
+                                // 2. Group by top (rows)
+                                const rowsMap = {};
+                                seatData.forEach(({ top, left, element }) => {
+                                    if (!rowsMap[top]) rowsMap[top] = [];
+                                    rowsMap[top].push({ left, element });
+                                });
+
+                                // 3. Sort top keys numerically
+                                const sortedTops = Object.keys(rowsMap).map(n => parseInt(n)).sort((a, b) => a - b);
+
+                                // 4. Detect rows and aisles
+                                const result = {};
+                                let rowCounter = 1;
+
+                                for (let i = 0; i < sortedTops.length; i++) {
+                                    const top = sortedTops[i];
+                                    const seats = rowsMap[top];
+                                    seats.sort((a, b) => a.left - b.left); // Sort by left position
+
+                                    // Check if this is a single seat row (aisle)
+                                    const prevTop = sortedTops[i - 1];
+                                    const nextTop = sortedTops[i + 1];
+                                    const isAisle = (!prevTop && nextTop && nextTop - top > 30) ||
+                                        (!nextTop && prevTop && top - prevTop > 30) ||
+                                        (prevTop && nextTop && nextTop - top > 30 && top - prevTop > 30) ||
+                                        seats.length <= 1;
+
+                                    const rowName = isAisle ? 'aisle' : `row${rowCounter++}`;
+                                    result[rowName] = [];
+
+                                    for (const { left, element } of seats) {
+                                        result[rowName].push({ top, left });
+
+                                        // Add class and remove style
+                                        element.classList.add(rowName);
+                                        element.removeAttribute('style');
+                                    }
+                                }
+
+                                // 5. Output result
+                                console.log("Grouped seat positions:", result);
+                                console.table(Object.entries(result).flatMap(([row, items]) =>
+                                    items.map(({ top, left }) => ({ row, top, left }))
+                                ));
+                                // 5. Re-group seats in DOM visually
+                                const seatContainers = document.querySelectorAll('.seatcontainer');
+                                if (seatContainers) {
+                                    seatContainers.forEach((deck) => {
+                                        const newContainer = document.createDocumentFragment();
+                                        Object.entries(result).forEach(([rowName, seats]) => {
+                                            const rowDiv = document.createElement('div');
+                                            rowDiv.className = `seat-row ${rowName}`;
+                                            rowDiv.style.display = 'flex';
+                                            rowDiv.style.justifyContent = 'flex-end';
+                                            rowDiv.style.gap = '6px';
+                                            rowDiv.style.marginBottom = '8px';
+
+                                            seats.sort((a, b) => a.left - b.left).forEach(({ left, top }) => {
+                                                const seat = [...deck.children].find(el => el.classList.contains(rowName) && !rowDiv.contains(el));
+                                                if (seat) rowDiv.appendChild(seat);
+                                            });
+
+                                            newContainer.appendChild(rowDiv);
+                                        });
+
+                                        deck.innerHTML = '';
+                                        deck.appendChild(newContainer);
+                                    })
+                                }
                             }, 0)
                         } else {
                             console.error('No .bus div or invalid JSON structure');

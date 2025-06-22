@@ -4785,7 +4785,7 @@ i {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 15px;
+    gap: 6px;
     margin: 20px auto;
     max-width: 800px;
     padding: 15px;
@@ -4845,59 +4845,6 @@ i {
     width: 100%;
 }
 
-@media (max-width: 768px) {
-    .seat-plan-inner {
-        padding: 15px;
-        margin: 15px 10px;
-    }
-
-    .seat.seater {
-        width: 32px;
-        height: 32px;
-        font-size: 10px;
-    }
-
-    .seat.sleeper {
-        width: 48px;
-        height: 32px;
-        font-size: 10px;
-    }
-
-    .seat-for-reserved {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 10px;
-    }
-
-    .seat-condition {
-        margin: 0;
-    }
-}
-
-@media (max-width: 480px) {
-    .seat-wrapper {
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .left-side,
-    .right-side {
-        justify-content: flex-start;
-        width: 100%;
-    }
-
-    .seat.seater {
-        width: 30px;
-        height: 30px;
-    }
-
-    .seat.sleeper {
-        width: 45px;
-        height: 30px;
-    }
-}
-
 .selected-by-you .seat {
     border-color: var(--main-color);
     background: var(--main-color);
@@ -4951,18 +4898,13 @@ i {
     border-color: #f763c6 !important;
 }
 
+
 .seat-overview-wrapper {
     border: 1px solid rgba(27, 39, 61, 0.1);
     border-radius: 5px;
-    padding: 20px 15px;
+    padding: 20px 20px;
     position: sticky;
     top: 100px;
-}
-
-@media (min-width: 1200px) {
-    .seat-overview-wrapper {
-        padding: 30px;
-    }
 }
 
 .seat-overview-wrapper .boarding-point {

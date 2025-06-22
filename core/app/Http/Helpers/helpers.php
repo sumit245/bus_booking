@@ -1324,3 +1324,11 @@ if (!function_exists('formatCancelPolicy')) {
         return $formatted;
     }
 }
+
+// app/Helpers/helpers.php
+if (!function_exists('renderSeatHTML')) {
+    function renderSeatHTML($html)
+    {
+        return $html; // You could sanitize here if needed
+    }
+}

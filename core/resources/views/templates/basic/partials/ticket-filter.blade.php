@@ -3,7 +3,24 @@
   $routes = $routes ?? [];
   $schedules = $schedules ?? [];
   $minPrice = 0; // Always fixed at 0
-  $maxPrice = request()->max_price ?? 5000;
+
+  // Calculate dynamic max price from trips data
+  $dynamicMaxPrice = 5000; // Default fallback
+  if (isset($trips) && is_array($trips) && count($trips) > 0) {
+      $prices = [];
+      foreach ($trips as $trip) {
+          if (isset($trip["BusPrice"]["PublishedPrice"])) {
+              $prices[] = $trip["BusPrice"]["PublishedPrice"];
+          }
+      }
+      if (!empty($prices)) {
+          $dynamicMaxPrice = max($prices);
+          // Round up to nearest 100 for better UX
+          $dynamicMaxPrice = ceil($dynamicMaxPrice / 100) * 100;
+      }
+  }
+
+  $maxPrice = request()->max_price ?? $dynamicMaxPrice;
 @endphp
 
 <div class="ticket-filter">
@@ -13,7 +30,7 @@
   </div>
 
   {{-- Live tracking filter --}}
-  <div class="filter-item">
+  <!-- <div class="filter-item">
     <h5 class="title">@lang("Features")</h5>
     <ul class="bus-type">
       <li class="custom--checkbox">
@@ -22,7 +39,7 @@
         <label for="tracking_enabled"><span><i class="las la-map-marker-alt"></i>@lang("Live Tracking")</span></label>
       </li>
     </ul>
-  </div>
+  </div> -->
 
   {{-- Bus types filter --}}
   <div class="filter-item">
@@ -39,13 +56,13 @@
         <label for="sleeper"><span><i class="las la-bed"></i>@lang("Sleeper")</span></label>
       </li>
       <li class="custom--checkbox">
-        <input name="fleetType[]" class="search" value="A/C" id="ac" type="checkbox"
-          {{ in_array("A/C", request()->fleetType ?? []) ? "checked" : "" }}>
+        <input name="fleetType[]" class="search" value="A/c" id="ac" type="checkbox"
+          {{ in_array("A/c", request()->fleetType ?? []) ? "checked" : "" }}>
         <label for="ac"><span><i class="las la-snowflake"></i>@lang("AC")</span></label>
       </li>
       <li class="custom--checkbox">
-        <input name="fleetType[]" class="search" value="Non A/C" id="non-ac" type="checkbox"
-          {{ in_array("Non A/C", request()->fleetType ?? []) ? "checked" : "" }}>
+        <input name="fleetType[]" class="search" value="Non-A/c" id="non-ac" type="checkbox"
+          {{ in_array("Non-A/c", request()->fleetType ?? []) ? "checked" : "" }}>
         <label for="non-ac"><span><i class="las la-fan"></i>@lang("Non-AC")</span></label>
       </li>
     </ul>
@@ -58,22 +75,22 @@
       <li class="custom--checkbox">
         <input name="departure_time[]" class="search" value="morning" id="morning" type="checkbox"
           {{ in_array("morning", request()->departure_time ?? []) ? "checked" : "" }}>
-        <label for="morning"><span><i class="las la-sun"></i>@lang("Morning") (4AM - 12PM)</span></label>
+        <label for="morning"><span><i class="las la-sun"></i>@lang("Morning") (06:00 - 11:59)</span></label>
       </li>
       <li class="custom--checkbox">
         <input name="departure_time[]" class="search" value="afternoon" id="afternoon" type="checkbox"
           {{ in_array("afternoon", request()->departure_time ?? []) ? "checked" : "" }}>
-        <label for="afternoon"><span><i class="las la-cloud-sun"></i>@lang("Afternoon") (12PM - 4PM)</span></label>
+        <label for="afternoon"><span><i class="las la-cloud-sun"></i>@lang("Afternoon") (12:00- 17:59)</span></label>
       </li>
       <li class="custom--checkbox">
         <input name="departure_time[]" class="search" value="evening" id="evening" type="checkbox"
           {{ in_array("evening", request()->departure_time ?? []) ? "checked" : "" }}>
-        <label for="evening"><span><i class="las la-cloud-moon"></i>@lang("Evening") (4PM - 8PM)</span></label>
+        <label for="evening"><span><i class="las la-cloud-moon"></i>@lang("Evening") (18:00 - 23:59)</span></label>
       </li>
       <li class="custom--checkbox">
         <input name="departure_time[]" class="search" value="night" id="night" type="checkbox"
           {{ in_array("night", request()->departure_time ?? []) ? "checked" : "" }}>
-        <label for="night"><span><i class="las la-moon"></i>@lang("Night") (8PM - 4AM)</span></label>
+        <label for="night"><span><i class="las la-moon"></i>@lang("Night") (00:00 - 05:59)</span></label>
       </li>
     </ul>
   </div>
@@ -168,7 +185,8 @@
       const priceSlider = document.getElementById('price-slider');
       const minPriceInput = document.getElementById('min-price');
       const maxPriceInput = document.getElementById('max-price');
-      const initialMaxPrice = parseInt(maxPriceInput.value) || 5000;
+      const dynamicMaxPrice = {{ $dynamicMaxPrice }};
+      const initialMaxPrice = parseInt(maxPriceInput.value) || dynamicMaxPrice;
 
       if (priceSlider) {
         noUiSlider.create(priceSlider, {
@@ -178,7 +196,7 @@
           step: 50,
           range: {
             'min': 0,
-            'max': 5000
+            'max': dynamicMaxPrice
           },
           format: {
             to: function(value) {
@@ -189,6 +207,7 @@
             }
           }
         });
+
         priceSlider.noUiSlider.on('update', function(values, handle) {
           if (handle === 0) {
             minPriceInput.value = 0;
@@ -196,16 +215,18 @@
             maxPriceInput.value = values[1];
           }
         });
+
         const resetButton = document.querySelector('.reset-button');
         if (resetButton) {
           resetButton.addEventListener('click', function(e) {
             e.preventDefault();
-            priceSlider.noUiSlider.set([0, 5000]);
+            priceSlider.noUiSlider.set([0, dynamicMaxPrice]);
             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
               checkbox.checked = false;
             });
           });
         }
+
         const handles = priceSlider.querySelectorAll('.noUi-handle');
         if (handles.length > 0) {
           handles[0].style.display = 'none';

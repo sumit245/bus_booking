@@ -278,16 +278,16 @@ class SiteController extends Controller
                 foreach ($request->departure_time as $timeRange) {
                     switch ($timeRange) {
                         case 'morning':
-                            if ($hour >= 4 && $hour < 12) $inTimeRange = true;
+                            if ($hour >= 6 && $hour < 12) $inTimeRange = true;
                             break;
                         case 'afternoon':
-                            if ($hour >= 12 && $hour < 16) $inTimeRange = true;
+                            if ($hour >= 12 && $hour < 18) $inTimeRange = true;
                             break;
                         case 'evening':
-                            if ($hour >= 16 && $hour < 20) $inTimeRange = true;
+                            if ($hour >= 18 && $hour < 23) $inTimeRange = true;
                             break;
                         case 'night':
-                            if ($hour >= 20 || $hour < 4) $inTimeRange = true;
+                            if ($hour >= 0 || $hour < 6) $inTimeRange = true;
                             break;
                     }
                 }
@@ -343,9 +343,7 @@ class SiteController extends Controller
         }
 
         // Apply price range filter
-        if (($request->has('min_price') && $request->min_price !== null) ||
-            ($request->has('max_price') && $request->max_price !== null)
-        ) {
+        if (($request->has('min_price') && $request->min_price !== null) || ($request->has('max_price') && $request->max_price !== null)) {
 
             $minPrice = $request->min_price ?? 0;
             $maxPrice = $request->max_price ?? PHP_INT_MAX;
@@ -374,13 +372,15 @@ class SiteController extends Controller
                                 return true;
                             }
                             break;
-                        case 'A/C':
-                            if (stripos($busType, 'A/C') !== false || stripos($busType, 'AC') !== false) {
+                        case 'A/c':
+                            if ((stripos($busType, 'A/c') !== false || stripos($busType, 'AC') !== false) &&
+                                stripos($busType, 'Non') === false
+                            ) {
                                 return true;
                             }
                             break;
-                        case 'Non A/C':
-                            if (stripos($busType, 'Non A/C') !== false || stripos($busType, 'Non-AC') !== false) {
+                        case 'Non-A/c':
+                            if (stripos($busType, 'Non A/c') !== false || stripos($busType, 'Non Ac') !== false) {
                                 return true;
                             }
                             break;
@@ -519,10 +519,11 @@ class SiteController extends Controller
         } else {
             $layout = 'layouts.frontend';
         }
+
         $cities = DB::table("cities")->get();
         $originCity = DB::table("cities")->where("city_id", $request->session()->get("origin_id"))->first();
         $destinationCity = DB::table("cities")->where("city_id", $request->session()->get("destination_id"))->first();
-        return view($this->activeTemplate . 'book_ticket', compact('pageTitle', 'seatLayout', 'layout', 'cities', 'originCity', 'destinationCity'));
+        return view($this->activeTemplate . 'book_ticket', compact('pageTitle', 'seatLayout', 'layout', 'cities', 'originCity', 'destinationCity', 'seatHtml'));
     }
 
     public function placeholderImage($size = null)

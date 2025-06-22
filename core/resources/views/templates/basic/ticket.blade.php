@@ -68,9 +68,14 @@
         <div class="col-lg-9">
           <div class="ticket-wrapper">
             @forelse ($trips as $trip)
+              @php
+                $publishedPrice = isset($trip["BusPrice"]["PublishedPrice"]) ? $trip["BusPrice"]["PublishedPrice"] : 0;
+                $inflatedPrice = $publishedPrice * 1.15;
+                $savingsAmount = $inflatedPrice - $publishedPrice;
+              @endphp
               <div class="ticket-item"
                 data-departure="{{ isset($trip["DepartureTime"]) ? strtotime($trip["DepartureTime"]) : 0 }}"
-                data-price="{{ isset($trip["BusPrice"]["PublishedPrice"]) ? $trip["BusPrice"]["PublishedPrice"] : 0 }}"
+                data-price="{{ $publishedPrice }}"
                 data-duration="{{ isset($trip["ArrivalTime"]) && isset($trip["DepartureTime"]) ? \Carbon\Carbon::parse($trip["ArrivalTime"])->diffInMinutes(\Carbon\Carbon::parse($trip["DepartureTime"])) : 0 }}">
                 <div class="ticket-grid">
                   <div class="bus-details">
@@ -116,9 +121,12 @@
                   <div class="seat-price-details">
                     <p class="seats">{{ isset($trip["AvailableSeats"]) ? $trip["AvailableSeats"] : 0 }} Available Seats
                     </p>
-                    <p class="price">
-                      {{ __($general->cur_sym) }}{{ isset($trip["BusPrice"]["PublishedPrice"]) ? showAmount($trip["BusPrice"]["PublishedPrice"]) : "0.00" }}
-                    </p>
+                    <div class="price-container">
+                      <p class="savings">Save {{ __($general->cur_sym) }}{{ showAmount($savingsAmount) }}</p>
+                      <p class="original-price">{{ __($general->cur_sym) }}{{ showAmount($inflatedPrice) }}</p>
+                      <p class="current-price">{{ __($general->cur_sym) }}{{ showAmount($publishedPrice) }}</p>
+
+                    </div>
                   </div>
                 </div>
 
@@ -301,7 +309,8 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr;
       gap: 50px;
-      align-items: start;
+      align-items: stretch;
+      /* ⬅ Fix here */
     }
 
     .bus-details {
@@ -367,11 +376,34 @@
       margin: 0;
     }
 
-    .price {
-      font-size: 16px !important;
-      font-weight: 600;
+    .price-container {
+      margin-top: 5px;
+    }
+
+    .original-price {
+      font-size: 14px !important;
+      color: #999;
+      margin: 0;
+      text-decoration: line-through;
+      font-weight: 400;
+    }
+
+    .current-price {
+      font-size: 18px !important;
+      font-weight: 700;
       color: #e74c3c;
-      margin: 5px 0 0;
+      margin: 2px 0;
+    }
+
+    .savings {
+      font-size: 12px !important;
+      color: #27ae60;
+      margin: 0;
+      font-weight: 600;
+      background-color: #e8f5e8;
+      padding: 2px 6px;
+      border-radius: 3px;
+      display: inline-block;
     }
 
     .select-seat-btn {
@@ -482,6 +514,17 @@
       .ticket-item {
         padding-bottom: 20px;
       }
+    }
+
+    .bus-details,
+    .departure-details,
+    .journey-time,
+    .arrival-details,
+    .seat-price-details {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
   </style>
 @endpush

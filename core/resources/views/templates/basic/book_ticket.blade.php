@@ -1,318 +1,311 @@
 @extends($activeTemplate . $layout)
 @section("content")
-  <div class="padding-top padding-bottom">
+  <div class="row justify-content-between mx-2 p-2">
+    {{-- Left column to denote seat details and booking form --}}
+    <div class="col-lg-4 col-md-4">
+      <div class="seat-overview-wrapper">
+        <form action="{{ route("block.seat") }}" method="POST" id="bookingForm" class="row gy-2">
+          @csrf
+          <input type="text" name="price" hidden>
+          <div class="col-12">
+            <div class="form-group">
+              <i class="las la-calendar"></i>
+              <label for="date_of_journey"class="form-label">@lang("Journey Date")</label>
+              <input type="text" id="date_of_journey" class="form--control datpicker"
+                value="{{ Session::get("date_of_journey") ? Session::get("date_of_journey") : date("m/d/Y") }}"
+                name="date_of_journey" disabled>
+            </div>
+          </div>
+          <div class="col-12">
+            <i class="las la-location-arrow"></i>
+            <label for="origin-id" class="form-label">@lang("Pickup Point")</label>
+            <div class="form--group">
+              <input type="text" disabled id="origin-id" name="OriginId" class="form--control"
+                value="{{ $originCity->city_name }}">
+            </div>
+          </div>
+          <div class="col-12">
+            <i class="las la-map-marker"></i>
+            <label for="destination-id" class="form-label">@lang("Dropping Point")</label>
+            <div class="form--group">
+              <input type="text" disabled id="destination-id" class="form--control" name="DestinationId"
+                value="{{ $destinationCity->city_name }}">
+            </div>
+          </div>
+          {{-- Select Gender --}}
+          <div class="col-12">
+            <label class="form-label">@lang("Select Gender")</label>
+            <div class="d-flex justify-content-between flex-wrap">
+              <div class="form-group custom--radio">
+                <input id="male" type="radio" name="gender" value="1">
+                <label class="form-label" for="male">@lang("Male")</label>
+              </div>
+              <div class="form-group custom--radio">
+                <input id="female" type="radio" name="gender" value="2">
+                <label class="form-label" for="female">@lang("Female")</label>
+              </div>
+              <div class="form-group custom--radio">
+                <input id="other" type="radio" name="gender" value="3">
+                <label class="form-label" for="other">@lang("Other")</label>
+              </div>
+            </div>
+          </div>
 
-    <div class="row gx-sm-5 gy-4 gy-sm-5 justify-content-center px-5">
-      {{-- Left column to denote seat details and booking form --}}
-      <div class="col-lg-4 col-md-4 ml-5">
-        <div class="seat-overview-wrapper">
-          <form action="{{ route("block.seat") }}" method="POST" id="bookingForm" class="row gy-2">
-            @csrf
+          <div class="col-12">
+            <div class="booked-seat-details d-none my-3">
+              <label>@lang("Selected Seats")</label>
+              <div class="list-group seat-details-animate">
+                <span
+                  class="list-group-item d-flex bg--base justify-content-between text-white">@lang("Seat Details")<span>@lang("Price")</span></span>
+                <div class="selected-seat-details"></div>
+              </div>
+            </div>
+            <input type="text" name="seats" hidden>
             <input type="text" name="price" hidden>
-            <div class="col-12">
-              <div class="form-group">
-                <label for="date_of_journey"class="form-label">@lang("Journey Date")</label>
-                <input type="text" id="date_of_journey" class="form--control datpicker"
-                  value="{{ Session::get("date_of_journey") ? Session::get("date_of_journey") : date("m/d/Y") }}"
-                  name="date_of_journey" disabled>
-              </div>
-            </div>
-            <div class="col-12">
-              <label for="origin-id" class="form-label">@lang("Pickup Point")</label>
-              <div class="form--group">
-                <i class="las la-location-arrow"></i>
-                <input type="text" disabled id="origin-id" name="OriginId" class="form--control"
-                  value="{{ $originCity->city_name }}">
-              </div>
-            </div>
-            <div class="col-12">
-              <label for="destination-id" class="form-label">@lang("Dropping Point")</label>
-              <div class="form--group">
-                <i class="las la-map-marker"></i>
-                <input type="text" disabled id="destination-id" class="form--control" name="DestinationId"
-                  value="{{ $destinationCity->city_name }}">
-              </div>
-            </div>
-            {{-- Select Gender --}}
-            <div class="col-12">
-              <label class="form-label">@lang("Select Gender")</label>
-              <div class="d-flex justify-content-between flex-wrap">
-                <div class="form-group custom--radio">
-                  <input id="male" type="radio" name="gender" value="1">
-                  <label class="form-label" for="male">@lang("Male")</label>
-                </div>
-                <div class="form-group custom--radio">
-                  <input id="female" type="radio" name="gender" value="2">
-                  <label class="form-label" for="female">@lang("Female")</label>
-                </div>
-                <div class="form-group custom--radio">
-                  <input id="other" type="radio" name="gender" value="3">
-                  <label class="form-label" for="other">@lang("Other")</label>
-                </div>
-              </div>
-            </div>
-            <div class="col-12">
-              <div class="booked-seat-details d-none my-3">
-                <label>@lang("Selected Seats")</label>
-                <div class="list-group seat-details-animate">
-                  <span
-                    class="list-group-item d-flex bg--base justify-content-between text-white">@lang("Seat Details")<span>@lang("Price")</span></span>
-                  <div class="selected-seat-details"></div>
-                </div>
-              </div>
-              <input type="text" name="seats" hidden>
-            </div>
-            <div class="col-12">
-              <button type="submit" class="book-bus-btn">@lang("Continue")</button>
-            </div>
-          </form>
-        </div>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="book-bus-btn">@lang("Continue")</button>
+          </div>
+        </form>
       </div>
-      <!-- Right column with seat layout -->
-      <div class="col-lg-8 col-md-8 mr-5">
-        <div class="seat-overview-wrapper">
-          {{-- TODO: Add seat layout here --}}
-          {!! (new \App\Http\Helpers\GenerateSeatLayout($seatLayout))->generateLayout() !!}
-          <div class="seat-for-reserved">
-            <div class="seat-condition available-seat">
-              <span class="seat"><span></span></span>
-              <p>@lang("Available Seats")</p>
-            </div>
-            <div class="seat-condition selected-by-you">
-              <span class="seat"><span></span></span>
-              <p>@lang("Selected by You")</p>
-            </div>
-            <div class="seat-condition selected-by-gents">
-              <div class="seat"><span></span></div>
-              <p>@lang("Booked by Gents")</p>
-            </div>
-            <div class="seat-condition selected-by-ladies">
-              <div class="seat"><span></span></div>
-              <p>@lang("Booked by Ladies")</p>
-            </div>
-            <div class="seat-condition selected-by-others">
-              <div class="seat"><span></span></div>
-              <p>@lang("Booked by Others")</p>
-            </div>
+    </div>
+    <!-- Right column with seat layout -->
+    <div class="col-lg-7 col-md-7">
+      <div class="seat-overview-wrapper">
+        @include($activeTemplate . "partials.seatlayout", ["seatHtml" => $seatHtml])
+        <div class="seat-for-reserved">
+          <div class="seat-condition available-seat">
+            <span class="seat"><span></span></span>
+            <p>@lang("Available Seats")</p>
+          </div>
+          <div class="seat-condition selected-by-you">
+            <span class="seat"><span></span></span>
+            <p>@lang("Selected by You")</p>
+          </div>
+          <div class="seat-condition selected-by-gents">
+            <div class="seat"><span></span></div>
+            <p>@lang("Booked by Gents")</p>
+          </div>
+          <div class="seat-condition selected-by-ladies">
+            <div class="seat"><span></span></div>
+            <p>@lang("Booked by Ladies")</p>
+          </div>
+          <div class="seat-condition selected-by-others">
+            <div class="seat"><span></span></div>
+            <p>@lang("Booked by Others")</p>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Add this modal for boarding and dropping points -->
-    <div class="modal fade" id="boardingPointsModal" tabindex="-1" role="dialog"
-      aria-labelledby="boardingPointsModalLabel">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">@lang("Select Boarding & Dropping Points")</h5>
-            <button type="button" class="btn--close w-auto" data-bs-dismiss="modal"><i class="las la-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <!-- Step indicator -->
-            <ul class="nav nav-tabs justify-content-center mb-4" id="bookingSteps" role="tablist"
-              style="
-    justify-content: left!important;
-">
-              <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="boarding-tab" data-bs-toggle="tab"
-                  data-bs-target="#boarding-content" type="button" role="tab">
-                  @lang("Boarding & Dropping")
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link" id="passenger-tab" data-bs-toggle="tab" data-bs-target="#passenger-content"
-                  type="button" role="tab">
-                  @lang("Passenger Details")
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment-content"
-                  type="button" role="tab">
-                  @lang("Payment")
-                </button>
-              </li>
-            </ul>
+  <!-- Add this modal for boarding and dropping points -->
+  <div class="modal fade" id="boardingPointsModal" tabindex="-1" role="dialog"
+    aria-labelledby="boardingPointsModalLabel">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">@lang("Select Boarding & Dropping Points")</h5>
+          <button type="button" class="btn--close w-auto" data-bs-dismiss="modal"><i class="las la-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <!-- Step indicator -->
+          <ul class="nav nav-tabs justify-content-center mb-4" id="bookingSteps" role="tablist"
+            style="justify-content: left!important;">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="boarding-tab" data-bs-toggle="tab"
+                data-bs-target="#boarding-content" type="button" role="tab">
+                @lang("Boarding & Dropping")
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="passenger-tab" data-bs-toggle="tab" data-bs-target="#passenger-content"
+                type="button" role="tab">
+                @lang("Passenger Details")
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment-content"
+                type="button" role="tab">
+                @lang("Payment")
+              </button>
+            </li>
+          </ul>
 
-            <div class="tab-content">
-              <!-- Step 1: Boarding & Dropping Points -->
-              <div class="tab-pane fade show active" id="boarding-content" role="tabpanel">
-                <h6 class="mb-3 text-center">@lang("Please select boarding & dropping point")</h6>
-                <div class="row">
-                  <div class="col-md-6">
-                    <h6 class="mb-3">@lang("Boarding Points")</h6>
-                    <div class="boarding-points-container">
-                      <!-- Boarding points will be loaded here -->
-                      <div class="py-5 text-center">
-                        <div class="spinner-border text-primary" role="status">
-                          <span class="visually-hidden">Loading...</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <h6 class="mb-3">@lang("Dropping Points")</h6>
-                    <div class="dropping-points-container">
-                      <!-- Dropping points will be loaded here -->
-                      <div class="py-5 text-center">
-                        <div class="spinner-border text-primary" role="status">
-                          <span class="visually-hidden">Loading...</span>
-                        </div>
+          <div class="tab-content">
+            <!-- Step 1: Boarding & Dropping Points -->
+            <div class="tab-pane fade show active" id="boarding-content" role="tabpanel">
+              <h6 class="mb-3 text-center">@lang("Please select boarding & dropping point")</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <h6 class="mb-3">@lang("Boarding Points")</h6>
+                  <div class="boarding-points-container">
+                    <!-- Boarding points will be loaded here -->
+                    <div class="py-5 text-center">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                       </div>
                     </div>
                   </div>
                 </div>
+                <div class="col-md-6">
+                  <h6 class="mb-3">@lang("Dropping Points")</h6>
+                  <div class="dropping-points-container">
+                    <!-- Dropping points will be loaded here -->
+                    <div class="py-5 text-center">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-                <input type="hidden" name="selected_boarding_point" id="selected_boarding_point">
-                <input type="hidden" name="selected_dropping_point" id="selected_dropping_point">
+              <input type="hidden" name="selected_boarding_point" id="selected_boarding_point">
+              <input type="hidden" name="selected_dropping_point" id="selected_dropping_point">
 
-                <div class="mt-3 text-end">
-                  <button type="button" class="btn btn--success btn--sm" id="nextToPassengerBtn">
-                    @lang("Next")
+              <div class="mt-3 text-end">
+                <button type="button" class="btn btn--success btn--sm" id="nextToPassengerBtn">
+                  @lang("Next")
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2: Passenger Details -->
+            <div class="tab-pane fade" id="passenger-content" role="tabpanel">
+              <h6 class="mb-3 text-center">@lang("Few details please")</h6>
+              <div class="passenger-details">
+                <h6 class="mb-3">@lang("Passenger Information")</h6>
+
+                <div class="row gy-3">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label">@lang("Title")<span class="text-danger">*</span></label>
+                      <select class="form--control" name="gender" id="passenger_title">
+                        <option value="1" selected>@lang("Mr")</option>
+                        <option value="2">@lang("Ms")</option>
+                        <option value="3">@lang("Other")</option>
+                      </select>
+                      <div class="invalid-feedback">This field is required!</div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label">@lang("Age")<span class="text-danger">*</span></label>
+                      <input type="number" class="form--control" id="passenger_age" placeholder="@lang("Enter Age")"
+                        min="1" max="120" value="29">
+                      <div class="invalid-feedback">This field is required!</div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label">@lang("First Name")
+                        <span class="text-danger">*</span>
+                      </label>
+                      <input type="text" class="form--control" id="passenger_firstname"
+                        placeholder="@lang("Enter First Name")" value="{{ auth()->check() ? auth()->user()->firstname : "" }}">
+                      <div class="invalid-feedback">This field is required!</div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label">@lang("Last Name")
+                        <span class="text-danger">*</span>
+                      </label>
+                      <input type="text" class="form--control" id="passenger_lastname"
+                        placeholder="@lang("Enter Last Name")" value="{{ auth()->check() ? auth()->user()->lastname : "" }}">
+                      <div class="invalid-feedback">This field is required!</div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label">@lang("Email")
+                        <span class="text-danger">*</span>
+                      </label>
+                      <input type="email" class="form--control" id="passenger_email"
+                        placeholder="@lang("Enter Email")" value="{{ auth()->check() ? auth()->user()->email : "" }}">
+                      <div class="invalid-feedback">This field is required!</div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label class="form-label">@lang("Phone Number")
+                        <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <input type="tel" class="form--control" id="passenger_phone" name="passenger_phone"
+                          placeholder="@lang("Enter Phone Number")" value="">
+                        <button type="button" class="btn btn--base" id="sendOtpBtn">
+                          @lang("Send OTP")
+                        </button>
+                      </div>
+                      <div class="invalid-feedback">This field is required!</div>
+                    </div>
+                  </div>
+
+                  <!-- Add OTP verification field (initially hidden) -->
+                  <div class="col-md-6" id="otpVerificationContainer" style="display: none;">
+                    <div class="form-group">
+                      <label class="form-label">@lang("Enter OTP")
+                        <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <input type="text" class="form--control" id="otp_code" name="otp_code"
+                          placeholder="@lang("Enter OTP sent to WhatsApp")" maxlength="6">
+                        <button type="button" class="btn btn--base" id="verifyOtpBtn">
+                          @lang("Verify")
+                        </button>
+                      </div>
+                      <div class="invalid-feedback">Invalid OTP!</div>
+                      <small class="text-muted">OTP sent to your WhatsApp number</small>
+                    </div>
+                  </div>
+
+                  <!-- Add hidden field to track OTP verification status -->
+                  <input type="hidden" name="is_otp_verified" id="is_otp_verified" value="0">
+
+                  <div class="col-12">
+                    <div class="form-group">
+                      <label class="form-label">@lang("Address")
+                        <span class="text-danger">*</span>
+                      </label>
+                      <textarea class="form--control" id="passenger_address" placeholder="@lang("Enter Address")"></textarea>
+                      <div class="invalid-feedback">This field is required!</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-3">
+                  <button type="button" class="btn btn--danger btn--sm mx-2" id="backToBoardingBtn">
+                    @lang("Back")
+                  </button>
+                  <button type="submit" class="btn btn--success btn--sm mx-2" id="confirmPassengerBtn">
+                    @lang("Proceed to Pay")
                   </button>
                 </div>
               </div>
-
-              <!-- Step 2: Passenger Details -->
-              <div class="tab-pane fade" id="passenger-content" role="tabpanel">
-                <h6 class="mb-3 text-center">@lang("Few details please")</h6>
-                <div class="passenger-details">
-                  <h6 class="mb-3">@lang("Passenger Information")</h6>
-
-                  <div class="row gy-3">
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label class="form-label">@lang("Title")<span class="text-danger">*</span></label>
-                        <select class="form--control" id="passenger_title">
-                          <option value="Mr" selected>@lang("Mr")</option>
-                          <option value="Ms">@lang("Ms")</option>
-                          <option value="Mrs">@lang("Mrs")</option>
-                          <option value="Other">@lang("Other")</option>
-                        </select>
-                        <div class="invalid-feedback">This field is required!</div>
-                      </div>
-                    </div>
-
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label class="form-label">@lang("Age")<span class="text-danger">*</span></label>
-                        <input type="number" class="form--control" id="passenger_age"
-                          placeholder="@lang("Enter Age")" min="1" max="120" value="29">
-                        <div class="invalid-feedback">This field is required!</div>
-                      </div>
-                    </div>
-
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label class="form-label">@lang("First Name")
-                          <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" class="form--control" id="passenger_firstname"
-                          placeholder="@lang("Enter First Name")"
-                          value="{{ auth()->check() ? auth()->user()->firstname : "" }}">
-                        <div class="invalid-feedback">This field is required!</div>
-                      </div>
-                    </div>
-
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label class="form-label">@lang("Last Name")
-                          <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" class="form--control" id="passenger_lastname"
-                          placeholder="@lang("Enter Last Name")"
-                          value="{{ auth()->check() ? auth()->user()->lastname : "" }}">
-                        <div class="invalid-feedback">This field is required!</div>
-                      </div>
-                    </div>
-
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label class="form-label">@lang("Email")
-                          <span class="text-danger">*</span>
-                        </label>
-                        <input type="email" class="form--control" id="passenger_email"
-                          placeholder="@lang("Enter Email")" value="{{ auth()->check() ? auth()->user()->email : "" }}">
-                        <div class="invalid-feedback">This field is required!</div>
-                      </div>
-                    </div>
-
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label class="form-label">@lang("Phone Number")
-                          <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                          <input type="tel" class="form--control" id="passenger_phone" name="passenger_phone"
-                            placeholder="@lang("Enter Phone Number")" value="">
-                          <button type="button" class="btn btn--base" id="sendOtpBtn">
-                            @lang("Send OTP")
-                          </button>
-                        </div>
-                        <div class="invalid-feedback">This field is required!</div>
-                      </div>
-                    </div>
-
-                    <!-- Add OTP verification field (initially hidden) -->
-                    <div class="col-md-6" id="otpVerificationContainer" style="display: none;">
-                      <div class="form-group">
-                        <label class="form-label">@lang("Enter OTP")
-                          <span class="text-danger">*</span>
-                        </label>
-                        <div class="input-group">
-                          <input type="text" class="form--control" id="otp_code" name="otp_code"
-                            placeholder="@lang("Enter OTP sent to WhatsApp")" maxlength="6">
-                          <button type="button" class="btn btn--base" id="verifyOtpBtn">
-                            @lang("Verify")
-                          </button>
-                        </div>
-                        <div class="invalid-feedback">Invalid OTP!</div>
-                        <small class="text-muted">OTP sent to your WhatsApp number</small>
-                      </div>
-                    </div>
-
-                    <!-- Add hidden field to track OTP verification status -->
-                    <input type="hidden" name="is_otp_verified" id="is_otp_verified" value="0">
-
-                    <div class="col-12">
-                      <div class="form-group">
-                        <label class="form-label">@lang("Address")
-                          <span class="text-danger">*</span>
-                        </label>
-                        <textarea class="form--control" id="passenger_address" placeholder="@lang("Enter Address")"></textarea>
-                        <div class="invalid-feedback">This field is required!</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="d-flex justify-content-between mt-3">
-                    <button type="button" class="btn btn--danger btn--sm mx-2" id="backToBoardingBtn">
-                      @lang("Back")
-                    </button>
-                    <button type="submit" class="btn btn--success btn--sm mx-2" id="confirmPassengerBtn">
-                      @lang("Proceed to Pay")
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Step 3: Payment -->
-              <div class="tab-pane fade" id="payment-content" role="tabpanel">
-                <h6 class="mb-3 text-center">@lang("Pay to proceed")</h6>
-                <!-- Payment content will be handled by Razorpay -->
-                <div class="py-5 text-center">
-                  <p>@lang("You will be redirected to the payment gateway.")</p>
-                </div>
-              </div>
-
             </div>
+
+            <!-- Step 3: Payment -->
+            <div class="tab-pane fade" id="payment-content" role="tabpanel">
+              <h6 class="mb-3 text-center">@lang("Pay to proceed")</h6>
+              <!-- Payment content will be handled by Razorpay -->
+              <div class="py-5 text-center">
+                <p>@lang("You will be redirected to the payment gateway.")</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
     </div>
-    {{-- End of Booking Form modal --}}
-
   </div>
+  {{-- End of Booking Form modal --}}
 @endsection
 
 @php
@@ -329,30 +322,31 @@
     let selectedSeats = [];
     let totalPrice = 0;
 
-    const flatMarkup = parseFloat("{{ $flatMarkup }}");
-    const percentageMarkup = parseFloat("{{ $percentageMarkup }}");
-    const threshold = parseFloat("{{ $threshold }}");
+    function AddRemoveSeat(el, seatId, price) {
+      const seatNumber = seatId;
+      const seatPrice = parseFloat(price);
 
-    $('.seat-wrapper .seat').on('click', function() {
-      let seatNumber = $(this).attr('data-seat');
-      let seatPrice = parseFloat($(this).attr('data-price'));
+      const flatMarkup = parseFloat("{{ $flatMarkup }}");
+      const percentageMarkup = parseFloat("{{ $percentageMarkup }}");
+      const threshold = parseFloat("{{ $threshold }}");
 
-      // Apply flat markup if price < threshold, else percentage
-      let markupAmount = seatPrice < threshold ?
+      const markupAmount = seatPrice < threshold ?
         flatMarkup :
         (seatPrice * percentageMarkup / 100);
 
-      let priceWithMarkup = seatPrice + markupAmount;
+      const priceWithMarkup = seatPrice + markupAmount;
 
-      $(this).toggleClass('selected-by-you');
+      el.classList.toggle('selected');
 
-      if (!selectedSeats.includes(seatNumber)) {
+      const alreadySelected = selectedSeats.includes(seatNumber);
+
+      if (!alreadySelected) {
         selectedSeats.push(seatNumber);
         totalPrice += priceWithMarkup;
 
         $('.selected-seat-details').append(
           `<span class="list-group-item d-flex justify-content-between">
-                    @lang("Seat") ${seatNumber} <span>${priceWithMarkup.toFixed(2)}</span></span>`
+        @lang("Seat") ${seatNumber} <span>${priceWithMarkup.toFixed(2)}</span></span>`
         );
       } else {
         selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
@@ -365,6 +359,7 @@
         });
       }
 
+      // Update hidden inputs
       $('input[name="seats"]').val(selectedSeats.join(','));
       $('input[name="price"]').val(totalPrice.toFixed(2));
 
@@ -373,7 +368,8 @@
       } else {
         $('.booked-seat-details').removeClass('d-block').addClass('d-none');
       }
-    });
+    }
+
 
     // Handle form submission
     $('#bookingForm').on('submit', function(e) {

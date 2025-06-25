@@ -182,9 +182,9 @@
                     <div class="form-group">
                       <label class="form-label">@lang("Title")<span class="text-danger">*</span></label>
                       <select class="form--control" name="gender" id="passenger_title">
-                        <option value="1" selected>@lang("Mr")</option>
-                        <option value="2">@lang("Ms")</option>
-                        <option value="3">@lang("Other")</option>
+                        <option value="Mr" selected>@lang("Mr")</option>
+                        <option value="Ms">@lang("Ms")</option>
+                        <option value="Dr">@lang("Other")</option>
                       </select>
                       <div class="invalid-feedback">This field is required!</div>
                     </div>
@@ -733,7 +733,8 @@
             } else {
               $('#otpVerificationContainer').addClass('has-error');
               alert(response.message || 'Invalid OTP. Please try again.');
-              $btn.prop('disabled', false).html('@lang("Verify")');
+              $btn.prop('disabled', false).html(
+                '@lang("Verify")');
             }
           },
           error: function(xhr) {
@@ -793,8 +794,8 @@
     });
   </script>
   <style>
-    .row{
+    .row {
       gap: 0px;
     }
-    </style>
+  </style>
 @endpush

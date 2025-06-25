@@ -792,4 +792,9 @@
       $('#bookingForm').append(`<input type="hidden" name="dropping_point_time" value="${pointTime}">`);
     });
   </script>
+  <style>
+    .row{
+      gap: 0px;
+    }
+    </style>
 @endpush

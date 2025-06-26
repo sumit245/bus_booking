@@ -32,24 +32,9 @@
                 value="{{ $destinationCity->city_name }}">
             </div>
           </div>
-          {{-- Select Gender --}}
-          <div class="col-12">
-            <label class="form-label">@lang("Select Gender")</label>
-            <div class="d-flex justify-content-between flex-wrap">
-              <div class="form-group custom--radio">
-                <input id="male" type="radio" name="gender" value="1">
-                <label class="form-label" for="male">@lang("Male")</label>
-              </div>
-              <div class="form-group custom--radio">
-                <input id="female" type="radio" name="gender" value="2">
-                <label class="form-label" for="female">@lang("Female")</label>
-              </div>
-              <div class="form-group custom--radio">
-                <input id="other" type="radio" name="gender" value="3">
-                <label class="form-label" for="other">@lang("Other")</label>
-              </div>
-            </div>
-          </div>
+
+          {{-- Hidden input for gender (will be set based on passenger title) --}}
+          <input type="hidden" name="gender" id="selected_gender" value="1">
 
           <div class="col-12">
             <div class="booked-seat-details d-none my-3">
@@ -181,10 +166,10 @@
                   <div class="col-md-6">
                     <div class="form-group">
                       <label class="form-label">@lang("Title")<span class="text-danger">*</span></label>
-                      <select class="form--control" name="gender" id="passenger_title">
+                      <select class="form--control" name="passenger_title" id="passenger_title">
                         <option value="Mr" selected>@lang("Mr")</option>
                         <option value="Ms">@lang("Ms")</option>
-                        <option value="Dr">@lang("Other")</option>
+                        <option value="Other">@lang("Other")</option>
                       </select>
                       <div class="invalid-feedback">This field is required!</div>
                     </div>
@@ -473,18 +458,25 @@
       // Disable booked seats
       $('.seat-wrapper .seat.booked').attr('disabled', true);
 
-      $('input[name="gender"]').on('change', function() {
-        let selectedGender = $(this).val();
-        let titleField = $('#passenger_title');
+      // Handle passenger title change to automatically set gender
+      $('#passenger_title').on('change', function() {
+        let selectedTitle = $(this).val();
+        let genderValue;
 
-        if (selectedGender === "1") {
-          titleField.val("Mr"); // Male -> Mr
-        } else if (selectedGender === "2") {
-          titleField.val("Ms"); // Female -> Ms
-        } else if (selectedGender === "3") {
-          titleField.val("Other"); // Other -> Other
+        if (selectedTitle === "Mr") {
+          genderValue = "1"; // Male
+        } else if (selectedTitle === "Ms") {
+          genderValue = "2"; // Female
+        } else {
+          genderValue = "3"; // Other
         }
+
+        // Update the hidden gender field
+        $('#selected_gender').val(genderValue);
       });
+
+      // Set initial gender value based on default title selection
+      $('#passenger_title').trigger('change');
 
       // Add CSS for tab styling
       $('<style>')
@@ -620,9 +612,6 @@
       rzp.open();
     }
 
-    // Step 3: Process payment success
-    // Step 3: Process payment success
-    // Step 3: Process payment success
     // Step 3: Process payment success
     function processPaymentSuccess(response, bookingId) {
       $.ajax({
@@ -760,15 +749,8 @@
       });
     });
 
-
-
-
-
-
-
-
     // When a boarding point is selected, store its details
-    $('.boarding-point-card').on('click', function() {
+    $(document).on('click', '.boarding-point-card', function() {
       // Get the boarding point details
       const pointName = $(this).find('.card-title').text();
       const pointLocation = $(this).find('.card-text:first').text();
@@ -781,7 +763,7 @@
     });
 
     // When a dropping point is selected, store its details
-    $('.dropping-point-card').on('click', function() {
+    $(document).on('click', '.dropping-point-card', function() {
       // Get the dropping point details
       const pointName = $(this).find('.card-title').text();
       const pointLocation = $(this).find('.card-text:first').text();

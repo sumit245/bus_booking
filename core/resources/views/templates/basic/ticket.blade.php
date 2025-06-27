@@ -525,14 +525,15 @@
       background-color: #e9e9e9;
     }
 
-   .swap-button {
-     background:none;
+    .swap-button {
+     
       border: none;
       border-radius: 50%;
-      width: 64px;
-      height: 64px;
+      width: 50px;
+      height: 50px;
+      padding: 0px; !important
       color: white;
-      font-size: 15px;
+      font-size: 20px;
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);

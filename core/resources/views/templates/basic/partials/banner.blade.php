@@ -18,25 +18,40 @@
       <div class="ticket-form-wrapper mt-4">
         <form action="{{ route("search") }}" class="ticket-form row g-3 justify-content-center mt-4 pt-4">
           <h4 class="title my-4">@lang("Choose Your Ticket")</h4>
-          <div class="col-md-6 my-2">
-            <div class="form--group">
-              <i class="las la-location-arrow"></i>
-              <input type="hidden" id="origin-id" name="OriginId" value="{{ request()->OriginId }}">
-              <input type="text" id="origin" class="form--control" placeholder="@lang("From")"
-                autocomplete="off">
-              <div id="autocomplete-list-origin" class="autocomplete-items"></div>
+          
+          <div class="col-md-12 d-flex justify-content-between">
+            <div class="row align-items-center">
+              <!-- Origin Field -->
+              <div class="col-md-5 my-2">
+                <div class="form--group">
+                  <i class="las la-location-arrow"></i>
+                  <input type="hidden" id="origin-id" name="OriginId" value="{{ request()->OriginId }}">
+                  <input type="text" id="origin" class="form--control" placeholder="@lang("From")"
+                    autocomplete="off">
+                  <div id="autocomplete-list-origin" class="autocomplete-items"></div>
+                </div>
+              </div>
+
+              <!-- Swap Button -->
+              <div class="col-md-2 text-center my-2">
+                <button type="button" id="swap-btn" class="swap-button" title="@lang('Swap locations')">
+                  <i class="las la-exchange-alt"></i>
+                </button>
+              </div>
+
+              <!-- Destination Field -->
+              <div class="col-md-5 my-2">
+                <div class="form--group">
+                  <i class="las la-map-marker"></i>
+                  <input type="hidden" id="destination-id" name="DestinationId" value="{{ request()->DestinationId }}">
+                  <input type="text" id="destination" class="form--control" placeholder="@lang("To")"
+                    autocomplete="off">
+                  <div id="autocomplete-list-destination" class="autocomplete-items"></div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="col-md-6 my-2">
-            <div class="form--group">
-              <i class="las la-map-marker"></i>
-              <input type="hidden" id="destination-id" name="DestinationId" value="{{ request()->DestinationId }}">
-              <input type="text" id="destination" class="form--control" placeholder="@lang("To")"
-                autocomplete="off">
-              <div id="autocomplete-list-destination" class="autocomplete-items"></div>
-            </div>
-          </div>
           <div class="col-md-12 my-2">
             <div class="form--group">
               <i class="las la-calendar-check"></i>
@@ -70,7 +85,35 @@
         autoclose: true,
         format: 'yyyy-mm-dd'
       });
+      
       const cities = @json($cities); // Pass the cities array to JavaScript
+
+      // Swap button functionality
+      $('#swap-btn').on('click', function() {
+        // Add animation class
+        $(this).addClass('swap-animate');
+        
+        // Get current values
+        const originValue = $('#origin').val();
+        const originId = $('#origin-id').val();
+        const destinationValue = $('#destination').val();
+        const destinationId = $('#destination-id').val();
+        
+        // Swap the values with a slight delay for better UX
+        setTimeout(() => {
+          $('#origin').val(destinationValue);
+          $('#origin-id').val(destinationId);
+          $('#destination').val(originValue);
+          $('#destination-id').val(originId);
+          
+          // Remove animation class
+          $(this).removeClass('swap-animate');
+        }, 150);
+        
+        // Clear any open autocomplete lists
+        $('#autocomplete-list-origin').empty();
+        $('#autocomplete-list-destination').empty();
+      });
 
       function setupAutocomplete(inputId, listId, hiddenId) {
         $(`#${inputId}`).on('input', function() {
@@ -128,9 +171,7 @@
   <style>
     .autocomplete-items {
       overflow-y: auto;
-      /* Enable vertical scrolling */
       max-height: 200px;
-      /* Set a max height for the suggestions */
       position: absolute;
       border: 1px solid #d4d4d4;
       border-bottom: none;
@@ -140,7 +181,6 @@
       left: 0;
       right: 0;
       background-color: #fff;
-      /* Ensure background is white */
     }
 
     .autocomplete-item {
@@ -151,6 +191,73 @@
 
     .autocomplete-item:hover {
       background-color: #e9e9e9;
+    }
+
+    /* Swap Button Styles */
+  .swap-button {
+     
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      padding: 0px; !important
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+
+    .swap-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .swap-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .swap-button i {
+      transition: transform 0.3s ease;
+    }
+
+    .swap-button:hover i {
+      transform: rotate(180deg);
+    }
+
+    .swap-animate {
+      animation: swapPulse 0.3s ease;
+    }
+
+   
+
+    @media (max-width: 768px) {
+      .swap-button {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        margin: 10px 0;
+      }
+    }
+    @media (max-width: 576px) {
+      .ticket-form .row.align-items-center {
+        flex-direction: column;
+      }
+      
+      .swap-button {
+        transform: rotate(90deg);
+        margin: 15px 0;
+      }
+      
+      .swap-button:hover {
+        transform: rotate(90deg) translateY(-2px);
+      }
     }
   </style>
 @endpush

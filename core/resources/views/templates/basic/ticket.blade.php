@@ -13,39 +13,56 @@
     <div class="container">
       <div class="bus-search-header">
         <form action="{{ route("search") }}" class="ticket-form ticket-form-two row g-3 justify-content-center">
-          <div class="col-md-4 col-lg-3">
-            <div class="form--group">
-              <i class="las la-location-arrow"></i>
-              <input type="hidden" id="origin-id" name="OriginId" value="{{ request()->OriginId }}">
-              <input type="text" id="origin" class="form--control" placeholder="@lang("From")"
-                value="{{ $originCity->city_name ?? "" }}" autocomplete="off">
-              <div id="autocomplete-list-origin" class="autocomplete-items"></div>
+          
+          <div class="col-md-12">
+            <div class="row align-items-center">
+              <!-- Origin Field -->
+              <div class="col-md-4 col-lg-3">
+                <div class="form--group">
+                  <i class="las la-location-arrow"></i>
+                  <input type="hidden" id="origin-id" name="OriginId" value="{{ request()->OriginId }}">
+                  <input type="text" id="origin" class="form--control" placeholder="@lang("From")"
+                    value="{{ $originCity->city_name ?? "" }}" autocomplete="off">
+                  <div id="autocomplete-list-origin" class="autocomplete-items"></div>
+                </div>
+              </div>
+
+              <!-- Swap Button -->
+              <div class="col-md-1 text-center">
+                <button type="button" id="swap-btn" class="swap-button" title="@lang('Swap locations')">
+                  <i class="las la-exchange-alt"></i>
+                </button>
+              </div>
+
+              <!-- Destination Field -->
+              <div class="col-md-4 col-lg-3">
+                <div class="form--group">
+                  <i class="las la-map-marker"></i>
+                  <input type="hidden" id="destination-id" name="DestinationId" value="{{ request()->DestinationId }}">
+                  <input type="text" id="destination" class="form--control" placeholder="@lang("To")"
+                    value="{{ $destinationCity->city_name ?? "" }}" autocomplete="off">
+                  <div id="autocomplete-list-destination" class="autocomplete-items"></div>
+                </div>
+              </div>
+
+              <!-- Date Field -->
+              <div class="col-md-4 col-lg-3">
+                <div class="form--group">
+                  <i class="las la-calendar-check"></i>
+                  <input type="text" name="DateOfJourney" class="form--control datpicker" placeholder="@lang("Date of Journey")"
+                    autocomplete="off" value="{{ request()->DateOfJourney }}">
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="col-md-6 col-lg-2">
+                <div class="form--group">
+                  <button type="submit">@lang("Modify")</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="col-md-4 col-lg-3">
-            <div class="form--group">
-              <i class="las la-map-marker"></i>
-              <input type="hidden" id="destination-id" name="DestinationId" value="{{ request()->DestinationId }}">
-              <input type="text" id="destination" class="form--control" placeholder="@lang("To")"
-                value="{{ $destinationCity->city_name ?? "" }}" autocomplete="off">
-              <div id="autocomplete-list-destination" class="autocomplete-items"></div>
-            </div>
-          </div>
-
-          <div class="col-md-4 col-lg-3">
-            <div class="form--group">
-              <i class="las la-calendar-check"></i>
-              <input type="text" name="DateOfJourney" class="form--control datpicker" placeholder="@lang("Date of Journey")"
-                autocomplete="off" value="{{ request()->DateOfJourney }}">
-            </div>
-          </div>
-
-          <div class="col-md-6 col-lg-3">
-            <div class="form--group">
-              <button type="submit">@lang("Modify")</button>
-            </div>
-          </div>
         </form>
       </div>
     </div>
@@ -161,6 +178,33 @@
 
       // Autocomplete functionality
       const cities = @json($cities); // Pass the cities array to JavaScript
+
+      // Swap button functionality
+      $('#swap-btn').on('click', function() {
+        // Add animation class
+        $(this).addClass('swap-animate');
+        
+        // Get current values
+        const originValue = $('#origin').val();
+        const originId = $('#origin-id').val();
+        const destinationValue = $('#destination').val();
+        const destinationId = $('#destination-id').val();
+        
+        // Swap the values with a slight delay for better UX
+        setTimeout(() => {
+          $('#origin').val(destinationValue);
+          $('#origin-id').val(destinationId);
+          $('#destination').val(originValue);
+          $('#destination-id').val(originId);
+          
+          // Remove animation class
+          $(this).removeClass('swap-animate');
+        }, 150);
+        
+        // Clear any open autocomplete lists
+        $('#autocomplete-list-origin').empty();
+        $('#autocomplete-list-destination').empty();
+      });
 
       function setupAutocomplete(inputId, listId, hiddenId) {
         $(`#${inputId}`).on('input', function() {
@@ -310,7 +354,6 @@
       grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr;
       gap: 50px;
       align-items: stretch;
-      /* ⬅ Fix here */
     }
 
     .bus-details {
@@ -416,7 +459,6 @@
       padding: 8px 20px;
       border-radius: 5px;
       white-space: nowrap;
-      /* background-color: #e74c3c; */
       color: white;
       border: none;
       font-size: 14px;
@@ -483,39 +525,70 @@
       background-color: #e9e9e9;
     }
 
-    @media (max-width: 768px) {
-      .ticket-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-      }
-
-      .departure-details,
-      .arrival-details,
-      .seat-price-details {
-        text-align: left;
-      }
-
-      .journey-time {
-        flex-direction: row;
-        justify-content: flex-start;
-      }
-
-      .journey-time i {
-        margin-right: 10px;
-        margin-bottom: 0;
-      }
-
-      .select-seat-btn {
-        position: static;
-        margin-top: 15px;
-        text-align: center;
-      }
-
-      .ticket-item {
-        padding-bottom: 20px;
-      }
+    .swap-button {
+     
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      padding: 0px; !important
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
     }
 
+    .swap-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .swap-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    }
+
+    .swap-button i {
+      transition: transform 0.3s ease;
+    }
+
+    .swap-button:hover i {
+      transform: rotate(180deg);
+    }
+
+    .swap-animate {
+      animation: swapPulse 0.3s ease;
+    }
+
+   
+
+    @media (max-width: 768px) {
+      .swap-button {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        margin: 10px 0;
+      }
+    }
+    @media (max-width: 576px) {
+      .ticket-form .row.align-items-center {
+        flex-direction: column;
+      }
+      
+      .swap-button {
+        transform: rotate(90deg);
+        margin: 15px 0;
+      }
+      
+      .swap-button:hover {
+        transform: rotate(90deg) translateY(-2px);
+      }
+    }
     .bus-details,
     .departure-details,
     .journey-time,

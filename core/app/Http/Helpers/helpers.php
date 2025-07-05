@@ -1230,6 +1230,7 @@ function parseSeatHtmlToJson($html)
                 $result['seat'][$deck]['rows'][$rowNumber] = [];
             }
 
+            Log::info($classes);
             $seatType = $classes[0] ?? '';
             $isAvailable = false;
             $isSleeper = false;
@@ -1248,6 +1249,12 @@ function parseSeatHtmlToJson($html)
                 $isAvailable = true;
             } elseif ($seatType === 'bseat') {
                 $isSleeper = false;
+                $isAvailable = false;
+            } elseif ($seatType === 'vseat') {
+                $isSleeper = true;
+                $isAvailable = true;
+            } elseif ($seatType === 'bvseat') {
+                $isSleeper = true;
                 $isAvailable = false;
             }
 

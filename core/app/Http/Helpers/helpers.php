@@ -994,7 +994,7 @@ function searchAPIBuses($source, $destination, $date, $userIp = "::1")
             'UserIp' => $userIp ?: "::1",
             'OriginId' => $source,
             'DestinationId' => $destination,
-            'DateOfJourney' => $date,
+            'DateOfJourney' => Carbon::parse($date)->format('Y-m-d'),
         ];
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 use Razorpay\Api\Api;
 use App\Models\City;
 use App\Models\MarkupTable;
+use App\Services\BusService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
@@ -50,10 +51,29 @@ class ApiTicketController extends Controller
   public function ticketSearch(Request $request)
   {
     try {
-      //code...
-      $resp = $this->fetchAndProcessAPIResponse($request);
-      Log::info($resp);
-      return $this->prepareAndReturnView($resp);
+      BusService::validateSearchRequest($request);
+      $resp = BusService::fetchAndProcessAPIResponse(
+        $request->OriginId,
+        $request->DestinationId,
+        $request->DateOfJourney,
+        $request->ip()
+      );
+
+      if (!is_array($resp) || !isset($resp['Result']) || empty($resp['Result'])) {
+        abort(404, 'No buses found for this route and date');
+      }
+      if ($resp['Error']['ErrorCode'] == 0) {
+        $trips = BusService::sortTripsByDepartureTime($resp['Result']);
+        $trips = BusService::applyMarkup($trips);
+
+        if ($request->hasAny(['departure_time', 'amenities', 'min_price', 'max_price', 'fleetType'])) {
+          $trips = BusService::applyFilters($trips, $request);
+        }
+        return response()->json([
+          'SearchTokenId' => $resp['SearchTokenId'],
+          'trips' => $trips
+        ]);
+      }
     } catch (\Throwable $th) {
       //throw $th;
       return response()->json([

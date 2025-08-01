@@ -67,12 +67,14 @@ class BusService
      */
     public static function applyCoupon($trips)
     {
-        $coupon = CouponTable::orderBy('id', 'desc')->first();
+        // Get the currently active and unexpired coupon
+        $coupon = CouponTable::where('status', 1)
+                             ->where('expiry_date', '>=', Carbon::today())
+                             ->first();
         
-        // Get coupon parameters, defaulting to 0 if not set
         $couponThreshold = isset($coupon->coupon_threshold) ? (float) $coupon->coupon_threshold : 0;
-        $flatCouponAmount = isset($coupon->flat_coupon_amount) ? (float) $coupon->flat_coupon_amount : 0;
-        $percentageCouponAmount = isset($coupon->percentage_coupon_amount) ? (float) $coupon->percentage_coupon_amount : 0;
+        $discountType = isset($coupon->discount_type) ? $coupon->discount_type : 'fixed'; // Default to fixed
+        $couponValue = isset($coupon->coupon_value) ? (float) $coupon->coupon_value : 0;
 
         foreach ($trips as &$trip) {
             if (isset($trip['BusPrice']['PublishedPrice']) && is_numeric($trip['BusPrice']['PublishedPrice'])) {
@@ -82,14 +84,19 @@ class BusService
                 $trip['BusPrice']['PriceBeforeCoupon'] = round($priceAfterMarkup, 2);
 
                 $discountAmount = 0;
-                if ($priceAfterMarkup > 0) { // Only apply discount if price is positive
-                    if ($priceAfterMarkup <= $couponThreshold) {
-                        $discountAmount = $flatCouponAmount;
-                    } else {
-                        $discountAmount = ($priceAfterMarkup * $percentageCouponAmount / 100);
+                
+                // Apply discount ONLY if price is ABOVE the threshold and a coupon is active
+                if ($coupon && $priceAfterMarkup > $couponThreshold) {
+                    if ($discountType === 'fixed') {
+                        $discountAmount = $couponValue;
+                    } elseif ($discountType === 'percentage') {
+                        $discountAmount = ($priceAfterMarkup * $couponValue / 100);
                     }
                 }
                 
+                // Ensure discount amount does not exceed the price after markup
+                $discountAmount = min($discountAmount, $priceAfterMarkup);
+
                 // Apply coupon discount
                 $finalPrice = $priceAfterMarkup - $discountAmount;
                 
@@ -107,7 +114,10 @@ class BusService
      */
     public static function getCurrentCoupon()
     {
-        return CouponTable::orderBy('id', 'desc')->first();
+        // Return the currently active and unexpired coupon
+        return CouponTable::where('status', 1)
+                         ->where('expiry_date', '>=', Carbon::today())
+                         ->first();
     }
 
     /**

@@ -169,7 +169,7 @@ class SiteController extends Controller
 
 
     // 1. First of all this function will check if there is any trip available for the searched route
-   public function ticketSearch(Request $request)
+  public function ticketSearch(Request $request)
 {
     try {
         BusService::validateSearchRequest($request);

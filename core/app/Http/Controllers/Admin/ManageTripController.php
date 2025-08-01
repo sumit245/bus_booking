@@ -49,11 +49,9 @@ class ManageTripController extends Controller
         }
 
         $stoppages = $request->stoppages ? array_filter($request->stoppages):[];
-
         if (!in_array($request->start_from, $stoppages)) {
             array_unshift($stoppages, $request->start_from);
         }
-
         if (!in_array($request->end_to, $stoppages)) {
             array_push($stoppages, $request->end_to);
         }
@@ -75,7 +73,6 @@ class ManageTripController extends Controller
         $route = VehicleRoute::findOrFail($id);
         $pageTitle = 'Update Route - ' . $route->name;
         $allStoppages = Counter::active()->get();
-
         $stoppagesArray = $route->stoppages;
         $pos = array_search($route->start_from, $stoppagesArray);
         unset($stoppagesArray[$pos]);
@@ -83,13 +80,13 @@ class ManageTripController extends Controller
         unset($stoppagesArray[$pos]);
 
         if(!empty($stoppagesArray)){
-
             $stoppages = Counter::active()->whereIn('id', $stoppagesArray)
                 ->orderByRaw("field(id,".implode(',',$stoppagesArray).")")
                 ->get();
         }else{
             $stoppages = [];
         }
+
         return view('admin.trip.route.edit', compact('pageTitle', 'stoppages', 'route', 'allStoppages'));
     }
 
@@ -112,11 +109,9 @@ class ManageTripController extends Controller
         }
 
         $stoppages = $request->stoppages ? array_filter($request->stoppages):[];
-
         if (!in_array($request->start_from, $stoppages)) {
             array_unshift($stoppages, $request->start_from);
         }
-
         if (!in_array($request->end_to, $stoppages)) {
             array_push($stoppages, $request->end_to);
         }
@@ -136,7 +131,6 @@ class ManageTripController extends Controller
 
     public function routeActiveDisabled(Request $request){
         $request->validate(['id' => 'required|integer']);
-
         $route = VehicleRoute::find($request->id);
         $route->status = $route->status == 1 ? 0 : 1;
         $route->save();
@@ -146,7 +140,6 @@ class ManageTripController extends Controller
         }else{
             $notify[] = ['success', 'Route disabled successfully'];
         }
-
         return back()->withNotify($notify);
     }
 
@@ -185,7 +178,6 @@ class ManageTripController extends Controller
         ]);
 
         $check = Schedule::where('start_from', Carbon::parse($request->start_from)->format('H:i:s'))->where('end_at', Carbon::parse($request->end_at)->format('H:i:s'))->first();
-
         if($check && $check->id != $id){
             $notify[] = ['error', 'This schedule has already added'];
             return back()->withNotify($notify);
@@ -202,7 +194,6 @@ class ManageTripController extends Controller
 
     public function schduleActiveDisabled(Request $request){
         $request->validate(['id' => 'required|integer']);
-
         $schdule = Schedule::find($request->id);
         $schdule->status = $schdule->status == 1 ? 0 : 1;
         $schdule->save();
@@ -212,7 +203,6 @@ class ManageTripController extends Controller
         }else{
             $notify[] = ['success', 'Schedule disabled successfully'];
         }
-
         return back()->withNotify($notify);
     }
 
@@ -223,9 +213,7 @@ class ManageTripController extends Controller
         $routes = VehicleRoute::where('status', 1)->get();
         $schedules = Schedule::where('status', 1)->get();
         $stoppages = Counter::where('status', 1)->get();
-
         $trips = Trip::with(['fleetType', 'route', 'schedule'])->orderBy('id', 'desc')->paginate(getPaginate());
-
         return view('admin.trip.trip', compact('pageTitle', 'emptyMessage', 'trips' ,'fleetTypes', 'routes', 'schedules', 'stoppages'));
     }
 
@@ -282,7 +270,6 @@ class ManageTripController extends Controller
 
     public function tripActiveDisable(Request $request){
         $request->validate(['id' => 'required|integer']);
-
         $trip = Trip::find($request->id);
         $trip->status = $trip->status == 1 ? 0 : 1;
         $trip->save();
@@ -292,7 +279,6 @@ class ManageTripController extends Controller
         }else{
             $notify[] = ['success', 'Trip disabled successfully'];
         }
-
         return back()->withNotify($notify);
     }
 
@@ -301,83 +287,136 @@ class ManageTripController extends Controller
         $emptyMessage = "No assigned vehicle found";
         $trips = Trip::with('fleetType.activeVehicles')->where('status', 1)->get();
         $assignedVehicles = AssignedVehicle::with(['trip', 'vehicle'])->orderBy('id', 'desc')->paginate(getPaginate());
-
         return view('admin.trip.assigned_vehicle', compact('pageTitle', 'emptyMessage', 'trips', 'assignedVehicles'));
     }
-   
-    
-
-    public function markup()
-{
-    $currentMarkup = MarkupTable::orderBy('id', 'desc')->first();
-
-    if (!$currentMarkup) {
-        $currentMarkup = (object)[
-            'title' => 'Default Markup',
-            'flat_markup' => 0.00,
-            'percentage_markup' => 0.00,
-            'threshold' => 0.00,
-        ];
-    }
-
-    $pageTitle = 'Manage Markup';
-
-    return view('admin.trip.markup', compact('currentMarkup', 'pageTitle'));
-}
-public function updateMarkup(Request $request)
-{
-    $request->validate([
-        'flat_markup' => 'required|numeric|min:0',
-        'percentage_markup' => 'required|numeric|min:0',
-        'threshold' => 'required|numeric|min:0',
-    ]);
-
-    MarkupTable::create([
-        'flat_markup' => $request->flat_markup,
-        'percentage_markup' => $request->percentage_markup,
-        'threshold' => $request->threshold,
-        'title' => 'Updated Markup',
-    ]);
-
-    $notify[] = ['success', 'Markup settings updated successfully.'];
-    return back()->withNotify($notify);
-}
-
-    public function coupon(){
-        $currentCoupon = CouponTable::orderBy('id', 'desc')->first();
-        // Provide default values if no coupon exists
-        if (!$currentCoupon) {
-            $currentCoupon = (object)[
-                'coupon_name' => 'Default Coupon',
-                'coupon_threshold' => 0.00,
-                'flat_coupon_amount' => 0.00,
-                'percentage_coupon_amount' => 0.00,
+           
+    public function markup(){
+        $currentMarkup = MarkupTable::orderBy('id', 'desc')->first();
+        if (!$currentMarkup) {
+            $currentMarkup = (object)[
+                'title' => 'Default Markup',
+                'flat_markup' => 0.00,
+                'percentage_markup' => 0.00,
+                'threshold' => 0.00,
             ];
         }
-        $pageTitle = 'Manage Coupon';
-        return view('admin.trip.coupon', compact('currentCoupon', 'pageTitle'));
+        $pageTitle = 'Manage Markup';
+        return view('admin.trip.markup', compact('currentMarkup', 'pageTitle'));
+    }
+
+    public function updateMarkup(Request $request){
+        $request->validate([
+            'flat_markup' => 'required|numeric|min:0',
+            'percentage_markup' => 'required|numeric|min:0',
+            'threshold' => 'required|numeric|min:0',
+        ]);
+
+        MarkupTable::create([
+            'flat_markup' => $request->flat_markup,
+            'percentage_markup' => $request->percentage_markup,
+            'threshold' => $request->threshold,
+            'title' => 'Updated Markup',
+        ]);
+
+        $notify[] = ['success', 'Markup settings updated successfully.'];
+        return back()->withNotify($notify);
+    }
+
+    public function coupon(Request $request){
+        $pageTitle = 'Manage Coupons';
+        $emptyMessage = 'No coupon found';
+        $allCoupons = CouponTable::orderBy('created_at', 'desc')->get();
+        $currentCoupon = CouponTable::where('status', 1)->first();
+        
+        // If an 'edit' ID is provided, pre-fill the form with that coupon's data
+        $couponToEdit = null;
+        if ($request->has('edit_id')) {
+            $couponToEdit = CouponTable::find($request->edit_id);
+        }
+
+        // If no current active coupon, and no specific coupon to edit, provide default empty values
+        if (!$currentCoupon && !$couponToEdit) {
+            $currentCoupon = (object)[
+                'coupon_name' => '',
+                'coupon_threshold' => 0.00,
+                'discount_type' => 'fixed',
+                'coupon_value' => 0.00,
+                'expiry_date' => null,
+                'status' => 0,
+            ];
+        }
+
+        return view('admin.trip.coupon', compact('currentCoupon', 'allCoupons', 'couponToEdit', 'pageTitle', 'emptyMessage'));
     }
 
     public function updateCoupon(Request $request){
         $request->validate([
             'coupon_name' => 'required|string|max:255',
             'coupon_threshold' => 'required|numeric|min:0',
-            'flat_coupon_amount' => 'required|numeric|min:0',
-            'percentage_coupon_amount' => 'required|numeric|min:0|max:100', // Percentage should be 0-100
+            'discount_type' => 'required|in:fixed,percentage',
+            'coupon_value' => 'required|numeric|min:0',
+            'expiry_date' => 'required|date|after_or_equal:today',
         ]);
 
+        // Additional validation for percentage
+        if ($request->discount_type === 'percentage' && $request->coupon_value > 100) {
+            $notify[] = ['error', 'Percentage discount cannot be more than 100%'];
+            return back()->withNotify($notify);
+        }
+
+        // Deactivate all existing coupons first
+        CouponTable::where('status', 1)->update(['status' => 0]);
+
+        // Create a new coupon record and set it as active
         CouponTable::create([
             'coupon_name' => $request->coupon_name,
             'coupon_threshold' => $request->coupon_threshold,
-            'flat_coupon_amount' => $request->flat_coupon_amount,
-            'percentage_coupon_amount' => $request->percentage_coupon_amount,
+            'discount_type' => $request->discount_type,
+            'coupon_value' => $request->coupon_value,
+            'expiry_date' => Carbon::parse($request->expiry_date),
+            'status' => 1, // Set the newly created coupon as active
         ]);
 
-        $notify[] = ['success', 'Coupon settings updated successfully.'];
+        $notify[] = ['success', 'Coupon settings updated and activated successfully.'];
         return back()->withNotify($notify);
     }
-    
-    
+
+    public function activateCoupon(Request $request, $id){
+        $request->validate([
+            'expiry_date' => 'required|date|after_or_equal:today',
+        ]);
+
+        $coupon = CouponTable::findOrFail($id);
+        
+        // Deactivate all other coupons
+        CouponTable::where('status', 1)->where('id', '!=', $id)->update(['status' => 0]);
+
+        // Activate the selected coupon with the new expiry date
+        $coupon->status = 1;
+        $coupon->expiry_date = Carbon::parse($request->expiry_date);
+        $coupon->save();
+
+        $notify[] = ['success', 'Coupon activated successfully with new expiry date.'];
+        return back()->withNotify($notify);
+    }
+
+    public function deactivateCoupon($id){
+        $coupon = CouponTable::findOrFail($id);
+        $coupon->status = 0;
+        $coupon->save();
+
+        $notify[] = ['success', 'Coupon deactivated successfully.'];
+        return back()->withNotify($notify);
+    }
+
+    public function deleteCoupon($id){
+        $coupon = CouponTable::findOrFail($id);
+        $coupon->delete();
+
+        $notify[] = ['success', 'Coupon deleted successfully.'];
+        return back()->withNotify($notify);
+    }
+            
     public function assignVehicle(Request $request){
         $request->validate([
             'trip'      => 'required|integer|gt:0',
@@ -386,14 +425,12 @@ public function updateMarkup(Request $request)
 
         //Check if the trip has already a assigned vehicle;
         $trip_check = AssignedVehicle::where('trip_id', $request->trip)->first();
-
         if($trip_check){
             $notify[]=['error','A vehicle had already been assinged to this trip'];
             return back()->withNotify($notify);
         }
 
         $trip = Trip::where('id', $request->trip)->with('schedule')->firstOrFail();
-
         $start_time = Carbon::parse($trip->schedule->start_from)->format('H:i:s');
         $end_time   = Carbon::parse($trip->schedule->end_at)->format('H:i:s');
 
@@ -409,7 +446,6 @@ public function updateMarkup(Request $request)
                             ->where('vehicle_id', $request->vehicle);
                         })
                     ->first();
-
 
         if($vehicle_check){
             $notify[]=['error','This vehicle had already been assinged to another trip on this time'];
@@ -435,14 +471,12 @@ public function updateMarkup(Request $request)
 
         //Check if the trip has already a assigned vehicle;
         $trip_check = AssignedVehicle::where('trip_id', $request->trip)->where('id', '!=', $id)->first();
-
         if($trip_check){
             $notify[]=['error','A vehicle had already been assinged to this trip'];
             return back()->withNotify($notify);
         }
 
         $trip = Trip::where('id', $request->trip)->with('schedule')->firstOrFail();
-
         $start_time = Carbon::parse($trip->schedule->start_from)->format('H:i:s');
         $end_time   = Carbon::parse($trip->schedule->end_at)->format('H:i:s');
 
@@ -461,7 +495,6 @@ public function updateMarkup(Request $request)
                         })
                     ->first();
 
-
         if($vehicle_check){
             $notify[]=['error','This vehicle had already been assinged to another trip on this time'];
             return back()->withNotify($notify);
@@ -473,13 +506,13 @@ public function updateMarkup(Request $request)
         $assignedVehicle->start_from = $trip->schedule->start_from;
         $assignedVehicle->end_at = $trip->schedule->end_at;
         $assignedVehicle->save();
+
         $notify[] = ['success', 'Assigned vehicle update successfully.'];
         return back()->withNotify($notify);
     }
 
     public function assignedVehicleActiveDisabled(Request $request){
         $request->validate(['id' => 'required|integer']);
-
         $assignedVehicle = AssignedVehicle::find($request->id);
         $assignedVehicle->status = $assignedVehicle->status == 1 ? 0 : 1;
         $assignedVehicle->save();

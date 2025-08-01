@@ -412,7 +412,11 @@ Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 've
 Route::get('/admin/markup', [SiteController::class, 'showMarkupPage'])->name('admin.markup');
 Route::put('admin/markup/update', [ManageTripController::class, 'updateMarkup'])->name('markup.update');
     Route::get('/coupon', [ManageTripController::class, 'coupon'])->name('trip.coupon');
-    Route::put('/coupon/update', [ManageTripController::class, 'updateCoupon'])->name('trip.coupon.update');
+    Route::post('/coupon/update', [ManageTripController::class, 'updateCoupon'])->name('trip.coupon.update');
+    // These are the new routes for activation and deactivation:
+    Route::post('/coupon/activate/{id}', [ManageTripController::class, 'activateCoupon'])->name('trip.coupon.activate');
+    Route::post('/coupon/deactivate/{id}', [ManageTripController::class, 'deactivateCoupon'])->name('trip.coupon.deactivate');
+     Route::post('/coupon/delete/{id}', [ManageTripController::class, 'deleteCoupon'])->name('trip.coupon.delete');
 
 // Add these routes to your web.php file
 Route::post('/send-otp', [OtpController::class, 'sendOtp'])->name('send.otp');

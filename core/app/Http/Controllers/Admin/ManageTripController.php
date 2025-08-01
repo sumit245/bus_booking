@@ -343,8 +343,17 @@ public function updateMarkup(Request $request)
     return back()->withNotify($notify);
 }
 
-     public function coupon(){
+    public function coupon(){
         $currentCoupon = CouponTable::orderBy('id', 'desc')->first();
+        // Provide default values if no coupon exists
+        if (!$currentCoupon) {
+            $currentCoupon = (object)[
+                'coupon_name' => 'Default Coupon',
+                'coupon_threshold' => 0.00,
+                'flat_coupon_amount' => 0.00,
+                'percentage_coupon_amount' => 0.00,
+            ];
+        }
         $pageTitle = 'Manage Coupon';
         return view('admin.trip.coupon', compact('currentCoupon', 'pageTitle'));
     }
@@ -352,12 +361,16 @@ public function updateMarkup(Request $request)
     public function updateCoupon(Request $request){
         $request->validate([
             'coupon_name' => 'required|string|max:255',
-            'coupon_amount' => 'required|numeric|min:0',
+            'coupon_threshold' => 'required|numeric|min:0',
+            'flat_coupon_amount' => 'required|numeric|min:0',
+            'percentage_coupon_amount' => 'required|numeric|min:0|max:100', // Percentage should be 0-100
         ]);
 
         CouponTable::create([
             'coupon_name' => $request->coupon_name,
-            'coupon_amount' => $request->coupon_amount,
+            'coupon_threshold' => $request->coupon_threshold,
+            'flat_coupon_amount' => $request->flat_coupon_amount,
+            'percentage_coupon_amount' => $request->percentage_coupon_amount,
         ]);
 
         $notify[] = ['success', 'Coupon settings updated successfully.'];

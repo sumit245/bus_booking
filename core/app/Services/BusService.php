@@ -4,7 +4,7 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use App\Models\MarkupTable;
-use App\Models\CouponTable;
+use App\Models\CouponTable; // Make sure this is imported
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -39,9 +39,9 @@ class BusService
     public static function applyMarkup($trips)
     {
         $markup = MarkupTable::orderBy('id', 'desc')->first();
-        $flatMarkup = (float) ($markup->flat_markup ?? 0);
-        $percentageMarkup = (float) ($markup->percentage_markup ?? 0);
-        $threshold = (float) ($markup->threshold ?? 0);
+        $flatMarkup = isset($markup->flat_markup) ? (float) $markup->flat_markup : 0;
+        $percentageMarkup = isset($markup->percentage_markup) ? (float) $markup->percentage_markup : 0;
+        $threshold = isset($markup->threshold) ? (float) $markup->threshold : 0;
 
         foreach ($trips as &$trip) {
             if (isset($trip['BusPrice']['PublishedPrice']) && is_numeric($trip['BusPrice']['PublishedPrice'])) {
@@ -63,18 +63,35 @@ class BusService
 
     /**
      * Apply coupon discount logic.
+     * Stores the price before coupon application in 'PriceBeforeCoupon'.
      */
     public static function applyCoupon($trips)
     {
         $coupon = CouponTable::orderBy('id', 'desc')->first();
-        $couponAmount = (float) ($coupon->coupon_amount ?? 0);
+        
+        // Get coupon parameters, defaulting to 0 if not set
+        $couponThreshold = isset($coupon->coupon_threshold) ? (float) $coupon->coupon_threshold : 0;
+        $flatCouponAmount = isset($coupon->flat_coupon_amount) ? (float) $coupon->flat_coupon_amount : 0;
+        $percentageCouponAmount = isset($coupon->percentage_coupon_amount) ? (float) $coupon->percentage_coupon_amount : 0;
 
         foreach ($trips as &$trip) {
             if (isset($trip['BusPrice']['PublishedPrice']) && is_numeric($trip['BusPrice']['PublishedPrice'])) {
                 $priceAfterMarkup = (float) $trip['BusPrice']['PublishedPrice'];
                 
-                // Apply coupon discount (subtract from price after markup)
-                $finalPrice = $priceAfterMarkup - $couponAmount;
+                // Store the price before applying the coupon for UI display
+                $trip['BusPrice']['PriceBeforeCoupon'] = round($priceAfterMarkup, 2);
+
+                $discountAmount = 0;
+                if ($priceAfterMarkup > 0) { // Only apply discount if price is positive
+                    if ($priceAfterMarkup <= $couponThreshold) {
+                        $discountAmount = $flatCouponAmount;
+                    } else {
+                        $discountAmount = ($priceAfterMarkup * $percentageCouponAmount / 100);
+                    }
+                }
+                
+                // Apply coupon discount
+                $finalPrice = $priceAfterMarkup - $discountAmount;
                 
                 // Ensure price doesn't go below 0
                 $finalPrice = max($finalPrice, 0);
@@ -82,7 +99,6 @@ class BusService
                 $trip['BusPrice']['PublishedPrice'] = round($finalPrice, 2);
             }
         }
-
         return $trips;
     }
 

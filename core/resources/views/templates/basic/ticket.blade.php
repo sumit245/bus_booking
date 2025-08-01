@@ -78,18 +78,45 @@
                 <div class="col-lg-9">
                     <div class="ticket-wrapper">
                         {{-- Display active coupon banner --}}
-                 @if(isset($currentCoupon) && $currentCoupon->coupon_amount > 0)
-    <div class="coupon-display-banner">
-        <p>🎉 <strong>{{ $currentCoupon->coupon_name }}</strong> Applied! Book Now!</p>
-    </div>
-@endif
+                        @if(isset($currentCoupon) && ($currentCoupon->flat_coupon_amount > 0 || $currentCoupon->percentage_coupon_amount > 0))
+                            <div class="coupon-display-banner">
+                                <p>🎉 **{{ $currentCoupon->coupon_name }}** Applied!
+                                @if($currentCoupon->flat_coupon_amount > 0 && $currentCoupon->percentage_coupon_amount > 0)
+                                    Save up to {{ __($general->cur_sym) }}{{ showAmount($currentCoupon->flat_coupon_amount) }} or {{ showAmount($currentCoupon->percentage_coupon_amount) }}% on your booking!
+                                @elseif($currentCoupon->flat_coupon_amount > 0)
+                                    Save {{ __($general->cur_sym) }}{{ showAmount($currentCoupon->flat_coupon_amount) }} on every booking!
+                                @elseif($currentCoupon->percentage_coupon_amount > 0)
+                                    Save {{ showAmount($currentCoupon->percentage_coupon_amount) }}% on every booking!
+                                @endif
+                                </p>
+                            </div>
+                        @endif
 
-@forelse ($trips as $trip)
-    @php
-        $finalPrice = isset($trip["BusPrice"]["PublishedPrice"]) ? $trip["BusPrice"]["PublishedPrice"] : 0;
-        $couponDiscount = isset($currentCoupon) ? ($currentCoupon->coupon_amount ?? 0) : 0;
-        $priceBeforeCoupon = $finalPrice + $couponDiscount;
-    @endphp
+                        @forelse ($trips as $trip)
+                            @php
+                                $finalPrice = isset($trip["BusPrice"]["PublishedPrice"]) ? $trip["BusPrice"]["PublishedPrice"] : 0;
+                                // PriceBeforeCoupon is set in BusService::applyCoupon
+                                $priceBeforeCoupon = isset($trip["BusPrice"]["PriceBeforeCoupon"]) ? $trip["BusPrice"]["PriceBeforeCoupon"] : $finalPrice;
+
+                                $couponThreshold = isset($currentCoupon) ? ($currentCoupon->coupon_threshold ?? 0) : 0;
+                                $flatCouponAmount = isset($currentCoupon) ? ($currentCoupon->flat_coupon_amount ?? 0) : 0;
+                                $percentageCouponAmount = isset($currentCoupon) ? ($currentCoupon->percentage_coupon_amount ?? 0) : 0;
+
+                                $displaySavings = '';
+                                $isDiscountApplied = ($priceBeforeCoupon > $finalPrice); // Check if any discount was actually applied
+
+                                if ($isDiscountApplied) {
+                                    // Determine which type of discount was applied based on the original price relative to the threshold
+                                    if ($priceBeforeCoupon <= $couponThreshold) {
+                                        // Flat coupon was applied
+                                        $displaySavings = 'Save ' . __($general->cur_sym) . showAmount($flatCouponAmount);
+                                    } else {
+                                        // Percentage coupon was applied
+                                        // Corrected: Display raw percentage value, trimmed for clean display
+                                        $displaySavings = 'Save ' . rtrim(rtrim(sprintf('%.2f', $percentageCouponAmount), '0'), '.') . '%';
+                                    }
+                                }
+                            @endphp
                             <div class="ticket-item"
                                 data-departure="{{ isset($trip["DepartureTime"]) ? strtotime($trip["DepartureTime"]) : 0 }}"
                                 data-price="{{ $finalPrice }}" {{-- Use finalPrice for sorting --}}
@@ -135,11 +162,10 @@
                                         <p class="seats">{{ isset($trip["AvailableSeats"]) ? $trip["AvailableSeats"] : 0 }} Available Seats
                                         </p>
                                         <div class="price-container">
-                                           
-                                                <p class="savings">Save {{ __($general->cur_sym) }}{{ showAmount($couponDiscount) }}</p>
-                                                
+                                            @if($isDiscountApplied) {{-- Only show savings if a discount was actually applied --}}
+                                                <p class="savings">{{ $displaySavings }}</p>
                                                 <p class="original-price">{{ __($general->cur_sym) }}{{ showAmount($priceBeforeCoupon) }}</p>
-                                            
+                                            @endif
                                             <p class="current-price">{{ __($general->cur_sym) }}{{ showAmount($finalPrice) }}</p>
                                         </div>
                                     </div>

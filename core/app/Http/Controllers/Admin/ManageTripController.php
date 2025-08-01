@@ -12,6 +12,7 @@ use App\Models\Schedule;
 use App\Models\Trip;
 use Carbon\Carbon;
 use App\Models\MarkupTable;
+use App\Models\CouponTable;
 
 class ManageTripController extends Controller
 {
@@ -342,7 +343,26 @@ public function updateMarkup(Request $request)
     return back()->withNotify($notify);
 }
 
-    
+     public function coupon(){
+        $currentCoupon = CouponTable::orderBy('id', 'desc')->first();
+        $pageTitle = 'Manage Coupon';
+        return view('admin.trip.coupon', compact('currentCoupon', 'pageTitle'));
+    }
+
+    public function updateCoupon(Request $request){
+        $request->validate([
+            'coupon_name' => 'required|string|max:255',
+            'coupon_amount' => 'required|numeric|min:0',
+        ]);
+
+        CouponTable::create([
+            'coupon_name' => $request->coupon_name,
+            'coupon_amount' => $request->coupon_amount,
+        ]);
+
+        $notify[] = ['success', 'Coupon settings updated successfully.'];
+        return back()->withNotify($notify);
+    }
     
     
     public function assignVehicle(Request $request){

@@ -411,6 +411,8 @@ Route::post('/verify-razorpay-payment', [App\Http\Controllers\RazorpayController
 Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('book.ticket');
 Route::get('/admin/markup', [SiteController::class, 'showMarkupPage'])->name('admin.markup');
 Route::put('admin/markup/update', [ManageTripController::class, 'updateMarkup'])->name('markup.update');
+    Route::get('/coupon', [ManageTripController::class, 'coupon'])->name('trip.coupon');
+    Route::put('/coupon/update', [ManageTripController::class, 'updateCoupon'])->name('trip.coupon.update');
 
 // Add these routes to your web.php file
 Route::post('/send-otp', [OtpController::class, 'sendOtp'])->name('send.otp');

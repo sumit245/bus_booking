@@ -23,8 +23,8 @@ public function createOrder(Request $request)
         $bookingId = $request->booking_id;
 
         $markup = MarkupTable::orderBy('id', 'desc')->first();
-        $flatMarkup = $markup->flat_markup ?? 0;
-        $percentageMarkup = $markup->percentage_markup ?? 0;
+        $flatMarkup =  0;
+        $percentageMarkup = 0;
         $threshold = $markup->threshold ?? 0;
 
         // Calculate final amount with markup

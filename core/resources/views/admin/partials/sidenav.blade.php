@@ -363,6 +363,12 @@
         <span class="menu-title">@lang('Add Markup')</span>
     </a>
 </li>
+  <li class="sidebar-menu-item {{ menuActive('trip.coupon') }}">
+    <a href="{{ route('trip.coupon') }}" class="nav-link">
+        <i class="menu-icon las la-dot-circle"></i>
+        <span class="menu-title">@lang('Add Coupon')</span>
+    </a>
+</li>
 
                         </ul>
                     </div>

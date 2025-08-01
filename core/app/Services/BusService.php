@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use App\Models\MarkupTable;
+use App\Models\CouponTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +15,6 @@ class BusService
      */
     public static function fetchAndProcessAPIResponse($originId, $destinationId, $dateOfJourney, $ip)
     {
-
         $resp = searchAPIBuses($originId, $destinationId, $dateOfJourney, $ip);
         if (isset($resp['Error']['ErrorCode']) && $resp['Error']['ErrorCode'] !== 0) {
             throw new \Exception($resp['Error']['ErrorMessage']);
@@ -57,7 +57,41 @@ class BusService
                 $trip['BusPrice']['PublishedPrice'] = round($newPrice, 2);
             }
         }
+
         return $trips;
+    }
+
+    /**
+     * Apply coupon discount logic.
+     */
+    public static function applyCoupon($trips)
+    {
+        $coupon = CouponTable::orderBy('id', 'desc')->first();
+        $couponAmount = (float) ($coupon->coupon_amount ?? 0);
+
+        foreach ($trips as &$trip) {
+            if (isset($trip['BusPrice']['PublishedPrice']) && is_numeric($trip['BusPrice']['PublishedPrice'])) {
+                $priceAfterMarkup = (float) $trip['BusPrice']['PublishedPrice'];
+                
+                // Apply coupon discount (subtract from price after markup)
+                $finalPrice = $priceAfterMarkup - $couponAmount;
+                
+                // Ensure price doesn't go below 0
+                $finalPrice = max($finalPrice, 0);
+                
+                $trip['BusPrice']['PublishedPrice'] = round($finalPrice, 2);
+            }
+        }
+
+        return $trips;
+    }
+
+    /**
+     * Get current active coupon details
+     */
+    public static function getCurrentCoupon()
+    {
+        return CouponTable::orderBy('id', 'desc')->first();
     }
 
     /**
@@ -119,7 +153,7 @@ class BusService
                             $found = stripos($trip['ServiceName'] ?? '', 'blanket') !== false || stripos($trip['Description'] ?? '', 'blanket') !== false;
                             break;
                     }
-                    if (!$found) return false; // return false if any selected amenity not found
+                    if (!$found) return false;
                 }
                 return true;
             });
@@ -136,7 +170,7 @@ class BusService
             });
         }
 
-        // Apply fleet type filter - Fixed to work with AND logic for multiple selections
+        // Apply fleet type filter
         if ($request->has('fleetType') && !empty($request->fleetType)) {
             $filteredTrips = array_filter($filteredTrips, function ($trip) use ($request) {
                 $busType = $trip['BusType'];
@@ -145,7 +179,6 @@ class BusService
 
                 foreach ($request->fleetType as $fleetType) {
                     $hasThisType = false;
-
                     switch ($fleetType) {
                         case 'Seater':
                             if (stripos($busType, 'Seater') !== false) {
@@ -174,29 +207,23 @@ class BusService
                             }
                             break;
                     }
-
                     if ($hasThisType) {
                         $matchedTypes++;
                     }
                 }
 
-                // For fleet types, we use OR logic (bus can be Seater OR Sleeper)
-                // But for AC/Non-AC, we use AND logic if both are selected
                 $acSelected = in_array('A/c', $request->fleetType);
                 $nonAcSelected = in_array('Non-A/c', $request->fleetType);
                 $seaterSelected = in_array('Seater', $request->fleetType);
                 $sleeperSelected = in_array('Sleeper', $request->fleetType);
 
-                // If both AC and Non-AC are selected, bus must match both (impossible, so return false)
                 if ($acSelected && $nonAcSelected) {
                     return false;
                 }
 
-                // Check if bus matches the selected criteria
                 $matchesAcCriteria = true;
                 $matchesTypeCriteria = true;
 
-                // Check AC/Non-AC criteria
                 if ($acSelected || $nonAcSelected) {
                     $matchesAcCriteria = false;
                     if ($acSelected && ((stripos($busType, 'A/c') !== false || stripos($busType, 'AC') !== false) && stripos($busType, 'Non') === false)) {
@@ -207,7 +234,6 @@ class BusService
                     }
                 }
 
-                // Check Seater/Sleeper criteria
                 if ($seaterSelected || $sleeperSelected) {
                     $matchesTypeCriteria = false;
                     if ($seaterSelected && stripos($busType, 'Seater') !== false) {
@@ -222,7 +248,7 @@ class BusService
             });
         }
 
-        return array_values($filteredTrips); // Reset array keys
+        return array_values($filteredTrips);
     }
 
     /**

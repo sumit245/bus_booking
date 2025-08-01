@@ -2,6 +2,20 @@
 
 @section("content")
     <div class="row justify-content-between mx-2 p-2">
+        {{-- Display active coupon banner --}}
+        @if(isset($currentCoupon) && $currentCoupon->status && $currentCoupon->expiry_date && $currentCoupon->expiry_date->isFuture())
+            <div class="coupon-display-banner">
+                <p>🎉 **{{ $currentCoupon->coupon_name }}** Applied!
+                @if($currentCoupon->discount_type == 'fixed')
+                    Save {{ __($general->cur_sym) }}{{ showAmount($currentCoupon->coupon_value) }}
+                @elseif($currentCoupon->discount_type == 'percentage')
+                    Save {{ showAmount($currentCoupon->coupon_value) }}%
+                @endif
+                on your booking! Book before {{ showDateTime($currentCoupon->expiry_date, 'F j, Y') }} to avail this offer.
+                </p>
+            </div>
+        @endif
+
         {{-- Left column to denote seat details and booking form --}}
         <div class="col-lg-4 col-md-4">
             <div class="seat-overview-wrapper">
@@ -43,7 +57,7 @@
                                     class="list-group-item d-flex bg--base justify-content-between text-white">@lang("Seat Details")<span>@lang("Price")</span></span>
                                 <div class="selected-seat-details"></div>
                                 {{-- Subtotal removed as requested --}}
-                                @if(isset($currentCoupon) && $currentCoupon->coupon_amount > 0)
+                                @if(isset($currentCoupon) && $currentCoupon->status && $currentCoupon->expiry_date && $currentCoupon->expiry_date->isFuture())
                                     <span class="list-group-item d-flex justify-content-between coupon-discount-display">
                                         <strong>@lang("Coupon Discount")</strong>
                                         <span id="totalCouponDiscountDisplay">0.00</span>
@@ -287,30 +301,80 @@
 @endsection
 
 @php
+    // Explicitly import classes within the @php block
     use App\Models\MarkupTable;
-    use App\Models\CouponTable; // Import CouponTable model
+    use App\Models\CouponTable;
+    use Carbon\Carbon;
 
-    $markupData = \App\Models\MarkupTable::orderBy("id", "desc")->first();
-    $flatMarkup = isset($markupData->flat_markup) ? $markupData->flat_markup : 0;
-    $percentageMarkup = isset($markupData->percentage_markup) ? $markupData->percentage_markup : 0;
-    $threshold = isset($markupData->threshold) ? $markupData->threshold : 0;
+    $markupData = MarkupTable::orderBy("id", "desc")->first();
+    $flatMarkup = isset($markupData->flat_markup) ? (float) $markupData->flat_markup : 0;
+    $percentageMarkup = isset($markupData->percentage_markup) ? (float) $markupData->percentage_markup : 0;
+    $threshold = isset($markupData->threshold) ? (float) $markupData->threshold : 0;
 
-    $couponData = \App\Models\CouponTable::orderBy("id", "desc")->first();
-    $couponAmount = isset($couponData->coupon_amount) ? $couponData->coupon_amount : 0;
+    // Fetch the current active and unexpired coupon directly in the blade file
+    $currentCoupon = CouponTable::where('status', 1)
+                                ->where('expiry_date', '>=', Carbon::today())
+                                ->first();
+    
+    // Ensure coupon values are numeric before JSON encoding for JavaScript
+    if ($currentCoupon) {
+        $currentCoupon->coupon_threshold = (float) $currentCoupon->coupon_threshold;
+        $currentCoupon->coupon_value = (float) $currentCoupon->coupon_value;
+        // Ensure status is explicitly boolean for JSON encoding
+        $currentCoupon->status = (bool) $currentCoupon->status; 
+    }
+
+    // Pass the current coupon object to JavaScript
+    $currentCouponJson = json_encode($currentCoupon ?? null);
 @endphp
 
 @push("script")
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         let selectedSeats = [];
-        let finalTotalPrice = 0; // This will be the sum of prices after markup AND per-seat coupon
-        const couponDiscountAmountPerSeat = parseFloat("{{ $couponAmount }}"); // Coupon amount per seat
+        let finalTotalPrice = 0;
+        let totalCouponDiscountApplied = 0; // Track total discount applied across all seats
+
+        // These variables are now populated from the @php block
+        const flatMarkup = parseFloat("{{ $flatMarkup }}");
+        const percentageMarkup = parseFloat("{{ $percentageMarkup }}");
+        const threshold = parseFloat("{{ $threshold }}");
+        const currentCoupon = {!! $currentCouponJson !!}; // Coupon object from PHP, will be null if no active coupon
+
+        function calculatePerSeatDiscount(seatPriceWithMarkup) {
+            // Check if coupon exists, is active, and not expired
+            // Use loose equality for status to handle potential type differences (e.g., 1 vs true)
+            const isCouponValid = currentCoupon && 
+                                  currentCoupon.status == 1 && 
+                                  (currentCoupon.expiry_date && new Date(currentCoupon.expiry_date) >= new Date());
+            
+            if (!isCouponValid) {
+                return 0; // No active or valid coupon
+            }
+
+            const couponThreshold = parseFloat(currentCoupon.coupon_threshold);
+            const discountType = currentCoupon.discount_type;
+            const couponValue = parseFloat(currentCoupon.coupon_value);
+
+            let discountAmount = 0;
+
+            // Apply discount ONLY if price is ABOVE the threshold
+            if (seatPriceWithMarkup > couponThreshold) {
+                if (discountType === 'fixed') {
+                    discountAmount = couponValue;
+                } else if (discountType === 'percentage') {
+                    discountAmount = (seatPriceWithMarkup * couponValue / 100);
+                }
+            }
+            
+            // Ensure discount amount does not exceed the price after markup
+            const finalDiscount = Math.min(discountAmount, seatPriceWithMarkup);
+            return finalDiscount;
+        }
 
         function updatePriceDisplays() {
-            const totalCouponDiscount = couponDiscountAmountPerSeat * selectedSeats.length;
-            $('#totalCouponDiscountDisplay').text('-' + totalCouponDiscount.toFixed(2));
-
-            $('#totalPriceDisplay').text(finalTotalPrice.toFixed(2)); // Renamed from grandTotalPriceDisplay
+            $('#totalCouponDiscountDisplay').text('-' + totalCouponDiscountApplied.toFixed(2));
+            $('#totalPriceDisplay').text(finalTotalPrice.toFixed(2));
             
             // Update the hidden input for the final price to be sent to the backend
             $('input[name="price"]').val(finalTotalPrice.toFixed(2));
@@ -318,34 +382,33 @@
 
         function AddRemoveSeat(el, seatId, price) {
             const seatNumber = seatId;
-            const seatPrice = parseFloat(price);
-            const flatMarkup = parseFloat("{{ $flatMarkup }}");
-            const percentageMarkup = parseFloat("{{ $percentageMarkup }}");
-            const threshold = parseFloat("{{ $threshold }}");
-
-            const markupAmount = seatPrice < threshold ?
+            const seatOriginalPrice = parseFloat(price);
+            
+            const markupAmount = seatOriginalPrice < threshold ?
                 flatMarkup :
-                (seatPrice * percentageMarkup / 100);
+                (seatOriginalPrice * percentageMarkup / 100);
             
-            const priceWithMarkup = seatPrice + markupAmount;
+            const priceWithMarkup = seatOriginalPrice + markupAmount;
             
-            // Apply coupon discount per seat, ensuring price doesn't go below zero
-            const priceAfterCouponPerSeat = Math.max(0, priceWithMarkup - couponDiscountAmountPerSeat);
+            const discountAmountPerSeat = calculatePerSeatDiscount(priceWithMarkup);
+            const priceAfterCouponPerSeat = Math.max(0, priceWithMarkup - discountAmountPerSeat);
 
             el.classList.toggle('selected');
             const alreadySelected = selectedSeats.includes(seatNumber);
 
             if (!alreadySelected) {
                 selectedSeats.push(seatNumber);
-                finalTotalPrice += priceAfterCouponPerSeat; // Accumulate price after per-seat coupon for total
+                finalTotalPrice += priceAfterCouponPerSeat;
+                totalCouponDiscountApplied += discountAmountPerSeat; // Add to total discount
                 $('.selected-seat-details').append(
-                    `<span class="list-group-item d-flex justify-content-between" data-seat-id="${seatNumber}">
-                        @lang("Seat") ${seatNumber} <span>${priceAfterCouponPerSeat.toFixed(2)}</span>
+                    `<span class="list-group-item d-flex justify-content-between" data-seat-id="${seatNumber}" data-discount-applied="${discountAmountPerSeat.toFixed(2)}">
+                        @lang("Seat") ${seatNumber} <span>{{ __($general->cur_sym) }}${priceAfterCouponPerSeat.toFixed(2)}</span>
                     </span>`
                 );
             } else {
                 selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
-                finalTotalPrice -= priceAfterCouponPerSeat; // Subtract price after per-seat coupon from total
+                finalTotalPrice -= priceAfterCouponPerSeat;
+                totalCouponDiscountApplied -= discountAmountPerSeat; // Subtract from total discount
                 $(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).remove(); // Remove specific seat display
             }
 
@@ -535,7 +598,6 @@
                 success: function(response) {
                     if (response.success) {
                         // Call Razorpay Payment Handler
-                        console.log(response.response?.Passenger);
                         // Use the price from the hidden input, which now includes coupon discount
                         const amount = parseFloat($('input[name="price"]').val()); 
                         // First create a Razorpay order
@@ -779,6 +841,22 @@
         /* Keep the red color for the discount amount itself */
         .coupon-discount-display span {
             color: #e74c3c;
+        }
+        /* New style for coupon banner */
+        .coupon-display-banner {
+            background-color: #d4edda; /* Light green background */
+            color: #155724; /* Dark green text */
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid #c3e6cb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .coupon-display-banner p {
+            margin: 0;
         }
     </style>
 @endpush

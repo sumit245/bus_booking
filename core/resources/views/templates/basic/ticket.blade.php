@@ -78,16 +78,15 @@
                 <div class="col-lg-9">
                     <div class="ticket-wrapper">
                         {{-- Display active coupon banner --}}
-                        @if(isset($currentCoupon) && ($currentCoupon->flat_coupon_amount > 0 || $currentCoupon->percentage_coupon_amount > 0))
+                        @if(isset($currentCoupon) && $currentCoupon->status && $currentCoupon->expiry_date && $currentCoupon->expiry_date->isFuture())
                             <div class="coupon-display-banner">
-                                <p>🎉 **{{ $currentCoupon->coupon_name }}** Applied!
-                                @if($currentCoupon->flat_coupon_amount > 0 && $currentCoupon->percentage_coupon_amount > 0)
-                                    Save up to {{ __($general->cur_sym) }}{{ showAmount($currentCoupon->flat_coupon_amount) }} or {{ showAmount($currentCoupon->percentage_coupon_amount) }}% on your booking!
-                                @elseif($currentCoupon->flat_coupon_amount > 0)
-                                    Save {{ __($general->cur_sym) }}{{ showAmount($currentCoupon->flat_coupon_amount) }} on every booking!
-                                @elseif($currentCoupon->percentage_coupon_amount > 0)
-                                    Save {{ showAmount($currentCoupon->percentage_coupon_amount) }}% on every booking!
+                                <p>🎉{{ $currentCoupon->coupon_name }} Applied!
+                                @if($currentCoupon->discount_type == 'fixed')
+                                    Save {{ __($general->cur_sym) }}{{ showAmount($currentCoupon->coupon_value) }}
+                                @elseif($currentCoupon->discount_type == 'percentage')
+                                    Save {{ showAmount($currentCoupon->coupon_value) }}%
                                 @endif
+                                on your booking! Book before {{ showDateTime($currentCoupon->expiry_date, 'F j, Y') }} to avail this offer.
                                 </p>
                             </div>
                         @endif
@@ -99,21 +98,17 @@
                                 $priceBeforeCoupon = isset($trip["BusPrice"]["PriceBeforeCoupon"]) ? $trip["BusPrice"]["PriceBeforeCoupon"] : $finalPrice;
 
                                 $couponThreshold = isset($currentCoupon) ? ($currentCoupon->coupon_threshold ?? 0) : 0;
-                                $flatCouponAmount = isset($currentCoupon) ? ($currentCoupon->flat_coupon_amount ?? 0) : 0;
-                                $percentageCouponAmount = isset($currentCoupon) ? ($currentCoupon->percentage_coupon_amount ?? 0) : 0;
+                                $discountType = isset($currentCoupon) ? ($currentCoupon->discount_type ?? 'fixed') : 'fixed';
+                                $couponValue = isset($currentCoupon) ? ($currentCoupon->coupon_value ?? 0) : 0;
 
                                 $displaySavings = '';
                                 $isDiscountApplied = ($priceBeforeCoupon > $finalPrice); // Check if any discount was actually applied
 
                                 if ($isDiscountApplied) {
-                                    // Determine which type of discount was applied based on the original price relative to the threshold
-                                    if ($priceBeforeCoupon <= $couponThreshold) {
-                                        // Flat coupon was applied
-                                        $displaySavings = 'Save ' . __($general->cur_sym) . showAmount($flatCouponAmount);
-                                    } else {
-                                        // Percentage coupon was applied
-                                        // Corrected: Display raw percentage value, trimmed for clean display
-                                        $displaySavings = 'Save ' . rtrim(rtrim(sprintf('%.2f', $percentageCouponAmount), '0'), '.') . '%';
+                                    if ($discountType == 'fixed') {
+                                        $displaySavings = 'Save ' . __($general->cur_sym) . showAmount($couponValue);
+                                    } elseif ($discountType == 'percentage') {
+                                        $displaySavings = 'Save ' . rtrim(rtrim(sprintf('%.2f', $couponValue), '0'), '.') . '%';
                                     }
                                 }
                             @endphp
@@ -600,4 +595,3 @@
         }
     </style>
 @endpush
-

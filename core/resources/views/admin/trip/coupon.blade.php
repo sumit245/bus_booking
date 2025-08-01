@@ -36,7 +36,12 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="coupon_value">@lang('Coupon Value')</label>
+                            <label for="coupon_value" id="coupon_value_label">
+    {{ old('discount_type', $couponToEdit->discount_type ?? 'fixed') == 'percentage' 
+        ? 'Coupon Value (in percentage)' 
+        : 'Coupon Value (in rupees)' }}
+</label>
+
                             <div class="input-group">
                                 <input type="number" step="any" name="coupon_value" id="coupon_value" class="form-control" 
                                        value="{{ old('coupon_value', getAmount($couponToEdit->coupon_value ?? 0)) }}" required>
@@ -112,13 +117,12 @@
                         <div class="button--group">
                             {{-- ✅ Activate Button --}}
                             @if(!$coupon->status || $coupon->expiry_date->isPast())
-                                <form method="POST" action="{{ route('trip.coupon.activate', $coupon->id) }}" style="display:inline-block;">
-                                    @csrf
-                                    <input type="hidden" name="expiry_date" value="{{ now()->format('Y-m-d') }}">
+                               <a href="{{ route('trip.coupon', ['edit_id' => $coupon->id]) }}" >
+                                <input type="hidden" name="expiry_date" value="{{ now()->format('Y-m-d') }}">
                                     <button type="submit" class="btn btn-sm btn--success">
                                         <i class="las la-check"></i> @lang('Activate')
                                     </button>
-                                </form>
+                                </a>
                             @else
                                 {{-- ✅ Deactivate Button --}}
                                 <form method="POST" action="{{ route('trip.coupon.deactivate', $coupon->id) }}" style="display:inline-block;">
@@ -129,11 +133,7 @@
                                 </form>
                             @endif
 
-                            {{-- ✅ Edit Link --}}
-                            <a href="{{ route('trip.coupon', ['edit_id' => $coupon->id]) }}" class="btn btn-sm btn--primary">
-                                <i class="las la-edit"></i> @lang('Edit')
-                            </a>
-
+         
                             {{-- ✅ Delete Button --}}
                             <form method="POST" action="{{ route('trip.coupon.delete', $coupon->id) }}" style="display:inline-block;">
                                 @csrf
@@ -157,192 +157,37 @@
         </div>
     </div>
 
-    {{-- Activate MODAL --}}
-    <div id="activateModal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@lang('Activate Coupon Confirmation')</h5>
-                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                        <i class="las la-times"></i>
-                    </button>
-                </div>
-                <form id="activateForm" action="" method="POST">
-                    @csrf
-                    <input type="hidden" name="id" id="activate_coupon_id">
-                    <div class="modal-body">
-                        <p>@lang('Are you sure you want to activate') <span class="fw-bold coupon-name"></span>?</p>
-                        <div class="form-group">
-                            <label for="new_expiry_date">@lang('Set New Expiry Date')</label>
-                            <input type="text" name="expiry_date" id="new_expiry_date" class="form-control datepicker-here" 
-                                   data-language='en' data-date-format="yyyy-mm-dd" autocomplete="off" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn--primary h-45 w-100">@lang('Activate')</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    {{-- Deactivate MODAL --}}
-    <div id="deactivateModal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@lang('Deactivate Coupon Confirmation')</h5>
-                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                        <i class="las la-times"></i>
-                    </button>
-                </div>
-                <form id="deactivateForm" action="" method="POST">
-                    @csrf
-                    <input type="hidden" name="id" id="deactivate_coupon_id">
-                    <div class="modal-body">
-                        <p>@lang('Are you sure you want to deactivate') <span class="fw-bold coupon-name"></span>?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn--danger h-45 w-100">@lang('Deactivate')</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- Delete MODAL --}}
-    <div id="deleteModal" class="modal fade" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@lang('Delete Coupon Confirmation')</h5>
-                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                        <i class="las la-times"></i>
-                    </button>
-                </div>
-                <form id="deleteForm" action="" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <input type="hidden" name="id" id="delete_coupon_id">
-                    <div class="modal-body">
-                        <p>@lang('Are you sure you want to delete') <span class="fw-bold coupon-name"></span>?</p>
-                        <p class="text-danger">@lang('This action cannot be undone.')</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn--danger h-45 w-100">@lang('Delete')</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 @endsection
 
 @push('script')
-    <script>
-        (function ($) {
-            "use strict";
-            
-            // Initialize datepicker for the main form
-            $('#expiry_date').datepicker({
-                minDate: new Date(),
-                autoClose: true,
-            });
+ <script>
+    function updateCouponValueSymbol() {
+        const selectedType = $('#discount_type').val();
+        const currencySymbol = "{{ __($general->cur_sym) }}";
 
-            // Initialize datepicker for the activate modal
-            $('#new_expiry_date').datepicker({
-                minDate: new Date(),
-                autoClose: true,
-            });
+        if (selectedType === 'percentage') {
+            $('#coupon_value_symbol').text('%');
+            $('#coupon_value_label').text('Coupon Value (in percentage)');
+            $('.percentage-note').removeClass('d-none');
+        } else {
+            $('#coupon_value_symbol').text(currencySymbol);
+            $('#coupon_value_label').text('Coupon Value (in rupees)');
+            $('.percentage-note').addClass('d-none');
+        }
+    }
 
-            // Handle discount type change to update symbol
-            function updateCouponValueSymbol() {
-                const selectedType = $('#discount_type').val();
-                const currencySymbol = "{{ __($general->cur_sym) }}";
-                
-                if (selectedType === 'percentage') {
-                    $('#coupon_value_symbol').text('%');
-                    $('.percentage-note').removeClass('d-none');
-                } else {
-                    $('#coupon_value_symbol').text(currencySymbol);
-                    $('.percentage-note').addClass('d-none');
-                }
-            }
+    // 👇 This runs the function when the page loads
+    $(document).ready(function() {
+        updateCouponValueSymbol();
 
-            // Bind change event and trigger on load
-            $(document).on('change', '#discount_type', updateCouponValueSymbol);
-            
-            // Trigger on page load to set initial symbol
-            $(document).ready(function() {
-                updateCouponValueSymbol();
-            });
+        // 👇 This runs the function every time the dropdown changes
+        $('#discount_type').on('change', function() {
+            updateCouponValueSymbol();
+        });
+    });
+</script>
 
-            // Activate button click handler
-            $(document).on('click', '.activateBtn', function () {
-                var couponId = $(this).data('id');
-                var couponName = $(this).data('coupon_name');
-                var currentExpiry = $(this).data('expiry_date');
-                
-                var modal = $('#activateModal');
-                modal.find('#activate_coupon_id').val(couponId);
-                modal.find('.coupon-name').text(couponName);
-                
-                // Set default new expiry date
-                let today = new Date().toISOString().slice(0, 10);
-                if (currentExpiry && new Date(currentExpiry) > new Date()) {
-                    modal.find('#new_expiry_date').val(currentExpiry);
-                } else {
-                    modal.find('#new_expiry_date').val(today);
-                }
-                
-                // Set form action
-                var actionUrl = "{{ route('trip.coupon.activate', ':id') }}".replace(':id', couponId);
-                modal.find('#activateForm').attr('action', actionUrl);
-                
-                modal.modal('show');
-            });
-
-            // Deactivate button click handler
-            $(document).on('click', '.deactivateBtn', function () {
-                var couponId = $(this).data('id');
-                var couponName = $(this).data('coupon_name');
-                
-                var modal = $('#deactivateModal');
-                modal.find('#deactivate_coupon_id').val(couponId);
-                modal.find('.coupon-name').text(couponName);
-                
-                // Set form action
-                var actionUrl = "{{ route('trip.coupon.deactivate', ':id') }}".replace(':id', couponId);
-                modal.find('#deactivateForm').attr('action', actionUrl);
-                
-                modal.modal('show');
-            });
-
-            // Delete button click handler
-            $(document).on('click', '.deleteBtn', function () {
-                var couponId = $(this).data('id');
-                var couponName = $(this).data('coupon_name');
-                
-                var modal = $('#deleteModal');
-                modal.find('#delete_coupon_id').val(couponId);
-                modal.find('.coupon-name').text(couponName);
-                
-                // Set form action
-                var actionUrl = "{{ route('trip.coupon.delete', ':id') }}".replace(':id', couponId);
-                modal.find('#deleteForm').attr('action', actionUrl);
-                
-                modal.modal('show');
-            });
-
-            // Pre-fill form if edit_id is present in URL
-            @if(isset($couponToEdit))
-                $(document).ready(function() {
-                    // Ensure the symbol updates correctly if editing
-                    updateCouponValueSymbol();
-                });
-            @endif
-
-        })(jQuery);
-    </script>
 @endpush
 
 @push('style')

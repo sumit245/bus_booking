@@ -12,7 +12,7 @@
                     @method('POST')
                     <div class="card-body">
                         <div class="form-group">
-                            <label for="coupon_name">@lang('Coupon Name')</label>
+                            <label for="coupon_name">@lang('Coupon Code')</label>
                             <input type="text" name="coupon_name" id="coupon_name" class="form-control" 
                                    value="{{ old('coupon_name', $couponToEdit->coupon_name ?? '') }}" required>
                         </div>
@@ -56,10 +56,13 @@
                         
                         <div class="form-group">
                             <label for="expiry_date">@lang('Expiry Date')</label>
-                            <input type="text" name="expiry_date" id="expiry_date" class="form-control datepicker-here" 
-                                   data-language='en' data-date-format="yyyy-mm-dd" 
-                                   value="{{ old('expiry_date', $couponToEdit && $couponToEdit->expiry_date ? $couponToEdit->expiry_date->format('Y-m-d') : '') }}" 
-                                   autocomplete="off" required>
+                            <input type="date"
+       name="expiry_date"
+       id="expiry_date"
+       class="form-control"
+       value="{{ old('expiry_date', $couponToEdit && $couponToEdit->expiry_date ? $couponToEdit->expiry_date->format('Y-m-d') : '') }}"
+       required>
+
                         </div>
                     </div>
                     <div class="card-footer">

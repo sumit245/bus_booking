@@ -239,7 +239,8 @@ class BusService
                 }
 
                 $acSelected = in_array('A/c', $request->fleetType);
-                $nonAcSelected = in_array('Non-A/c', $request->fleetType);
+             $nonAcSelected = in_array('Non-A/c', $request->fleetType) || in_array('Non A/c', $request->fleetType);
+
                 $seaterSelected = in_array('Seater', $request->fleetType);
                 $sleeperSelected = in_array('Sleeper', $request->fleetType);
 

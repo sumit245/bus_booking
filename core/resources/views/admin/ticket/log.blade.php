@@ -1,5 +1,4 @@
 @extends('admin.layouts.app')
-
 @section('panel')
     <div class="row">
         <div class="col-md-12">
@@ -25,9 +24,8 @@
                                 <tr>
                                     <td data-label="@lang('User')">
                                         <span class="font-weight-bold">{{ __(@$item->user->fullname) }}</span>
-                                    <br>
-                                    <span class="small"> <a href="{{ route('admin.users.detail', $item->user_id) }}"><span>@</span>{{ __(@$item->user->username) }}</a> </span>
-
+                                        <br>
+                                        <span class="small"> <a href="{{ route('admin.users.detail', $item->user_id) }}"><span>@</span>{{ __(@$item->user->username) }}</a> </span>
                                     </td>
                                     <td data-label="@lang('PNR Number')">
                                         <span class="text-muted">{{ __($item->pnr_number) }}</span>
@@ -35,24 +33,25 @@
                                     <td data-label="@lang('Journey Date')">
                                         {{ __(showDateTime($item->date_of_journey, 'd M, Y')) }}
                                     </td>
-
                                     <td data-label="@lang('Trip')">
-                                    <span class="font-weight-bold">{{ $item->trip?->fleetType?->name ?? 'N/A' }}</span>
-
+                                        <span class="font-weight-bold">{{ $item->trip?->fleetType?->name ?? 'N/A' }}</span>
                                         <br>
                                         <span class="font-weight-bold">
-    {{ $item->trip?->startFrom?->name ?? 'N/A' }} - {{ $item->trip?->endTo?->name ?? 'N/A' }}
-</span>
-
+                                            {{ $item->trip?->startFrom?->name ?? 'N/A' }} - {{ $item->trip?->endTo?->name ?? 'N/A' }}
+                                        </span>
                                     </td>
-
-                                                                        <td data-label="@lang('Pickup Point')">
-                                        {{ __($item->pickup->name) }}
+                                    <td data-label="@lang('Pickup Point')">
+                                        @php
+                                            $boardingPoint = json_decode($item->boarding_point_details, true);
+                                            echo $boardingPoint['CityPointAddress'] ?? 'N/A';
+                                        @endphp
                                     </td>
                                     <td data-label="@lang('Dropping Point')">
-                                        {{ __($item->drop->name) }}
+                                        @php
+                                            $droppingPoint = json_decode($item->dropping_point_details, true);
+                                            echo $droppingPoint['CityPointLocation'] ?? 'N/A';
+                                        @endphp
                                     </td>
-
                                     <td data-label="@lang('Status')">
                                         @if ($item->status == 1)
                                             <span class="badge badge--success font-weight-normal text--samll">@lang('Booked')</span>
@@ -63,9 +62,8 @@
                                         @endif
                                     </td>
                                     <td data-label="@lang('Ticket Count')">
-    {{ is_countable($item->seats) ? count($item->seats) : (is_array(json_decode($item->seats, true)) ? count(json_decode($item->seats, true)) : (is_numeric($item->seats) ? $item->seats : 0)) }}
-</td>
-
+                                        {{ is_countable($item->seats) ? count($item->seats) : (is_array(json_decode($item->seats, true)) ? count(json_decode($item->seats, true)) : (is_numeric($item->seats) ? $item->seats : 0)) }}
+                                    </td>
                                     <td data-label="@lang('Fare')">
                                         {{ __(showAmount($item->sub_total)) }} {{ __($general->cur_text) }}
                                     </td>
@@ -96,5 +94,4 @@
         </div>
     </div>
 </form>
-
 @endpush

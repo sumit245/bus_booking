@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\BookedTicket;
 
 class UserController extends Controller
 {
@@ -116,4 +117,34 @@ class UserController extends Controller
             'mobile_number' => ['required', 'regex:/^[6-9]\d{9}$/'],
         ]);
     }
+    // UserController.php
+public function userHistoryByPhone(Request $request)
+{
+    $request->validate([
+        'mobile_number' => 'required|string'
+    ]);
+
+    $user = User::where('mobile', $request->mobile_number)->first();
+
+    if (!$user) {
+        return response()->json(['message' => 'User not found'], 404);
+    }
+
+    $tickets = BookedTicket::with([
+        'trip.fleetType',
+        'trip.startFrom',
+        'trip.endTo',
+        'trip.schedule',
+        'pickup',
+        'drop'
+    ])
+    ->where('user_id', $user->id)
+    ->orderBy('id', 'desc')
+    ->get();
+
+    return response()->json([
+        'user'    => $user,
+        'tickets' => $tickets
+    ]);
+}
 }

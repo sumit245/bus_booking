@@ -901,7 +901,7 @@ function urlPath($routeName, $routeParam = null)
 
 
 
-function sendOtp($mobile, $userName = "Guest", $otp)
+function sendOtp($mobile,$otp, $userName = "Guest" )
 {
     $apiUrl = env('WHATSAPP_API_URL');
     $apiKey = env('WHATSAPP_API_KEY');

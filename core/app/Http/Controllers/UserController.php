@@ -140,6 +140,7 @@ class UserController extends Controller
         return view($this->activeTemplate . 'user.booking_history', compact('pageTitle', 'emptyMessage', 'bookedTickets'));
     }
 
+
     public function printTicket($id)
     {
         $pageTitle = "Ticket Print";

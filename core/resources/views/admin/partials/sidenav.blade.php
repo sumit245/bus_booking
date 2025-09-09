@@ -311,6 +311,21 @@
                                     <span class="menu-title">@lang('Vehicles')</span>
                                 </a>
                             </li>
+                           <li class="sidebar-menu-item {{menuActive(['admin.fleet.operators'])}}">
+    <a href="{{route('admin.fleet.operators')}}" class="nav-link">
+        <i class="menu-icon las la-dot-circle"></i>
+        <span class="menu-title">@lang('Operators')</span>
+    </a>
+</li>
+
+           <li class="sidebar-menu-item {{menuActive(['admin.fleet.bus'])}}">
+    <a href="{{route('admin.fleet.buses')}}" class="nav-link">
+        <i class="menu-icon las la-dot-circle"></i>
+        <span class="menu-title">@lang('Bus')</span>
+    </a>
+</li>
+
+
 
                         </ul>
                     </div>

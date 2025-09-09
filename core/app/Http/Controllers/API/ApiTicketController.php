@@ -476,4 +476,343 @@ class ApiTicketController extends Controller
       ], 500);
     }
   }
+
+
+  
+
+
+
+
+
+
+
+
+
+   /**
+     * Fetch buses from both third-party API and local database
+     * Combines results into a single unified response
+     */
+    public function getCombinedBuses(Request $request)
+    {
+        try {
+            $request->validate([
+                'OriginId' => 'required',
+                'DestinationId' => 'required', 
+                'DateOfJourney' => 'required|date'
+            ]);
+            
+            $combinedResults = [
+                'SearchTokenId' => null,
+                'api_buses' => [],
+                'local_buses' => [],
+                'combined_trips' => [],
+                'total_count' => 0,
+                'api_count' => 0,
+                'local_count' => 0
+            ];
+
+            try {
+                $apiResponse = searchAPIBuses(
+                    $request->OriginId,
+                    $request->DestinationId,
+                    $request->DateOfJourney,
+                    $request->ip()
+                );
+
+                if (is_array($apiResponse) && isset($apiResponse['Result']) && !empty($apiResponse['Result'])) {
+                    if (isset($apiResponse['Error']) && $apiResponse['Error']['ErrorCode'] == 0) {
+                        $apiTrips = $apiResponse['Result'];
+                        
+                        // Sort by departure time
+                        usort($apiTrips, function ($a, $b) {
+                            return strtotime($a['DepartureTime']) - strtotime($b['DepartureTime']);
+                        });
+                        
+                        $combinedResults['SearchTokenId'] = $apiResponse['SearchTokenId'] ?? null;
+                        $combinedResults['api_buses'] = $apiTrips;
+                        $combinedResults['api_count'] = count($apiTrips);
+                        
+                        // Mark API buses with source identifier
+                        foreach ($combinedResults['api_buses'] as &$trip) {
+                            $trip['source'] = 'api';
+                            $trip['booking_type'] = 'external';
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('Third-party API fetch failed: ' . $e->getMessage());
+                // Continue with local buses even if API fails
+            }
+
+            try {
+                $localTrips = $this->fetchLocalBuses($request);
+                $combinedResults['local_buses'] = $localTrips;
+                $combinedResults['local_count'] = count($localTrips);
+                
+                // Mark local buses with source identifier
+                foreach ($combinedResults['local_buses'] as &$trip) {
+                    $trip['source'] = 'local';
+                    $trip['booking_type'] = 'internal';
+                }
+            } catch (\Exception $e) {
+                Log::warning('Local database fetch failed: ' . $e->getMessage());
+            }
+
+            $allTrips = array_merge($combinedResults['api_buses'], $combinedResults['local_buses']);
+            
+            // Sort combined trips by departure time
+            usort($allTrips, function ($a, $b) {
+                $timeA = isset($a['DepartureTime']) ? strtotime($a['DepartureTime']) : strtotime($a['departure_time'] ?? '00:00');
+                $timeB = isset($b['DepartureTime']) ? strtotime($b['DepartureTime']) : strtotime($b['departure_time'] ?? '00:00');
+                return $timeA - $timeB;
+            });
+
+            $combinedResults['combined_trips'] = $allTrips;
+            $combinedResults['total_count'] = count($allTrips);
+
+            return response()->json([
+                'success' => true,
+                'data' => $combinedResults,
+                'message' => 'Buses fetched successfully from both sources',
+                'summary' => [
+                    'total_buses' => $combinedResults['total_count'],
+                    'api_buses' => $combinedResults['api_count'],
+                    'local_buses' => $combinedResults['local_count']
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Combined bus search failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'message' => 'Failed to fetch buses'
+            ], 500);
+        }
+    }
+
+    /**
+     * Fetch buses from local database
+     * Converts local trip format to match API format for consistency
+     */
+  private function fetchLocalBuses(Request $request)
+{
+    try {
+        // parse journey date with fallback
+        try {
+            $journeyDate = !empty($request->DateOfJourney)
+                ? Carbon::parse($request->DateOfJourney)->format('Y-m-d')
+                : Carbon::now()->format('Y-m-d');
+        } catch (\Exception $e) {
+            $journeyDate = Carbon::now()->format('Y-m-d');
+        }
+
+        $localTrips = Trip::with(['fleetType', 'route', 'schedule', 'startFrom', 'endTo'])
+            ->where('status', 1)
+            ->where('start_from', $request->OriginId)
+            ->where('end_to', $request->DestinationId)
+            ->get();
+
+        $formattedTrips = [];
+
+        foreach ($localTrips as $trip) {
+            // vehicle_route_id may be named differently — try both
+            $vehicleRouteId = $trip->vehicle_route_id ?? $trip->route_id ?? null;
+
+            // Ticket price lookup (safe)
+            $ticketPrice = null;
+            if ($vehicleRouteId && $trip->fleet_type_id) {
+                $ticketPrice = TicketPrice::where('vehicle_route_id', $vehicleRouteId)
+                    ->where('fleet_type_id', $trip->fleet_type_id)
+                    ->first();
+            }
+
+            $price = 0;
+            if ($ticketPrice && method_exists($ticketPrice, 'prices')) {
+                $sourceDestJson = json_encode([(int)$request->OriginId, (int)$request->DestinationId]);
+                $priceDetail = $ticketPrice->prices()
+                    ->where('source_destination', $sourceDestJson)
+                    ->first();
+                $price = $priceDetail->price ?? 0;
+            }
+
+            // Booked seats (safe)
+            $bookedSeats = BookedTicket::where('trip_id', $trip->id)
+                ->when($journeyDate, function ($q) use ($journeyDate) {
+                    return $q->where('date_of_journey', $journeyDate);
+                })
+                ->whereIn('status', [1, 2])
+                ->pluck('seats')
+                ->flatten()
+                ->toArray();
+
+            // Calculate total seats from fleetType->deck_seats (robust parsing)
+            $totalSeats = 40; // default fallback
+            if (!empty($trip->fleetType)) {
+                $deckSeatsRaw = $trip->fleetType->deck_seats ?? null;
+
+                if (!empty($deckSeatsRaw)) {
+                    $deckSeats = null;
+
+                    if (is_string($deckSeatsRaw)) {
+                        $decoded = json_decode($deckSeatsRaw, true);
+                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                            $deckSeats = $decoded;
+                        } else {
+                            // try to normalize strings like "40" or "[\"40\"]" or "40,30"
+                            $clean = trim($deckSeatsRaw, "[] \t\n\r\0\x0B\"'");
+                            if ($clean !== '') {
+                                $parts = strpos($clean, ',') !== false ? explode(',', $clean) : [$clean];
+                                $deckSeats = array_map('trim', $parts);
+                            }
+                        }
+                    } elseif (is_array($deckSeatsRaw)) {
+                        $deckSeats = $deckSeatsRaw;
+                    }
+
+                    if (!empty($deckSeats) && is_array($deckSeats)) {
+                        $totalSeats = array_sum(array_map(function ($v) {
+                            return (int) $v;
+                        }, $deckSeats));
+                    }
+                } elseif (!empty($trip->fleetType->deck_seats) && is_numeric($trip->fleetType->deck_seats)) {
+                    $totalSeats = (int) $trip->fleetType->deck_seats;
+                }
+            }
+
+            $availableSeats = max(0, $totalSeats - count($bookedSeats));
+
+            // Time & duration (guarded)
+            $departureTime = $trip->start_time ?? null;
+            $arrivalTime = $trip->end_time ?? null;
+            $duration = null;
+            if ($departureTime && $arrivalTime && method_exists($this, 'calculateDuration')) {
+                try {
+                    $duration = $this->calculateDuration($departureTime, $arrivalTime);
+                } catch (\Exception $e) {
+                    $duration = null;
+                }
+            }
+
+            $formattedTrips[] = [
+                'ResultIndex'       => 'local_' . $trip->id,
+                // prefer trip.title (if available), else fleetType->name, else fallback
+                'TravelName'        => $trip->title ?? ($trip->fleetType->name ?? 'Local Bus'),
+                'BusType'           => $trip->fleetType->seat_layout ?? 'Standard',
+                'DepartureTime'     => $departureTime,
+                'ArrivalTime'       => $arrivalTime,
+                'Duration'          => $duration,
+                'AvailableSeats'    => $availableSeats,
+                'BusPrice'          => [
+                    'PublishedPrice' => $price,
+                    'OfferedPrice'   => $price,
+                    'Currency'       => 'INR',
+                ],
+                'Amenities'         => $this->getLocalBusAmenities($trip),
+                'BusImages'         => [],
+                'CancellationPolicy'=> 'Standard cancellation policy applies',
+                'BoardingPoints'    => $this->getLocalBoardingPoints($trip),
+                'DroppingPoints'    => $this->getLocalDroppingPoints($trip),
+                'BusLayout'         => null,
+                'departure_time'    => $departureTime,
+                'arrival_time'      => $arrivalTime,
+                'trip_id'           => $trip->id,
+                'route_id'          => $vehicleRouteId,
+                'fleet_type_id'     => $trip->fleet_type_id,
+                'booked_seats'      => $bookedSeats,
+                'total_seats'       => $totalSeats,
+                'source'            => 'local',
+                'booking_type'      => 'internal'
+            ];
+        }
+
+        return $formattedTrips;
+    } catch (\Throwable $e) {
+        \Log::error('fetchLocalBuses error: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'request' => $request->all()
+        ]);
+
+        // return empty array to avoid 500 — caller should handle empty result
+        return [];
+    }
+}
+
+
+    /**
+     * Calculate duration between two times
+     */
+    private function calculateDuration($startTime, $endTime)
+    {
+        try {
+            $start = Carbon::parse($startTime);
+            $end = Carbon::parse($endTime);
+            
+            // Handle next day arrival
+            if ($end->lt($start)) {
+                $end->addDay();
+            }
+            
+            $diff = $start->diff($end);
+            return $diff->format('%H:%I');
+        } catch (\Exception $e) {
+            return '04:00'; // Default 4 hours
+        }
+    }
+
+    /**
+     * Get amenities for local bus
+     */
+    private function getLocalBusAmenities($trip)
+    {
+        return [
+            'WiFi' => false,
+            'WaterBottle' => true,
+            'ChargingPoint' => false,
+            'Blanket' => false,
+            'Pillow' => false,
+            'ReadingLight' => true,
+            'Toilet' => false
+        ];
+    }
+
+    /**
+     * Get boarding points for local trip
+     */
+    private function getLocalBoardingPoints($trip)
+    {
+        $counters = Counter::where('city', $trip->start_from)
+            ->where('status', 1)
+            ->get();
+
+        return $counters->map(function ($counter, $index) {
+            return [
+                'CityPointIndex' => $counter->id,
+                'CityPointName' => $counter->name,
+                'CityPointLocation' => $counter->address ?? $counter->location ?? '',
+                'CityPointContactNumber' => $counter->contact ?? '',
+                'CityPointTime' => '00:00'
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get dropping points for local trip
+     */
+    private function getLocalDroppingPoints($trip)
+    {
+        $counters = Counter::where('city', $trip->end_to)
+            ->where('status', 1)
+            ->get();
+
+        return $counters->map(function ($counter, $index) {
+            return [
+                'CityPointIndex' => $counter->id,
+                'CityPointName' => $counter->name,
+                'CityPointLocation' => $counter->address ?? $counter->location ?? '',
+                'CityPointContactNumber' => $counter->contact ?? '',
+                'CityPointTime' => '00:00'
+            ];
+        })->toArray();
+    }
 }

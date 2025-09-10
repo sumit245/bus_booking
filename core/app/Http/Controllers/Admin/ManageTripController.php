@@ -7,6 +7,7 @@ use App\Models\AssignedVehicle;
 use Illuminate\Http\Request;
 use App\Models\VehicleRoute;
 use App\Models\Counter;
+use App\Models\City;
 use App\Models\FleetType;
 use App\Models\Schedule;
 use App\Models\Trip;
@@ -24,11 +25,11 @@ class ManageTripController extends Controller
         return view('admin.trip.route.list', compact('pageTitle', 'routes', 'emptyMessage', 'stoppages'));
     }
 
-    public function routeCreate(){
-        $pageTitle = 'Create Route';
-        $stoppages = Counter::active()->get();
-        return view('admin.trip.route.create', compact('pageTitle', 'stoppages'));
-    }
+public function routeCreate(){
+    $pageTitle = 'Create Route';
+    $stoppages = City::orderBy('city_name')->get(); 
+    return view('admin.trip.route.create', compact('pageTitle', 'stoppages'));
+}
 
     public function routeStore(Request $request){
         $request->validate([

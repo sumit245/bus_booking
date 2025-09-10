@@ -24,7 +24,7 @@
                                 <select name="start_from" class="select2-basic" required>
                                     <option value="">@lang('Select an option')</option>
                                     @foreach ($stoppages as $item)
-                                        <option value="{{ $item->id }}">{{ __($item->name) }}</option>
+                                        <option value="{{ $item->id }}">{{ __($item->city_name) }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -42,7 +42,7 @@
                                 <select name="end_to" class="select2-basic" required>
                                     <option value="">@lang('Select an option')</option>
                                     @foreach ($stoppages as $item)
-                                        <option value="{{ $item->id }}">{{ __($item->name) }}</option>
+                                        <option value="{{ $item->id }}">{{ __($item->city_name) }}</option>
                                     @endforeach
                                 </select>
                             </div>

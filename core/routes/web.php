@@ -146,7 +146,16 @@ Route::get('manage/buses', function () {
         'pageTitle' => 'Add New Bus'
     ]);
 })->name('fleet.buses');
-
+  Route::get('/add', function () {
+        return view('admin.fleet.addbus', [
+        'pageTitle' => 'Add New Bus'
+    ]);
+    })->name('fleet.add');
+    Route::get('/edit', function () {
+        return view('admin.fleet.editbus', [
+        'pageTitle' => 'Edit Bus'
+    ]);
+    })->name('fleet.edit');
 
         //manage trip
         Route::name('trip.')->prefix('manage')->group(function () {

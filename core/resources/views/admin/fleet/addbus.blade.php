@@ -42,25 +42,42 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label>Route</label>
-                                <input type="text" class="form-control" name="Route" placeholder="Satna - Rewa">
+                                <label>From City</label>
+                                <select class="form-control" name="FromCity">
+                                    <option value="">Select City</option>
+                                    <option value="Satna">Satna</option>
+                                    <option value="Rewa">Rewa</option>
+                                    <option value="Bhopal">Bhopal</option>
+                                </select>
                             </div>
                             <div class="col-md-6">
-                                <label>Bus Type</label>
-                                <input type="text" class="form-control" name="BusType" placeholder="Non AC Seater / Sleeper 2+1">
+                                <label>To City</label>
+                                <select class="form-control" name="ToCity">
+                                    <option value="">Select City</option>
+                                    <option value="Satna">Satna</option>
+                                    <option value="Rewa">Rewa</option>
+                                    <option value="Bhopal">Bhopal</option>
+                                </select>
                             </div>
                         </div>
                         <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label>Bus Type</label>
+                                <select class="form-control" name="BusType">
+                                    <option value="AC">AC</option>
+                                    <option value="Non AC">Non AC</option>
+                                </select>
+                            </div>
                             <div class="col-md-6">
                                 <label>Service Name</label>
                                 <input type="text" class="form-control" name="ServiceName" placeholder="Seat Seller">
                             </div>
+                        </div>
+                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label>Travel Name</label>
                                 <input type="text" class="form-control" name="TravelName" placeholder="Mbbs Bus Service">
                             </div>
-                        </div>
-                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label>Operator Name</label>
                                 <select class="form-control" name="OperatorName">
@@ -107,17 +124,23 @@
                             </div>
                         </div>
                         <div id="deckSeatsContainer"></div>
-                        <h6>Seat Pricing</h6>
+
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label>Seater Price</label>
-                                <input type="number" class="form-control" name="SeaterPrice">
-                            </div>
-                            <div class="col-md-6">
-                                <label>Sleeper Price</label>
-                                <input type="number" class="form-control" name="SleeperPrice">
+                                <label>Seat Type</label>
+                                <select class="form-control" id="seatType" name="SeatType">
+                                    <option value="Seater">Select Type</option>
+                                    <option value="Seater">Seater</option>
+                                    <option value="Sleeper">Sleeper</option>
+                                    <option value="Both">Both</option>
+                                </select>
                             </div>
                         </div>
+
+                        <div id="seatPriceContainer">
+                            <!-- dynamic seat price fields will be shown here -->
+                        </div>
+
                         <div class="d-flex justify-content-between mt-3">
                             <button type="button" class="btn btn-secondary prev-tab">Previous</button>
                             <button type="button" class="btn btn-primary next-tab">Next</button>
@@ -176,8 +199,8 @@
     </div>
 </div>
 
-<!-- Tab navigation + dynamic logic -->
 <script>
+    // Tab navigation
     document.querySelectorAll('.next-tab').forEach(btn => {
         btn.addEventListener('click', function () {
             let activeTab = document.querySelector('.nav-tabs .nav-link.active');
@@ -191,7 +214,6 @@
             }
         });
     });
-
     document.querySelectorAll('.prev-tab').forEach(btn => {
         btn.addEventListener('click', function () {
             let activeTab = document.querySelector('.nav-tabs .nav-link.active');
@@ -213,6 +235,35 @@
                 <div class="mb-3">
                     <label>Seats in Deck ${i}</label>
                     <input type="number" class="form-control" name="DeckSeats[${i}]">
+                </div>`;
+        }
+    });
+
+    // Seat type selection
+    document.getElementById('seatType').addEventListener('change', function () {
+        const container = document.getElementById('seatPriceContainer');
+        container.innerHTML = '';
+        if (this.value === 'Seater') {
+            container.innerHTML = `
+                <div class="mb-3">
+                    <label>Seater Price</label>
+                    <input type="number" class="form-control" name="SeaterPrice">
+                </div>`;
+        } else if (this.value === 'Sleeper') {
+            container.innerHTML = `
+                <div class="mb-3">
+                    <label>Sleeper Price</label>
+                    <input type="number" class="form-control" name="SleeperPrice">
+                </div>`;
+        } else if (this.value === 'Both') {
+            container.innerHTML = `
+                <div class="mb-3">
+                    <label>Seater Price</label>
+                    <input type="number" class="form-control" name="SeaterPrice">
+                </div>
+                <div class="mb-3">
+                    <label>Sleeper Price</label>
+                    <input type="number" class="form-control" name="SleeperPrice">
                 </div>`;
         }
     });

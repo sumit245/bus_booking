@@ -38,3 +38,5 @@ Route::name('trip.')->prefix('manage')->group(function () {
     Route::get('trip', [ManageTripController::class, 'trips'])->name('list');
     Route::get('assigned-vehicle', [ManageTripController::class, 'assignedVehicleLists'])->name('vehicle.assign');
 });
+
+Route::get('/buses/combined-search', [ApiTicketController::class, 'getCombinedBuses']);

@@ -24,7 +24,7 @@
                                     </td>
 
                                     <td data-label="@lang('AC / Non-AC')">
-                                        {{ __($item->fleetType->has_ac == 1 ? 'AC' : 'Non-Ac') }}
+                                          hello
                                     </td>
 
                                     <td data-label="@lang('Day Off')">

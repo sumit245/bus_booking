@@ -132,7 +132,30 @@ Route::namespace('Admin')->prefix('admin')->name('admin.')->group(function () {
             Route::post('vehicles/update/{id}', 'ManageFleetController@vehiclesUpdate')->name('vehicles.update');
             Route::post('vehicles/active-disable', 'ManageFleetController@vehiclesActiveDisabled')->name('vehicles.active.disable');
             Route::get('vehicles/search', 'ManageFleetController@vehicleSearch')->name('vehicles.search');
+
+            
         });
+Route::get('manage/operators', function () {
+    return view('admin.fleet.operator', [
+        'pageTitle' => 'Operators Management'
+    ]);
+})->name('fleet.operators');
+
+Route::get('manage/buses', function () {
+    return view('admin.fleet.bus', [
+        'pageTitle' => 'Add New Bus'
+    ]);
+})->name('fleet.buses');
+  Route::get('/add', function () {
+        return view('admin.fleet.addbus', [
+        'pageTitle' => 'Add New Bus'
+    ]);
+    })->name('fleet.add');
+    Route::get('/edit', function () {
+        return view('admin.fleet.editbus', [
+        'pageTitle' => 'Edit Bus'
+    ]);
+    })->name('fleet.edit');
 
         //manage trip
         Route::name('trip.')->prefix('manage')->group(function () {

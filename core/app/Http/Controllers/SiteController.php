@@ -98,11 +98,26 @@ class SiteController extends Controller
         $ticket->status = 0;
         $ticket->save();
 
-        $adminNotification = new AdminNotification();
-        $adminNotification->user_id = auth()->user() ? auth()->user()->id : 0;
-        $adminNotification->title = 'A new support ticket has opened ';
-        $adminNotification->click_url = urlPath('admin.ticket.view', $ticket->id);
-        $adminNotification->save();
+        // Check for promotional keywords to prevent creating a notification
+        $isPromotional = false;
+        $promoKeywords = ['offer', 'discount', 'sale', 'promo', 'win', 'free', 'marketing', 'seo', 'website design', 'Ranks',];
+        $ticketContent = strtolower($request->subject . ' ' . $request->message);
+
+        foreach ($promoKeywords as $keyword) {
+            if (strpos($ticketContent, $keyword) !== false) {
+                $isPromotional = true;
+                break; // Found a keyword, no need to check further
+            }
+        }
+
+        // Only create a notification if it's not promotional
+        if (!$isPromotional) {
+            $adminNotification = new AdminNotification();
+            $adminNotification->user_id = auth()->user() ? auth()->user()->id : 0;
+            $adminNotification->title = 'A new support ticket has opened ';
+            $adminNotification->click_url = urlPath('admin.ticket.view', $ticket->id);
+            $adminNotification->save();
+        }
 
         $message = new SupportMessage();
         $message->supportticket_id = $ticket->id;
@@ -169,58 +184,58 @@ class SiteController extends Controller
 
 
     // 1. First of all this function will check if there is any trip available for the searched route
-  public function ticketSearch(Request $request)
-{
-    try {
-        BusService::validateSearchRequest($request);
-        
-        $resp = BusService::fetchAndProcessAPIResponse(
-            $request->OriginId,
-            $request->DestinationId,
-            $request->DateOfJourney,
-            $request->ip()
-        );
+    public function ticketSearch(Request $request)
+    {
+        try {
+            BusService::validateSearchRequest($request);
 
-        BusService::storeSearchSession($request, $resp['SearchTokenId']);
+            $resp = BusService::fetchAndProcessAPIResponse(
+                $request->OriginId,
+                $request->DestinationId,
+                $request->DateOfJourney,
+                $request->ip()
+            );
 
-        if ($request->DateOfJourney) {
-            $journeyDate = Carbon::parse($request->DateOfJourney)->format('Y-m-d');
-            session()->put('date_of_journey', $journeyDate);
-        }
+            BusService::storeSearchSession($request, $resp['SearchTokenId']);
 
-        if (!is_array($resp) || !isset($resp['Result']) || empty($resp['Result'])) {
-            abort(404, 'No buses found for this route and date');
-        }
-
-        if ($resp['Error']['ErrorCode'] == 0) {
-            $trips = BusService::sortTripsByDepartureTime($resp['Result']);
-            
-            // Apply markup first
-            $trips = BusService::applyMarkup($trips);
-            
-            // Then apply coupon discount
-            $trips = BusService::applyCoupon($trips);
-
-            if ($request->hasAny(['departure_time', 'amenities', 'min_price', 'max_price', 'fleetType'])) {
-                $trips = BusService::applyFilters($trips, $request);
+            if ($request->DateOfJourney) {
+                $journeyDate = Carbon::parse($request->DateOfJourney)->format('Y-m-d');
+                session()->put('date_of_journey', $journeyDate);
             }
 
-            // Get current coupon for frontend display
-            $currentCoupon = BusService::getCurrentCoupon();
+            if (!is_array($resp) || !isset($resp['Result']) || empty($resp['Result'])) {
+                abort(404, 'No buses found for this route and date');
+            }
 
-            $viewData = $this->prepareAndReturnView($trips);
-            $viewData['currentCoupon'] = $currentCoupon; // Add coupon data to view
+            if ($resp['Error']['ErrorCode'] == 0) {
+                $trips = BusService::sortTripsByDepartureTime($resp['Result']);
 
-            return view($this->activeTemplate . 'ticket', $viewData);
-        } else {
-            return redirect()->back()->withNotify($resp);
+                // Apply markup first
+                $trips = BusService::applyMarkup($trips);
+
+                // Then apply coupon discount
+                $trips = BusService::applyCoupon($trips);
+
+                if ($request->hasAny(['departure_time', 'amenities', 'min_price', 'max_price', 'fleetType'])) {
+                    $trips = BusService::applyFilters($trips, $request);
+                }
+
+                // Get current coupon for frontend display
+                $currentCoupon = BusService::getCurrentCoupon();
+
+                $viewData = $this->prepareAndReturnView($trips);
+                $viewData['currentCoupon'] = $currentCoupon; // Add coupon data to view
+
+                return view($this->activeTemplate . 'ticket', $viewData);
+            } else {
+                return redirect()->back()->withNotify($resp);
+            }
+        } catch (\Exception $e) {
+            Log::info($request);
+            $notify[] = ['error', $e->getMessage()];
+            return redirect()->back()->withNotify($notify);
         }
-    } catch (\Exception $e) {
-        Log::info($request);
-        $notify[] = ['error', $e->getMessage()];
-        return redirect()->back()->withNotify($notify);
     }
-}
 
     private function prepareAndReturnView($trips)
     {

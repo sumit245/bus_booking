@@ -74,7 +74,8 @@ function shortCodeReplacer($shortCode, $replace_with, $template_string)
 
 function verificationCode($length)
 {
-    if ($length == 0) return 0;
+    if ($length == 0)
+        return 0;
     $min = pow(10, $length - 1);
     $max = 0;
     while ($length > 0 && $length--) {
@@ -100,7 +101,8 @@ function getNumber($length = 8)
 function uploadImage($file, $location, $size = null, $old = null, $thumb = null)
 {
     $path = makeDirectory($location);
-    if (!$path) throw new Exception('File could not been created.');
+    if (!$path)
+        throw new Exception('File could not been created.');
 
     if ($old) {
         removeFile($location . '/' . $old);
@@ -125,7 +127,8 @@ function uploadImage($file, $location, $size = null, $old = null, $thumb = null)
 function uploadFile($file, $location, $size = null, $old = null)
 {
     $path = makeDirectory($location);
-    if (!$path) throw new Exception('File could not been created.');
+    if (!$path)
+        throw new Exception('File could not been created.');
 
     if ($old) {
         removeFile($location . '/' . $old);
@@ -138,7 +141,8 @@ function uploadFile($file, $location, $size = null, $old = null)
 
 function makeDirectory($path)
 {
-    if (file_exists($path)) return true;
+    if (file_exists($path))
+        return true;
     return mkdir($path, 0755, true);
 }
 
@@ -157,7 +161,8 @@ function activeTemplate($asset = false)
     if (trim($sess)) {
         $template = $sess;
     }
-    if ($asset) return 'assets/templates/' . $template . '/';
+    if ($asset)
+        return 'assets/templates/' . $template . '/';
     return 'templates.' . $template . '.';
 }
 
@@ -196,7 +201,7 @@ function loadTawkto()
 function loadFbComment()
 {
     $comment = Extension::where('act', 'fb-comment')->where('status', 1)->first();
-    return  $comment ? $comment->generateScript() : '';
+    return $comment ? $comment->generateScript() : '';
 }
 
 function loadCustomCaptcha($height = 46, $width = '100%', $bgcolor = '#003', $textcolor = '#abc')
@@ -564,16 +569,16 @@ function sendSmtpMail($config, $receiver_email, $receiver_name, $subject, $messa
     try {
         //Server settings
         $mail->isSMTP();
-        $mail->Host       = $config->host;
-        $mail->SMTPAuth   = true;
-        $mail->Username   = $config->username;
-        $mail->Password   = $config->password;
+        $mail->Host = $config->host;
+        $mail->SMTPAuth = true;
+        $mail->Username = $config->username;
+        $mail->Password = $config->password;
         if ($config->enc == 'ssl') {
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
         } else {
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         }
-        $mail->Port       = $config->port;
+        $mail->Port = $config->port;
         $mail->CharSet = 'UTF-8';
         //Recipients
         $mail->setFrom($general->email_from, $general->sitename);
@@ -582,7 +587,7 @@ function sendSmtpMail($config, $receiver_email, $receiver_name, $subject, $messa
         // Content
         $mail->isHTML(true);
         $mail->Subject = $subject;
-        $mail->Body    = $message;
+        $mail->Body = $message;
         $mail->send();
     } catch (Exception $e) {
         throw new Exception($e);
@@ -669,6 +674,14 @@ function imagePath()
     $data['gateway'] = [
         'path' => 'assets/images/gateway',
         'size' => '800x800',
+    ];
+    $data['coupon'] = [
+        'path' => 'assets/images/coupon',
+        'size' => '800x100',
+    ];
+    $data['coupons'] = [
+        'path' => 'assets/images/coupons',
+        'size' => '800x200',
     ];
     $data['verify'] = [
         'withdraw' => [
@@ -901,33 +914,35 @@ function urlPath($routeName, $routeParam = null)
 
 
 
-function sendOtp($mobile,$otp, $userName = "Guest" )
+function sendOtp($mobile, $otp, $userName = "Guest")
 {
     $apiUrl = env('WHATSAPP_API_URL');
     $apiKey = env('WHATSAPP_API_KEY');
     // $otp    = (string) rand(100000, 999999);
 
     $payload = [
-        "apiKey"              => $apiKey,
-        "campaignName"        => "whatsapp_otp",
-        "destination"         => "91{$mobile}",
-        "userName"            => $userName,
-        "templateParams"      => [$otp],
-        "source"              => "new-landing-page form",
-        "media"               => [],
-        "buttons"             => [[
-            "type"       => "button",
-            "sub_type"   => "url",
-            "index"      => 0,
-            "parameters" => [
-                [
-                    "type" => "text",
-                    "text" => $otp, // Replace with dynamic or fixed value if needed
+        "apiKey" => $apiKey,
+        "campaignName" => "whatsapp_otp",
+        "destination" => "91{$mobile}",
+        "userName" => $userName,
+        "templateParams" => [$otp],
+        "source" => "new-landing-page form",
+        "media" => [],
+        "buttons" => [
+            [
+                "type" => "button",
+                "sub_type" => "url",
+                "index" => 0,
+                "parameters" => [
+                    [
+                        "type" => "text",
+                        "text" => $otp, // Replace with dynamic or fixed value if needed
+                    ],
                 ],
-            ],
-        ]],
-        "carouselCards"       => [],
-        "location"            => [],
+            ]
+        ],
+        "carouselCards" => [],
+        "location" => [],
         "paramsFallbackValue" => ["FirstName" => "user"],
     ];
 
@@ -952,11 +967,11 @@ function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
 
     // Prepare payload
     $payload = [
-        'apiKey'              => $apiKey,
-        'campaignName'        => 'ticket-booking',
-        "destination"         => "91{$mobileNumber}",
-        'userName'            => $ticketDetails['passenger_name'],
-        'templateParams'      => [
+        'apiKey' => $apiKey,
+        'campaignName' => 'ticket-booking',
+        "destination" => "91{$mobileNumber}",
+        'userName' => $ticketDetails['passenger_name'],
+        'templateParams' => [
             $ticketDetails['source_name'] ?? 'N/A',
             $ticketDetails['destination_name'] ?? 'N/A',
             $ticketDetails['date_of_journey'] ?? 'N/A',
@@ -965,11 +980,11 @@ function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
             $ticketDetails['boarding_details'], // Boarding Details
             $ticketDetails['drop_off_details'], // Drop-Off Details
         ],
-        'source'              => 'new-landing-page form',
-        'media'               => [], // No media provided
-        'buttons'             => [], // No buttons provided
-        'carouselCards'       => [], // No carousel cards provided
-        'location'            => [], // No location provided
+        'source' => 'new-landing-page form',
+        'media' => [], // No media provided
+        'buttons' => [], // No buttons provided
+        'carouselCards' => [], // No carousel cards provided
+        'location' => [], // No location provided
         'paramsFallbackValue' => [
             'FirstName' => 'user',
         ],
@@ -1071,8 +1086,8 @@ function blockSeatHelper($SearchTokenID, $ResultIndex, $boardingPointId, $droppi
             'UserIp' => $UserIp,
             'SearchTokenId' => $SearchTokenID,
             'ResultIndex' => $ResultIndex,
-            'BoardingPointId' => (int)$boardingPointId,
-            'DroppingPointId' => (int)$droppingPointId,
+            'BoardingPointId' => (int) $boardingPointId,
+            'DroppingPointId' => (int) $droppingPointId,
             'Passenger' => $passengers
         ];
 
@@ -1125,8 +1140,8 @@ function bookAPITicket($userIp, $searchTokenId, $resultIndex, $boardingPointId, 
             'UserIp' => $userIp,
             'SearchTokenId' => $searchTokenId,
             'ResultIndex' => $resultIndex,
-            'BoardingPointId' => (int)$boardingPointId,
-            'DroppingPointId' => (int)$droppingPointId,
+            'BoardingPointId' => (int) $boardingPointId,
+            'DroppingPointId' => (int) $droppingPointId,
             'Passenger' => $passengers
         ];
 
@@ -1261,7 +1276,7 @@ function parseSeatHtmlToJson($html)
             // Override from onclick if available
             if ($onclick && preg_match("/AddRemoveSeat\(.*?,'(.*?)','(.*?)'/", $onclick, $matches)) {
                 $seatId = $matches[1];
-                $price = (float)$matches[2];
+                $price = (float) $matches[2];
                 // Maintain type from class, only update availability
                 $isAvailable = true;
             }
@@ -1272,7 +1287,7 @@ function parseSeatHtmlToJson($html)
                 'is_sleeper' => $isSleeper,
                 'type' => $seatType,
                 'category' => $isSleeper ? 'sleeper' : 'seater',
-                'position' => (int)$top,
+                'position' => (int) $top,
                 'is_available' => $isAvailable
             ];
         });

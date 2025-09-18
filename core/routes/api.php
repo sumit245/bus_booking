@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ApiTicketController;
+use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\API\ManageTripController;
 use App\Http\Controllers\Admin\VehicleTicketController;
 
@@ -27,6 +28,10 @@ Route::get('/counters', [ApiTicketController::class, 'getCounters']);
 // Seat blocking & payment
 Route::post('/block-seat', [ApiTicketController::class, 'blockSeatApi']);
 Route::post('/confirm-payment', [ApiTicketController::class, 'confirmPayment']);
+
+// Coupon routes
+Route::get('/coupons', [CouponController::class, 'getActiveCouponsApi']);
+Route::post('/apply-coupon', [CouponController::class, 'applyCouponApi']);
 
 // Trip management
 Route::name('trip.')->prefix('manage')->group(function () {

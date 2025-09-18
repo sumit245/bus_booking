@@ -17,21 +17,24 @@ use App\Models\CouponTable;
 
 class ManageTripController extends Controller
 {
-    public function routeList(){
+    public function routeList()
+    {
         $pageTitle = 'All Routes';
         $emptyMessage = 'No route found';
-        $routes = VehicleRoute::with(['startFrom','endTo'])->orderBy('id', 'desc')->paginate(getPaginate());
+        $routes = VehicleRoute::with(['startFrom', 'endTo'])->orderBy('id', 'desc')->paginate(getPaginate());
         $stoppages = Counter::active()->get();
         return view('admin.trip.route.list', compact('pageTitle', 'routes', 'emptyMessage', 'stoppages'));
     }
 
-public function routeCreate(){
-    $pageTitle = 'Create Route';
-    $stoppages = City::orderBy('city_name')->get(); 
-    return view('admin.trip.route.create', compact('pageTitle', 'stoppages'));
-}
+    public function routeCreate()
+    {
+        $pageTitle = 'Create Route';
+        $stoppages = City::orderBy('city_name')->get();
+        return view('admin.trip.route.create', compact('pageTitle', 'stoppages'));
+    }
 
-    public function routeStore(Request $request){
+    public function routeStore(Request $request)
+    {
         $request->validate([
             'name' => 'required',
             'start_from' => 'required|integer|gt:0',
@@ -40,16 +43,16 @@ public function routeCreate(){
             'time' => 'required',
             'stoppages' => 'nullable|array|min:1',
             'stoppages.*' => 'nullable|integer|gt:0',
-        ],[
+        ], [
             'stoppages.*.integer' => 'Invalid Stoppage Field'
         ]);
 
-        if($request->start_from == $request->end_to){
+        if ($request->start_from == $request->end_to) {
             $notify[] = ['error', 'Starting point and ending point can\'t be same'];
             return back()->withNotify($notify);
         }
 
-        $stoppages = $request->stoppages ? array_filter($request->stoppages):[];
+        $stoppages = $request->stoppages ? array_filter($request->stoppages) : [];
         if (!in_array($request->start_from, $stoppages)) {
             array_unshift($stoppages, $request->start_from);
         }
@@ -61,7 +64,7 @@ public function routeCreate(){
         $route->name = $request->name;
         $route->start_from = $request->start_from;
         $route->end_to = $request->end_to;
-        $route->stoppages  = array_unique($stoppages);
+        $route->stoppages = array_unique($stoppages);
         $route->distance = $request->distance;
         $route->time = $request->time;
         $route->save();
@@ -70,7 +73,8 @@ public function routeCreate(){
         return back()->withNotify($notify);
     }
 
-    public function routeEdit($id){
+    public function routeEdit($id)
+    {
         $route = VehicleRoute::findOrFail($id);
         $pageTitle = 'Update Route - ' . $route->name;
         $allStoppages = Counter::active()->get();
@@ -80,18 +84,19 @@ public function routeCreate(){
         $pos = array_search($route->end_to, $stoppagesArray);
         unset($stoppagesArray[$pos]);
 
-        if(!empty($stoppagesArray)){
+        if (!empty($stoppagesArray)) {
             $stoppages = Counter::active()->whereIn('id', $stoppagesArray)
-                ->orderByRaw("field(id,".implode(',',$stoppagesArray).")")
+                ->orderByRaw("field(id," . implode(',', $stoppagesArray) . ")")
                 ->get();
-        }else{
+        } else {
             $stoppages = [];
         }
 
         return view('admin.trip.route.edit', compact('pageTitle', 'stoppages', 'route', 'allStoppages'));
     }
 
-    public function routeUpdate(Request $request, $id){
+    public function routeUpdate(Request $request, $id)
+    {
         $request->validate([
             'name' => 'required',
             'start_from' => 'required|integer|gt:0',
@@ -100,16 +105,16 @@ public function routeCreate(){
             'time' => 'required',
             'stoppages' => 'nullable|array|min:1',
             'stoppages.*' => 'nullable|integer|gt:0',
-        ],[
+        ], [
             'stoppages.*.integer' => 'Invalid Stoppage Field'
         ]);
 
-        if($request->start_from == $request->end_to){
+        if ($request->start_from == $request->end_to) {
             $notify[] = ['error', 'Starting point and ending point can\'t be same'];
             return back()->withNotify($notify);
         }
 
-        $stoppages = $request->stoppages ? array_filter($request->stoppages):[];
+        $stoppages = $request->stoppages ? array_filter($request->stoppages) : [];
         if (!in_array($request->start_from, $stoppages)) {
             array_unshift($stoppages, $request->start_from);
         }
@@ -121,7 +126,7 @@ public function routeCreate(){
         $route->name = $request->name;
         $route->start_from = $request->start_from;
         $route->end_to = $request->end_to;
-        $route->stoppages  = array_unique($stoppages);
+        $route->stoppages = array_unique($stoppages);
         $route->distance = $request->distance;
         $route->time = $request->time;
         $route->save();
@@ -130,56 +135,60 @@ public function routeCreate(){
         return back()->withNotify($notify);
     }
 
-    public function routeActiveDisabled(Request $request){
+    public function routeActiveDisabled(Request $request)
+    {
         $request->validate(['id' => 'required|integer']);
         $route = VehicleRoute::find($request->id);
         $route->status = $route->status == 1 ? 0 : 1;
         $route->save();
 
-        if($route->status == 1){
+        if ($route->status == 1) {
             $notify[] = ['success', 'Route active successfully'];
-        }else{
+        } else {
             $notify[] = ['success', 'Route disabled successfully'];
         }
         return back()->withNotify($notify);
     }
 
-    public function schedules(){
+    public function schedules()
+    {
         $pageTitle = 'All Schedules';
         $emptyMessage = 'No schedule found';
         $schedules = Schedule::orderBy('id', 'desc')->paginate(getPaginate());
-        return view('admin.trip.schedule', compact('pageTitle','emptyMessage', 'schedules'));
+        return view('admin.trip.schedule', compact('pageTitle', 'emptyMessage', 'schedules'));
     }
 
-    public function schduleStore(Request $request){
+    public function schduleStore(Request $request)
+    {
         $request->validate([
-            'start_from'   => 'required|date_format:H:i',
-            'end_at'       => 'required|date_format:H:i',
+            'start_from' => 'required|date_format:H:i',
+            'end_at' => 'required|date_format:H:i',
         ]);
 
         $check = Schedule::where('start_from', Carbon::parse($request->start_from)->format('H:i:s'))->where('end_at', Carbon::parse($request->end_at)->format('H:i:s'))->first();
-        if($check){
+        if ($check) {
             $notify[] = ['error', 'This schedule has already added'];
             return redirect()->back()->withNotify($notify);
         }
 
         Schedule::create([
             'start_from' => $request->start_from,
-            'end_at'     => $request->end_at
+            'end_at' => $request->end_at
         ]);
 
         $notify[] = ['success', 'Schedule save successfully'];
         return back()->withNotify($notify);
     }
 
-    public function schduleUpdate(Request $request, $id){
+    public function schduleUpdate(Request $request, $id)
+    {
         $request->validate([
-            'start_from'   => 'required|date_format:H:i',
-            'end_at'       => 'required|date_format:H:i',
+            'start_from' => 'required|date_format:H:i',
+            'end_at' => 'required|date_format:H:i',
         ]);
 
         $check = Schedule::where('start_from', Carbon::parse($request->start_from)->format('H:i:s'))->where('end_at', Carbon::parse($request->end_at)->format('H:i:s'))->first();
-        if($check && $check->id != $id){
+        if ($check && $check->id != $id) {
             $notify[] = ['error', 'This schedule has already added'];
             return back()->withNotify($notify);
         }
@@ -190,24 +199,26 @@ public function routeCreate(){
         $schdule->save();
 
         $notify[] = ['success', 'Schedule update successfully'];
-            return back()->withNotify($notify);
+        return back()->withNotify($notify);
     }
 
-    public function schduleActiveDisabled(Request $request){
+    public function schduleActiveDisabled(Request $request)
+    {
         $request->validate(['id' => 'required|integer']);
         $schdule = Schedule::find($request->id);
         $schdule->status = $schdule->status == 1 ? 0 : 1;
         $schdule->save();
 
-        if($schdule->status == 1){
+        if ($schdule->status == 1) {
             $notify[] = ['success', 'Schedule active successfully'];
-        }else{
+        } else {
             $notify[] = ['success', 'Schedule disabled successfully'];
         }
         return back()->withNotify($notify);
     }
 
-    public function trips(){
+    public function trips()
+    {
         $pageTitle = "All Trip";
         $emptyMessage = "No trip found";
         $fleetTypes = FleetType::where('status', 1)->get();
@@ -215,18 +226,19 @@ public function routeCreate(){
         $schedules = Schedule::where('status', 1)->get();
         $stoppages = Counter::where('status', 1)->get();
         $trips = Trip::with(['fleetType', 'route', 'schedule'])->orderBy('id', 'desc')->paginate(getPaginate());
-        return view('admin.trip.trip', compact('pageTitle', 'emptyMessage', 'trips' ,'fleetTypes', 'routes', 'schedules', 'stoppages'));
+        return view('admin.trip.trip', compact('pageTitle', 'emptyMessage', 'trips', 'fleetTypes', 'routes', 'schedules', 'stoppages'));
     }
 
-    public function tripStore(Request $request){
+    public function tripStore(Request $request)
+    {
         $request->validate([
-            'title'      => 'required',
+            'title' => 'required',
             'fleet_type' => 'required|integer|gt:0',
-            'route'      => 'required|integer|gt:0',
-            'schedule'   => 'required|integer|gt:0',
+            'route' => 'required|integer|gt:0',
+            'schedule' => 'required|integer|gt:0',
             'start_from' => 'required|integer|gt:0',
-            'end_to'     => 'required|integer|gt:0',
-            'day_off'    => 'nullable|array|min:1'
+            'end_to' => 'required|integer|gt:0',
+            'day_off' => 'nullable|array|min:1'
         ]);
 
         $trip = new Trip();
@@ -243,15 +255,16 @@ public function routeCreate(){
         return back()->withNotify($notify);
     }
 
-    public function tripUpdate(Request $request, $id){
+    public function tripUpdate(Request $request, $id)
+    {
         $request->validate([
-            'title'      => 'required',
+            'title' => 'required',
             'fleet_type' => 'required|integer|gt:0',
-            'route'      => 'required|integer|gt:0',
-            'schedule'   => 'required|integer|gt:0',
+            'route' => 'required|integer|gt:0',
+            'schedule' => 'required|integer|gt:0',
             'start_from' => 'required|integer|gt:0',
-            'end_to'     => 'required|integer|gt:0',
-            'day_off'    => 'nullable|array|min:1',
+            'end_to' => 'required|integer|gt:0',
+            'day_off' => 'nullable|array|min:1',
             'booking_time' => 'required|integer|gt:0'
         ]);
 
@@ -269,32 +282,35 @@ public function routeCreate(){
         return back()->withNotify($notify);
     }
 
-    public function tripActiveDisable(Request $request){
+    public function tripActiveDisable(Request $request)
+    {
         $request->validate(['id' => 'required|integer']);
         $trip = Trip::find($request->id);
         $trip->status = $trip->status == 1 ? 0 : 1;
         $trip->save();
 
-        if($trip->status == 1){
+        if ($trip->status == 1) {
             $notify[] = ['success', 'Trip active successfully'];
-        }else{
+        } else {
             $notify[] = ['success', 'Trip disabled successfully'];
         }
         return back()->withNotify($notify);
     }
 
-    public function assignedVehicleLists(){
+    public function assignedVehicleLists()
+    {
         $pageTitle = "All Assigned Vehicles";
         $emptyMessage = "No assigned vehicle found";
         $trips = Trip::with('fleetType.activeVehicles')->where('status', 1)->get();
         $assignedVehicles = AssignedVehicle::with(['trip', 'vehicle'])->orderBy('id', 'desc')->paginate(getPaginate());
         return view('admin.trip.assigned_vehicle', compact('pageTitle', 'emptyMessage', 'trips', 'assignedVehicles'));
     }
-           
-    public function markup(){
+
+    public function markup()
+    {
         $currentMarkup = MarkupTable::orderBy('id', 'desc')->first();
         if (!$currentMarkup) {
-            $currentMarkup = (object)[
+            $currentMarkup = (object) [
                 'title' => 'Default Markup',
                 'flat_markup' => 0.00,
                 'percentage_markup' => 0.00,
@@ -305,7 +321,8 @@ public function routeCreate(){
         return view('admin.trip.markup', compact('currentMarkup', 'pageTitle'));
     }
 
-    public function updateMarkup(Request $request){
+    public function updateMarkup(Request $request)
+    {
         $request->validate([
             'flat_markup' => 'required|numeric|min:0',
             'percentage_markup' => 'required|numeric|min:0',
@@ -323,133 +340,39 @@ public function routeCreate(){
         return back()->withNotify($notify);
     }
 
-    public function coupon(Request $request){
-        $pageTitle = 'Manage Coupons';
-        $emptyMessage = 'No coupon found';
-        $allCoupons = CouponTable::orderBy('created_at', 'desc')->get();
-        $currentCoupon = CouponTable::where('status', 1)->first();
-        
-        // If an 'edit' ID is provided, pre-fill the form with that coupon's data
-        $couponToEdit = null;
-        if ($request->has('edit_id')) {
-            $couponToEdit = CouponTable::find($request->edit_id);
-        }
-
-        // If no current active coupon, and no specific coupon to edit, provide default empty values
-        if (!$currentCoupon && !$couponToEdit) {
-            $currentCoupon = (object)[
-                'coupon_name' => '',
-                'coupon_threshold' => 0.00,
-                'discount_type' => 'fixed',
-                'coupon_value' => 0.00,
-                'expiry_date' => null,
-                'status' => 0,
-            ];
-        }
-
-        return view('admin.trip.coupon', compact('currentCoupon', 'allCoupons', 'couponToEdit', 'pageTitle', 'emptyMessage'));
-    }
-
-    public function updateCoupon(Request $request){
+    public function assignVehicle(Request $request)
+    {
         $request->validate([
-            'coupon_name' => 'required|string|max:255',
-            'coupon_threshold' => 'required|numeric|min:0',
-            'discount_type' => 'required|in:fixed,percentage',
-            'coupon_value' => 'required|numeric|min:0',
-            'expiry_date' => 'required|date|after_or_equal:today',
-        ]);
-
-        // Additional validation for percentage
-        if ($request->discount_type === 'percentage' && $request->coupon_value > 100) {
-            $notify[] = ['error', 'Percentage discount cannot be more than 100%'];
-            return back()->withNotify($notify);
-        }
-
-        // Deactivate all existing coupons first
-        CouponTable::where('status', 1)->update(['status' => 0]);
-
-        // Create a new coupon record and set it as active
-        CouponTable::create([
-            'coupon_name' => $request->coupon_name,
-            'coupon_threshold' => $request->coupon_threshold,
-            'discount_type' => $request->discount_type,
-            'coupon_value' => $request->coupon_value,
-            'expiry_date' => Carbon::parse($request->expiry_date),
-            'status' => 1, // Set the newly created coupon as active
-        ]);
-
-        $notify[] = ['success', 'Coupon settings updated and activated successfully.'];
-        return back()->withNotify($notify);
-    }
-
-    public function activateCoupon(Request $request, $id){
-        $request->validate([
-            'expiry_date' => 'required|date|after_or_equal:today',
-        ]);
-
-        $coupon = CouponTable::findOrFail($id);
-        
-        // Deactivate all other coupons
-        CouponTable::where('status', 1)->where('id', '!=', $id)->update(['status' => 0]);
-
-        // Activate the selected coupon with the new expiry date
-        $coupon->status = 1;
-        $coupon->expiry_date = Carbon::parse($request->expiry_date);
-        $coupon->save();
-
-        $notify[] = ['success', 'Coupon activated successfully with new expiry date.'];
-        return back()->withNotify($notify);
-    }
-
-    public function deactivateCoupon($id){
-        $coupon = CouponTable::findOrFail($id);
-        $coupon->status = 0;
-        $coupon->save();
-
-        $notify[] = ['success', 'Coupon deactivated successfully.'];
-        return back()->withNotify($notify);
-    }
-
-    public function deleteCoupon($id){
-        $coupon = CouponTable::findOrFail($id);
-        $coupon->delete();
-
-        $notify[] = ['success', 'Coupon deleted successfully.'];
-        return back()->withNotify($notify);
-    }
-            
-    public function assignVehicle(Request $request){
-        $request->validate([
-            'trip'      => 'required|integer|gt:0',
+            'trip' => 'required|integer|gt:0',
             'vehicle' => 'required|integer|gt:0'
         ]);
 
         //Check if the trip has already a assigned vehicle;
         $trip_check = AssignedVehicle::where('trip_id', $request->trip)->first();
-        if($trip_check){
-            $notify[]=['error','A vehicle had already been assinged to this trip'];
+        if ($trip_check) {
+            $notify[] = ['error', 'A vehicle had already been assinged to this trip'];
             return back()->withNotify($notify);
         }
 
         $trip = Trip::where('id', $request->trip)->with('schedule')->firstOrFail();
         $start_time = Carbon::parse($trip->schedule->start_from)->format('H:i:s');
-        $end_time   = Carbon::parse($trip->schedule->end_at)->format('H:i:s');
+        $end_time = Carbon::parse($trip->schedule->end_at)->format('H:i:s');
 
         //Check if the vehicle assgined to another vehicle on this time
-        $vehicle_check = AssignedVehicle::where(function($q) use($start_time,$end_time, $request){
-                        $q->where('start_from','>=',$start_time)
-                            ->where('start_from','<=',$end_time)
-                            ->where('vehicle_id', $request->vehicle);
-                        })
-                    ->orWhere(function($q) use($start_time,$end_time, $request){
-                            $q->where('end_at','>=',$start_time)
-                            ->where('end_at','<=',$end_time)
-                            ->where('vehicle_id', $request->vehicle);
-                        })
-                    ->first();
+        $vehicle_check = AssignedVehicle::where(function ($q) use ($start_time, $end_time, $request) {
+            $q->where('start_from', '>=', $start_time)
+                ->where('start_from', '<=', $end_time)
+                ->where('vehicle_id', $request->vehicle);
+        })
+            ->orWhere(function ($q) use ($start_time, $end_time, $request) {
+                $q->where('end_at', '>=', $start_time)
+                    ->where('end_at', '<=', $end_time)
+                    ->where('vehicle_id', $request->vehicle);
+            })
+            ->first();
 
-        if($vehicle_check){
-            $notify[]=['error','This vehicle had already been assinged to another trip on this time'];
+        if ($vehicle_check) {
+            $notify[] = ['error', 'This vehicle had already been assinged to another trip on this time'];
             return back()->withNotify($notify);
         }
 
@@ -464,40 +387,41 @@ public function routeCreate(){
         return back()->withNotify($notify);
     }
 
-    public function assignedVehicleUpdate(Request $request, $id){
+    public function assignedVehicleUpdate(Request $request, $id)
+    {
         $request->validate([
-            'trip'      => 'required|integer|gt:0',
+            'trip' => 'required|integer|gt:0',
             'vehicle' => 'required|integer|gt:0'
         ]);
 
         //Check if the trip has already a assigned vehicle;
         $trip_check = AssignedVehicle::where('trip_id', $request->trip)->where('id', '!=', $id)->first();
-        if($trip_check){
-            $notify[]=['error','A vehicle had already been assinged to this trip'];
+        if ($trip_check) {
+            $notify[] = ['error', 'A vehicle had already been assinged to this trip'];
             return back()->withNotify($notify);
         }
 
         $trip = Trip::where('id', $request->trip)->with('schedule')->firstOrFail();
         $start_time = Carbon::parse($trip->schedule->start_from)->format('H:i:s');
-        $end_time   = Carbon::parse($trip->schedule->end_at)->format('H:i:s');
+        $end_time = Carbon::parse($trip->schedule->end_at)->format('H:i:s');
 
         //Check if the vehicle assgined to another vehicle on this time
-        $vehicle_check = AssignedVehicle::where(function($q) use($start_time,$end_time,$id,$request){
-                        $q->where('start_from','>=',$start_time)
-                            ->where('start_from','<=',$end_time)
-                            ->where('id', '!=', $id)
-                            ->where('vehicle_id', $request->vehicle);
-                        })
-                    ->orWhere(function($q) use($start_time,$end_time,$id,$request){
-                            $q->where('end_at','>=',$start_time)
-                            ->where('end_at','<=',$end_time)
-                            ->where('id', '!=', $id)
-                            ->where('vehicle_id', $request->vehicle);
-                        })
-                    ->first();
+        $vehicle_check = AssignedVehicle::where(function ($q) use ($start_time, $end_time, $id, $request) {
+            $q->where('start_from', '>=', $start_time)
+                ->where('start_from', '<=', $end_time)
+                ->where('id', '!=', $id)
+                ->where('vehicle_id', $request->vehicle);
+        })
+            ->orWhere(function ($q) use ($start_time, $end_time, $id, $request) {
+                $q->where('end_at', '>=', $start_time)
+                    ->where('end_at', '<=', $end_time)
+                    ->where('id', '!=', $id)
+                    ->where('vehicle_id', $request->vehicle);
+            })
+            ->first();
 
-        if($vehicle_check){
-            $notify[]=['error','This vehicle had already been assinged to another trip on this time'];
+        if ($vehicle_check) {
+            $notify[] = ['error', 'This vehicle had already been assinged to another trip on this time'];
             return back()->withNotify($notify);
         }
 
@@ -512,15 +436,16 @@ public function routeCreate(){
         return back()->withNotify($notify);
     }
 
-    public function assignedVehicleActiveDisabled(Request $request){
+    public function assignedVehicleActiveDisabled(Request $request)
+    {
         $request->validate(['id' => 'required|integer']);
         $assignedVehicle = AssignedVehicle::find($request->id);
         $assignedVehicle->status = $assignedVehicle->status == 1 ? 0 : 1;
         $assignedVehicle->save();
 
-        if($assignedVehicle->status == 1){
+        if ($assignedVehicle->status == 1) {
             $notify[] = ['success', 'Assigned Vehicle active successfully'];
-        }else{
+        } else {
             $notify[] = ['success', 'Assigned Vehicle disabled successfully'];
         }
         return back()->withNotify($notify);

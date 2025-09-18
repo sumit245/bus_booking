@@ -145,29 +145,35 @@ class CouponController extends Controller
      */
     public function getActiveCouponsApi()
     {
-        $coupons = Cache::remember('active_api_coupons', 600, function () { // Cache for 10 minutes
-            return CouponTable::where('status', 1)
-                ->where('expiry_date', '>=', Carbon::today())
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($coupon) {
-                    return [
-                        'coupon_code' => $coupon->coupon_name,
-                        'discount_type' => $coupon->discount_type,
-                        'coupon_value' => (float) $coupon->coupon_value,
-                        'coupon_threshold' => (float) $coupon->coupon_threshold,
-                        'expiry_date' => $coupon->expiry_date->toDateString(),
-                        'banner_image_url' => $coupon->banner_image ? getImage(imagePath()['coupon']['path'] . '/' . $coupon->banner_image) : null,
-                        'sticker_image_url' => $coupon->sticker_image ? getImage(imagePath()['coupon']['path'] . '/' . $coupon->sticker_image) : null,
-                    ];
-                });
-        });
+        try {
+            $coupons = Cache::remember('active_api_coupons', 600, function () { // Cache for 10 minutes
+                return CouponTable::where('status', 1)
+                    ->where('expiry_date', '>=', Carbon::today())
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($coupon) {
+                        return [
+                            'coupon_code' => $coupon->coupon_name,
+                            'discount_type' => $coupon->discount_type,
+                            'coupon_value' => (float) $coupon->coupon_value,
+                            'coupon_threshold' => (float) $coupon->coupon_threshold,
+                            'expiry_date' => $coupon->expiry_date->toDateString(),
+                            'banner_image_url' => $coupon->banner_image ? getImage(imagePath()['coupon']['path'] . '/' . $coupon->banner_image) : null,
+                            'sticker_image_url' => $coupon->sticker_image ? getImage(imagePath()['coupon']['path'] . '/' . $coupon->sticker_image) : null,
+                        ];
+                    });
+            });
 
-        if ($coupons->isEmpty()) {
-            return response()->json(['success' => true, 'message' => 'No active coupons available.', 'data' => []]);
+            if ($coupons->isEmpty()) {
+                return response()->json(['success' => true, 'message' => 'No active coupons available.', 'data' => []]);
+            }
+
+            return response()->json(['success' => true, 'data' => $coupons]);
+        } catch (\Exception $exp) {
+            Log::error("Failed to fetch active coupons: " . $exp->getMessage(), ['trace' => $exp->getTraceAsString()]); 
+            return response()->json(['success'=> false, 'message'=> $exp->getMessage()]);
         }
 
-        return response()->json(['success' => true, 'data' => $coupons]);
     }
 
     /**

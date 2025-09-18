@@ -39,7 +39,7 @@ class UserController extends Controller
 
 
             // Send OTP via WhatsApp API
-            sendOtp($request->mobile_number, $request->user_name, $otp);
+            sendOtp($request->mobile_number, $otp, $request->user_name,);
 
             return response()->json([
                 'message' => 'OTP sent successfully to ' . $request->mobile_number,
@@ -121,30 +121,62 @@ class UserController extends Controller
 public function userHistoryByPhone(Request $request)
 {
     $request->validate([
-        'mobile_number' => 'required|string'
+        'mobile_number' => ['required', 'string', 'regex:/^[6-9]\d{9}$/']
     ]);
 
     $user = User::where('mobile', $request->mobile_number)->first();
 
     if (!$user) {
-        return response()->json(['message' => 'User not found'], 404);
+        return response()->json(['success' => false, 'message' => 'User not found'], 404);
     }
 
+    // Fetch all tickets for the user, including completed and cancelled ones.
     $tickets = BookedTicket::with([
         'trip.fleetType',
-        'trip.startFrom',
-        'trip.endTo',
-        'trip.schedule',
         'pickup',
         'drop'
     ])
     ->where('user_id', $user->id)
+    // Explicitly fetch tickets with any status if needed, or filter for specific ones.
+    // ->whereIn('status', [1, 3]) // 1 for Booked, 3 for Cancelled
     ->orderBy('id', 'desc')
     ->get();
 
+    // Transform the data for a clean API response
+    $formattedTickets = $tickets->map(function ($ticket) {
+        return [
+            'pnr_number' => $ticket->pnr_number,
+            'operator_pnr' => $ticket->operator_pnr,
+            'travel_name' => $ticket->travel_name ?? $ticket->trip->fleetType->name ?? 'N/A',
+            'bus_type' => $ticket->bus_type ?? 'N/A',
+            'date_of_journey' => Carbon::parse($ticket->date_of_journey)->format('Y-m-d'),
+            'departure_time' => $ticket->departure_time ? Carbon::parse($ticket->departure_time)->format('h:i A') : 'N/A',
+            'arrival_time' => $ticket->arrival_time ? Carbon::parse($ticket->arrival_time)->format('h:i A') : 'N/A',
+            'pickup_point' => $ticket->pickup->name ?? 'N/A',
+            'dropping_point' => $ticket->drop->name ?? 'N/A',
+            'boarding_point_details' => $ticket->boarding_point_details ? json_decode($ticket->boarding_point_details) : null,
+            'boarding_point'=> $ticket->boarding_point,
+            'dropping_point_details' => $ticket->dropping_point_details ? json_decode($ticket->dropping_point_details) : null,
+            'dropping_point' => $ticket->dropping_point,
+            'seats' => is_array($ticket->seats) ? implode(', ', $ticket->seats) : $ticket->seats,
+            'ticket_count' => $ticket->ticket_count,
+            'total_fare' => round((float) $ticket->sub_total, 2),
+            'status' => $ticket->status == 1 ? 'Booked' : ($ticket->status == 3 ? 'Cancelled' : 'Pending'),
+            'booked_at' => $ticket->created_at->toDateTimeString(),
+            'cancellation_details' => $ticket->status == 3 ? [
+                'cancelled_at' => $ticket->cancelled_at ? Carbon::parse($ticket->cancelled_at)->toDateTimeString() : null,
+                'remarks' => $ticket->cancellation_remarks,
+            ] : null,
+        ];
+    });
+
     return response()->json([
-        'user'    => $user,
-        'tickets' => $tickets
+        'success' => true,
+        'user' => [
+            'name' => $user->firstname . ' ' . $user->lastname,
+            'mobile' => $user->mobile,
+        ],
+        'tickets' => $formattedTickets
     ]);
 }
 }

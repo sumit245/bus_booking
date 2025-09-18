@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreCouponRequest;
 use App\Models\CouponTable;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CouponController extends Controller
 {
@@ -34,67 +37,51 @@ class CouponController extends Controller
     /**
      * Store or update a coupon.
      *
-     * @param Request $request
+     * @param StoreCouponRequest $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request)
+    public function store(StoreCouponRequest $request)
     {
-        $request->validate([
-            'coupon_name' => 'required|string|max:255',
-            'coupon_threshold' => 'required|numeric|min:0',
-            'discount_type' => 'required|in:fixed,percentage',
-            'coupon_value' => 'required|numeric|min:0',
-            'expiry_date' => 'required|date|after_or_equal:today',
-            'banner_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'sticker_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+        // Use a database transaction to ensure atomicity.
+        // If coupon creation fails, other coupons won't be deactivated.
+        DB::beginTransaction();
+        try {
+            // Deactivate all existing coupons first
+            CouponTable::where('status', 1)->update(['status' => 0]);
 
-        // Additional validation for percentage
-        if ($request->discount_type === 'percentage' && $request->coupon_value > 100) {
-            $notify[] = ['error', 'Percentage discount cannot be more than 100%'];
-            return back()->withNotify($notify)->withInput();
+            $validatedData = $request->validated();
+
+            $couponData = [
+                'coupon_name' => $validatedData['coupon_name'],
+                'coupon_threshold' => $validatedData['coupon_threshold'],
+                'discount_type' => $validatedData['discount_type'],
+                'coupon_value' => $validatedData['coupon_value'],
+                'expiry_date' => Carbon::parse($validatedData['expiry_date']),
+                'status' => 1, // Set the newly created coupon as active
+            ];
+
+            // Handle image uploads
+            $banner_path = $this->uploadImage($request, 'banner_image');
+            Log::alert("message", [$banner_path])   ;
+            $couponData['banner_image'] = $banner_path;
+            $couponData['sticker_image'] = $this->uploadImage($request, 'sticker_image');
+
+            CouponTable::create($couponData);
+
+            DB::commit();
+
+            // Clear the API cache after successful transaction
+            Cache::forget('active_api_coupons');
+
+            $notify[] = ['success', 'Coupon created and activated successfully.'];
+            return redirect()->route('admin.coupon.index')->with('notify', $notify);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Coupon creation failed: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            $notify[] = ['error', 'An unexpected error occurred. Could not create coupon.'];
+            return back()->with('notify', $notify)->withInput();
         }
-
-        // Deactivate all existing coupons first
-        CouponTable::where('status', 1)->update(['status' => 0]);
-
-        $data = [
-            'coupon_name' => $request->coupon_name,
-            'coupon_threshold' => $request->coupon_threshold,
-            'discount_type' => $request->discount_type,
-            'coupon_value' => $request->coupon_value,
-            'expiry_date' => Carbon::parse($request->expiry_date),
-            'status' => 1, // Set the newly created coupon as active
-        ];
-
-        $imagePaths = imagePath();
-        $path = $imagePaths['coupon']['path'];
-
-        if ($request->hasFile('banner_image')) {
-            try {
-                $data['banner_image'] = uploadImage($request->banner_image, $path);
-            } catch (\Exception $exp) {
-                $notify[] = ['error', 'Could not upload the banner image.'];
-                return back()->withNotify($notify)->withInput();
-            }
-        }
-
-        if ($request->hasFile('sticker_image')) {
-            try {
-                $data['sticker_image'] = uploadImage($request->sticker_image, $path);
-            } catch (\Exception $exp) {
-                $notify[] = ['error', 'Could not upload the sticker image.'];
-                return back()->withNotify($notify)->withInput();
-            }
-        }
-
-        CouponTable::create($data);
-
-        // Clear the API cache
-        Cache::forget('active_api_coupons');
-
-        $notify[] = ['success', 'Coupon created and activated successfully.'];
-        return redirect()->route('admin.coupon.index')->withNotify($notify);
     }
 
     /**
@@ -121,7 +108,7 @@ class CouponController extends Controller
         Cache::forget('active_api_coupons');
 
         $notify[] = ['success', 'Coupon activated successfully.'];
-        return back()->withNotify($notify);
+        return back()->with('notify', $notify);
     }
 
     public function deactivate($id)
@@ -134,7 +121,7 @@ class CouponController extends Controller
         Cache::forget('active_api_coupons');
 
         $notify[] = ['success', 'Coupon deactivated successfully.'];
-        return back()->withNotify($notify);
+        return back()->with('notify', $notify);
     }
 
     public function delete($id)
@@ -147,7 +134,7 @@ class CouponController extends Controller
         Cache::forget('active_api_coupons');
 
         $notify[] = ['success', 'Coupon deleted successfully.'];
-        return back()->withNotify($notify);
+        return back()->with('notify', $notify);
     }
 
     /**
@@ -181,6 +168,31 @@ class CouponController extends Controller
         }
 
         return response()->json(['success' => true, 'data' => $coupons]);
+    }
+
+    /**
+     * Handle image upload for coupons.
+     *
+     * @param Request $request
+     * @param string $fileInputName
+     * @return string|null
+     */
+    private function uploadImage(Request $request, string $fileInputName): ?string
+    {
+        if (!$request->hasFile($fileInputName)) {
+            return null;
+        }
+
+        try {
+            $imagePaths = imagePath()['coupon'];
+            $path = $imagePaths['path'];
+            $size = $imagePaths['size'];
+            return uploadImage($request->file($fileInputName), $path, $size);
+        } catch (\Exception $e) {
+            // Log the error and re-throw to be caught by the transaction rollback
+            Log::error("Could not upload {$fileInputName}: " . $e->getMessage());
+            throw new \Exception("Could not upload the {$fileInputName}.");
+        }
     }
 
     /**

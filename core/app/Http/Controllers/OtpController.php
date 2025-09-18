@@ -53,7 +53,6 @@ class OtpController extends Controller
                 'message' => 'OTP sent successfully'
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to send OTP: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
@@ -118,8 +117,7 @@ class OtpController extends Controller
                 'user_logged_in' => $userLoggedIn
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to verify OTP: ' . $e->getMessage());
-
+           
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to verify OTP: ' . $e->getMessage()

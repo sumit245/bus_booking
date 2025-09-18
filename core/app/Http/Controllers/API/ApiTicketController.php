@@ -163,6 +163,10 @@ class ApiTicketController extends Controller
   public function showSeat(Request $request)
   {
     try {
+      $request->validate([
+        'SearchTokenId' => 'required|string',
+        'ResultIndex' => 'required|string',
+      ]);
       $SearchTokenID = $request->SearchTokenId;
       $ResultIndex = $request->ResultIndex;
       $response = getAPIBusSeats($ResultIndex, $SearchTokenID);
@@ -478,7 +482,7 @@ class ApiTicketController extends Controller
   }
 
 
-  
+
 
 
 
@@ -497,10 +501,10 @@ class ApiTicketController extends Controller
         try {
             $request->validate([
                 'OriginId' => 'required',
-                'DestinationId' => 'required', 
+                'DestinationId' => 'required',
                 'DateOfJourney' => 'required|date'
             ]);
-            
+
             $combinedResults = [
                 'SearchTokenId' => null,
                 'api_buses' => [],
@@ -522,16 +526,16 @@ class ApiTicketController extends Controller
                 if (is_array($apiResponse) && isset($apiResponse['Result']) && !empty($apiResponse['Result'])) {
                     if (isset($apiResponse['Error']) && $apiResponse['Error']['ErrorCode'] == 0) {
                         $apiTrips = $apiResponse['Result'];
-                        
+
                         // Sort by departure time
                         usort($apiTrips, function ($a, $b) {
                             return strtotime($a['DepartureTime']) - strtotime($b['DepartureTime']);
                         });
-                        
+
                         $combinedResults['SearchTokenId'] = $apiResponse['SearchTokenId'] ?? null;
                         $combinedResults['api_buses'] = $apiTrips;
                         $combinedResults['api_count'] = count($apiTrips);
-                        
+
                         // Mark API buses with source identifier
                         foreach ($combinedResults['api_buses'] as &$trip) {
                             $trip['source'] = 'api';
@@ -548,7 +552,7 @@ class ApiTicketController extends Controller
                 $localTrips = $this->fetchLocalBuses($request);
                 $combinedResults['local_buses'] = $localTrips;
                 $combinedResults['local_count'] = count($localTrips);
-                
+
                 // Mark local buses with source identifier
                 foreach ($combinedResults['local_buses'] as &$trip) {
                     $trip['source'] = 'local';
@@ -559,7 +563,7 @@ class ApiTicketController extends Controller
             }
 
             $allTrips = array_merge($combinedResults['api_buses'], $combinedResults['local_buses']);
-            
+
             // Sort combined trips by departure time
             usort($allTrips, function ($a, $b) {
                 $timeA = isset($a['DepartureTime']) ? strtotime($a['DepartureTime']) : strtotime($a['departure_time'] ?? '00:00');
@@ -747,12 +751,12 @@ class ApiTicketController extends Controller
         try {
             $start = Carbon::parse($startTime);
             $end = Carbon::parse($endTime);
-            
+
             // Handle next day arrival
             if ($end->lt($start)) {
                 $end->addDay();
             }
-            
+
             $diff = $start->diff($end);
             return $diff->format('%H:%I');
         } catch (\Exception $e) {

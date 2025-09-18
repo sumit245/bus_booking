@@ -44,7 +44,7 @@ function getLatestVersion()
 {
     $param['purchasecode'] = env("PURCHASECODE");
     $param['website'] = @$_SERVER['HTTP_HOST'] . @$_SERVER['REQUEST_URI'] . ' - ' . env("APP_URL");
-    $url = 'https://license.viserlab.com/updates/version/' . systemDetails()['name'];
+    $url = 'https://license.dashandots.tech/updates/version/' . systemDetails()['name'];
     $result = curlPostContent($url, $param);
     if ($result) {
         return $result;
@@ -1303,7 +1303,7 @@ if (!function_exists('formatCancelPolicy')) {
         $formatted = [];
 
         foreach ($cancelPolicy as $policy) {
-            $charge = $policy['CancellationCharge'];
+            $charge = $policy['CancellationCharge']??"0";
             $chargeType = $policy['CancellationChargeType'];
             $from = Carbon::parse($policy['FromDate']);
             $to = Carbon::parse($policy['ToDate']);

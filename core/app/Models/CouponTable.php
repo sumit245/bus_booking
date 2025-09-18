@@ -15,6 +15,8 @@ class CouponTable extends Model
         'coupon_value',           // New: Replaces flat_coupon_amount and percentage_coupon_amount
         'expiry_date',            // New: Date when coupon expires
         'status',                 // New: 0 for deactivated, 1 for active
+        'banner_image',
+        'sticker_image',
     ];
 
     protected $casts = [

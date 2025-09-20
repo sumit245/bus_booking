@@ -172,7 +172,6 @@ class ApiTicketController extends Controller
             $response = getAPIBusSeats($ResultIndex, $SearchTokenID);
             if ($response['Error']['ErrorCode'] == 0) {
                 $html = $response['Result']['HTMLLayout'];
-                Log::info($html);
                 $availableSeats = $response['Result']['AvailableSeats'];
                 return response()->json([
                     "html" => parseSeatHtmlToJson($html),
@@ -196,7 +195,6 @@ class ApiTicketController extends Controller
             $request->validate([
                 'CancelPolicy' => 'required|array',
             ]);
-            Log::info($request->CancelPolicy);
             if ($request->CancelPolicy) {
                 return response()->json([
                     'cancellationPolicy' => formatCancelPolicy($request->CancelPolicy),
@@ -254,7 +252,6 @@ class ApiTicketController extends Controller
     public function bookTicket(Request $request, $id)
     {
         try {
-            Log::info($request->all());
             $pnr_number = getTrx(10);
 
 
@@ -377,7 +374,6 @@ class ApiTicketController extends Controller
             $response = getBoardingPoints($SearchTokenID, $ResultIndex, "192.168.12.1");
             if ($response["Error"]["ErrorCode"] == 0) {
                 $resp = $response["Result"];
-                Log::info($resp);
                 return response()->json([
                     'boarding_points' => $resp["BoardingPointsDetails"],
                     "dropping_points" => $resp["DroppingPointsDetails"]

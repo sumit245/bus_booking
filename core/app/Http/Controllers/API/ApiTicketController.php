@@ -188,6 +188,30 @@ class ApiTicketController extends Controller
         }
     }
 
+    public function getCancellationPolicy(Request $request)
+    {
+        try {
+            //code...
+
+            $request->validate([
+                'CancelPolicy' => 'required|array',
+            ]);
+            Log::info($request->CancelPolicy);
+            if ($request->CancelPolicy) {
+                return response()->json([
+                    'cancellationPolicy' => formatCancelPolicy($request->CancelPolicy),
+                    'status' => 200,
+                ]);
+            }
+        } catch (\Exception $ex) {
+            //throw $th;
+            return response()->json([
+                'error' => $ex->getMessage(),
+                'status' => 404,
+            ]);
+        }
+    }
+
     public function getTicketPrice(Request $request)
     {
         $ticketPrice = TicketPrice::where('vehicle_route_id', $request->vehicle_route_id)
@@ -809,4 +833,5 @@ class ApiTicketController extends Controller
             ];
         })->toArray();
     }
+
 }

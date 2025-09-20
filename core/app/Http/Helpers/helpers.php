@@ -1298,12 +1298,12 @@ function parseSeatHtmlToJson($html)
 
 
 if (!function_exists('formatCancelPolicy')) {
-    function formatCancelPolicy(array $cancelPolicy)
+    function  formatCancelPolicy(array $cancelPolicy)
     {
         $formatted = [];
-
+        Log::info('Formatting cancel policy', ['policy' => $cancelPolicy]);
         foreach ($cancelPolicy as $policy) {
-            $charge = $policy['CancellationCharge']??"0";
+            $charge = $policy['CancellationCharge'] ?? "0";
             $chargeType = $policy['CancellationChargeType'];
             $from = Carbon::parse($policy['FromDate']);
             $to = Carbon::parse($policy['ToDate']);

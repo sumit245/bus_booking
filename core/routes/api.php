@@ -20,7 +20,7 @@ Route::prefix('bus')->group(function () {
     Route::get('search', [ApiTicketController::class, 'ticketSearch']);
     Route::get('show-seats', [ApiTicketController::class, 'showSeat']);
     Route::get('/get-counters', [ApiTicketController::class, 'getCounters']);
-    Route::get('block-ticket/{id}', [ApiTicketController::class, 'bookTicket']);
+    // Route::get('block-ticket/{id}', [ApiTicketController::class, 'bookTicket']); Obsolete Code
     Route::post('/block-seat', [ApiTicketController::class, 'blockSeatApi']);
     Route::post('/cancellation-policy', [ApiTicketController::class,'getCancellationPolicy']);
 });

@@ -409,6 +409,11 @@ class ApiTicketController extends Controller
                 'FirstName' => 'required',
                 'LastName' => 'required',
                 'Email' => 'required|email',
+                'TravelName' => 'required|string',
+                'BusType' => 'required|string',
+                'DepartureTime' => 'required|string',
+                'ArrivalTime' => 'required|string',
+                'DateOfJourney' => 'required|date',
             ]);
 
             Log::info('Block Seat Request:', ['request' => $request->all()]);
@@ -477,24 +482,61 @@ class ApiTicketController extends Controller
                 ], 400);
             }
 
+            // Calculate total fare from the blocked seat response
+            $totalFare = collect($response['Result']['Passenger'])->sum('Fare');
+
+            Log::info('Total Fare Calculated: ' . $totalFare);
+            // Create a pending ticket in the database
+            $bookedTicket = new BookedTicket();
+            $bookedTicket->user_id = Auth::id();
+            $bookedTicket->pnr_number = getTrx(10);
+            $bookedTicket->operator_pnr = $response['Result']['BookingId'] ?? null;
+            $bookedTicket->seats = $seats;
+            $bookedTicket->ticket_count = count($seats);
+            $bookedTicket->sub_total = $totalFare;
+            $bookedTicket->total_fare = $totalFare; // Assuming no other charges for now
+            $bookedTicket->pickup_point = $request->BoardingPointId;
+            $bookedTicket->dropping_point = $request->DroppingPointId;
+            $bookedTicket->date_of_journey = Carbon::parse($request->DateOfJourney)->format('Y-m-d');
+            $bookedTicket->status = 0; // 0 for pending
+            $bookedTicket->booking_source = 'api';
+            $bookedTicket->travel_name = $request->TravelName;
+            $bookedTicket->bus_type = $request->BusType;
+            $bookedTicket->departure_time = $request->DepartureTime;
+            $bookedTicket->arrival_time = $request->ArrivalTime;
+            $bookedTicket->boarding_point_details = json_encode($request->boarding_point_details);
+            $bookedTicket->dropping_point_details = json_encode($request->dropping_point_details);
+            $bookedTicket->search_token_id = $request->SearchTokenId;
+            $bookedTicket->result_index = $request->ResultIndex;
+            $bookedTicket->save();
+
+            // Initialize Razorpay
+            $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
+
+            // Create Razorpay order
+            $order = $api->order->create([
+                'receipt' => $bookedTicket->pnr_number,
+                'amount' => $totalFare * 100, // Amount in paisa
+                'currency' => 'INR',
+                'notes' => [
+                    'ticket_id' => $bookedTicket->id,
+                    'pnr_number' => $bookedTicket->pnr_number,
+                ]
+            ]);
+
             $formattedPolicy = formatCancelPolicy($response['Result']['CancelPolicy'] ?? []);
             Log::info($response);
             return response()->json([
                 'success' => true,
-                'response' => array_merge(
-                    $response['Result'],
-                    [
-                        'Passenger' => collect($response['Result']['Passenger'] ?? [])
-                            ->map(function ($passenger, $index) use ($passengers) {
-                                $passenger['SeatName'] = $passengers[$index]['SeatName'] ?? null;
-                                return $passenger;
-                            })
-                            ->toArray()
-                    ]
-                ),
-                'cancellationPolicy' => $formattedPolicy,
                 'message' => 'Seats blocked successfully! Proceed to payment.',
+                'ticket_id' => $bookedTicket->id,
+                'order_id' => $order->id,
+                'amount' => $totalFare,
+                'currency' => 'INR',
+                'block_details' => $response['Result'],
+                'cancellationPolicy' => $formattedPolicy,
             ]);
+
         } catch (\Exception $e) {
             Log::error('BlockSeat API exception: ' . $e->getMessage());
             return response()->json([

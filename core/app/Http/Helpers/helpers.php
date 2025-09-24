@@ -947,7 +947,6 @@ function sendOtp($mobile, $otp, $userName = "Guest")
     ];
 
     $response = Http::post($apiUrl, $payload);
-    Log::info($response);
     if ($response->successful()) {
         return $otp; // Return OTP if the API call succeeds
     } else {
@@ -1151,7 +1150,6 @@ function bookAPITicket($userIp, $searchTokenId, $resultIndex, $boardingPointId, 
             'Password' => $busPass,
         ])->post($busUrl, $data);
 
-        Log::info('Book ticket API response: ' . $response->body());
         return $response->json();
     } catch (\Exception $e) {
         Log::error('Book ticket API exception: ' . $e->getMessage());
@@ -1187,16 +1185,7 @@ function cancelAPITicket($userIp, $searchTokenId, $bookingId, $seatId, $remarks)
         ];
 
         // 🔍 Log full request data
-        Log::info('Sending cancel ticket API request', [
-            'url' => $busUrl,
-            'headers' => $headers,
-            'body' => $data,
-        ]);
-
         $response = Http::withHeaders($headers)->post($busUrl, $data);
-
-        Log::info('Cancel ticket API response: ' . $response->body());
-
         return $response->json();
     } catch (\Exception $e) {
         Log::error('Cancel ticket API exception: ' . $e->getMessage());
@@ -1245,7 +1234,6 @@ function parseSeatHtmlToJson($html)
                 $result['seat'][$deck]['rows'][$rowNumber] = [];
             }
 
-            Log::info($classes);
             $seatType = $classes[0] ?? '';
             $isAvailable = false;
             $isSleeper = false;
@@ -1301,9 +1289,8 @@ if (!function_exists('formatCancelPolicy')) {
     function formatCancelPolicy(array $cancelPolicy)
     {
         $formatted = [];
-
         foreach ($cancelPolicy as $policy) {
-            $charge = $policy['CancellationCharge']??"0";
+            $charge = $policy['CancellationCharge'] ?? "0";
             $chargeType = $policy['CancellationChargeType'];
             $from = Carbon::parse($policy['FromDate']);
             $to = Carbon::parse($policy['ToDate']);

@@ -24,7 +24,7 @@ class GenerateSeatLayout
         foreach ($this->seatLayout['SeatDetails'] as $row) {
             foreach ($row as $seat) {
                 if (!empty($seat['ColumnNo']) && is_numeric($seat['ColumnNo'])) {
-                    $columnCounts[] = (int)$seat['ColumnNo'];
+                    $columnCounts[] = (int) $seat['ColumnNo'];
                 }
             }
         }
@@ -44,12 +44,9 @@ class GenerateSeatLayout
 
         $leftColumns = array_slice($uniqueColumns, 0, $middleIndex);
         $rightColumns = array_slice($uniqueColumns, $middleIndex);
-        Log::info($leftColumns, $rightColumns);
-
         $layout['left'] = count($leftColumns);
         $layout['right'] = count($rightColumns);
 
-        Log::info("Seat layout computed. Left: {$layout['left']}, Right: {$layout['right']}");
         return (object) $layout;
     }
 
@@ -73,8 +70,6 @@ class GenerateSeatLayout
                     return $seat['SeatName'] ?? '';
                 }, $row);
 
-                // Log seat names for this row
-                Log::info("Seats in Row {$rowNo}: [" . implode(', ', $seatNames) . "]");
                 // Generate the row HTML
                 $html .= $this->generateSeatRow($row);
             }
@@ -107,7 +102,8 @@ class GenerateSeatLayout
         } else {
             $classes[] = 'sleeper';
         }
-        if (!$seat['SeatStatus']) $classes[] = 'booked'; // specify style of booked seat here
+        if (!$seat['SeatStatus'])
+            $classes[] = 'booked'; // specify style of booked seat here
         if (!empty($seat['IsLadiesSeat']) && !$seat['SeatStatus']) {
             $classes[] = 'selected-by-ladies'; // specify style of booked seat here
         }
@@ -117,8 +113,8 @@ class GenerateSeatLayout
 
         return sprintf(
             '<span class="seat %s" data-seat="%s" data-price="%s">' .
-                $seat['SeatName']
-                . '<span></span>
+            $seat['SeatName']
+            . '<span></span>
                 </span>',
             implode(' ', $classes),
             $seat['SeatName'],
@@ -140,42 +136,42 @@ class GenerateSeatLayout
     }
 
     private function generateSeatRow($rowSeats)
-{
-    // Log the input data for debugging
-    error_log("Generating seat row... Row seats data: " . print_r($rowSeats, true));
+    {
+        // Log the input data for debugging
+        error_log("Generating seat row... Row seats data: " . print_r($rowSeats, true));
 
-    // Initial HTML wrapper
-    $html = '<div class="seat-wrapper">';
+        // Initial HTML wrapper
+        $html = '<div class="seat-wrapper">';
 
-    // Left section - 3 seats
-    $html .= '<div class="left-side">';
-    for ($i = 0; $i < $this->seatLayouts->left; $i++) {
-        if (isset($rowSeats[$i])) {
-            // Log the seat that is being added
-            error_log("Adding seat at position " . $i . " from the left side: " . print_r($rowSeats[$i], true));
-            $html .= $this->generateSeat($rowSeats[$i]);
+        // Left section - 3 seats
+        $html .= '<div class="left-side">';
+        for ($i = 0; $i < $this->seatLayouts->left; $i++) {
+            if (isset($rowSeats[$i])) {
+                // Log the seat that is being added
+                error_log("Adding seat at position " . $i . " from the left side: " . print_r($rowSeats[$i], true));
+                $html .= $this->generateSeat($rowSeats[$i]);
+            }
         }
-    }
-    $html .= '</div>';
+        $html .= '</div>';
 
-    // Right section - 2 seats
-    $html .= '<div class="right-side">';
-    for ($i = $this->seatLayouts->left; $i < ($this->seatLayouts->left + $this->seatLayouts->right); $i++) {
-        if (isset($rowSeats[$i])) {
-            // Log the seat that is being added
-            error_log("Adding seat at position " . $i . " from the right side: " . print_r($rowSeats[$i], true));
-            $html .= $this->generateSeat($rowSeats[$i]);
+        // Right section - 2 seats
+        $html .= '<div class="right-side">';
+        for ($i = $this->seatLayouts->left; $i < ($this->seatLayouts->left + $this->seatLayouts->right); $i++) {
+            if (isset($rowSeats[$i])) {
+                // Log the seat that is being added
+                error_log("Adding seat at position " . $i . " from the right side: " . print_r($rowSeats[$i], true));
+                $html .= $this->generateSeat($rowSeats[$i]);
+            }
         }
+        $html .= '</div>';
+
+        $html .= '</div>';
+
+        // Log the final generated HTML
+        error_log("Generated seat row HTML: " . $html);
+
+        return $html;
     }
-    $html .= '</div>';
-
-    $html .= '</div>';
-
-    // Log the final generated HTML
-    error_log("Generated seat row HTML: " . $html);
-
-    return $html;
-}
 
     private function arrangeSeatsVertically($deckSeats)
     {

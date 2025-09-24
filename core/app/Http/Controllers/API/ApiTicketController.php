@@ -172,7 +172,6 @@ class ApiTicketController extends Controller
             $response = getAPIBusSeats($ResultIndex, $SearchTokenID);
             if ($response['Error']['ErrorCode'] == 0) {
                 $html = $response['Result']['HTMLLayout'];
-                Log::info($html);
                 $availableSeats = $response['Result']['AvailableSeats'];
                 return response()->json([
                     "html" => parseSeatHtmlToJson($html),
@@ -183,6 +182,29 @@ class ApiTicketController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage(),
+                'status' => 404,
+            ]);
+        }
+    }
+
+    public function getCancellationPolicy(Request $request)
+    {
+        try {
+            //code...
+
+            $request->validate([
+                'CancelPolicy' => 'required|array',
+            ]);
+            if ($request->CancelPolicy) {
+                return response()->json([
+                    'cancellationPolicy' => formatCancelPolicy($request->CancelPolicy),
+                    'status' => 200,
+                ]);
+            }
+        } catch (\Exception $ex) {
+            //throw $th;
+            return response()->json([
+                'error' => $ex->getMessage(),
                 'status' => 404,
             ]);
         }
@@ -230,7 +252,6 @@ class ApiTicketController extends Controller
     public function bookTicket(Request $request, $id)
     {
         try {
-            Log::info($request->all());
             $pnr_number = getTrx(10);
 
 
@@ -353,7 +374,6 @@ class ApiTicketController extends Controller
             $response = getBoardingPoints($SearchTokenID, $ResultIndex, "192.168.12.1");
             if ($response["Error"]["ErrorCode"] == 0) {
                 $resp = $response["Result"];
-                Log::info($resp);
                 return response()->json([
                     'boarding_points' => $resp["BoardingPointsDetails"],
                     "dropping_points" => $resp["DroppingPointsDetails"]
@@ -377,26 +397,25 @@ class ApiTicketController extends Controller
             $request->validate([
                 'SearchTokenId' => 'required',
                 'ResultIndex' => 'required',
+                'UserIp' => 'required|string',
                 'BoardingPointId' => 'required',
                 'DroppingPointId' => 'required',
-                'Gender' => 'required|in:0,1',
                 'Seats' => 'required|string',
-                'Phoneno' => 'required',
                 'FirstName' => 'required',
                 'LastName' => 'required',
+                'Gender' => 'required|in:0,1',
                 'Email' => 'required|email',
-                'TravelName' => 'required|string',
-                'BusType' => 'required|string',
-                'DepartureTime' => 'required|string',
-                'ArrivalTime' => 'required|string',
-                'DateOfJourney' => 'required|date',
+                'Phoneno' => 'required',
+                'age' => 'nullable|integer',
+
+
             ]);
 
             Log::info('Block Seat Request:', ['request' => $request->all()]);
 
             // Register or log in the user
             if (!Auth::check()) {
-                $fullPhone = '91' . $request->Phoneno;
+                $fullPhone = $request->Phoneno;
                 $user = User::firstOrCreate(
                     ['mobile' => $fullPhone],
                     [
@@ -450,6 +469,7 @@ class ApiTicketController extends Controller
                 $request->ip()
             );
 
+            Log::info('Block Seat Response:', ['response' => $response]);
             if (!$response['success']) {
                 return response()->json([
                     'success' => false,
@@ -459,7 +479,10 @@ class ApiTicketController extends Controller
             }
 
             // Calculate total fare from the blocked seat response
-            $totalFare = collect($response['Result']['Passenger'])->sum('Fare');
+            $totalFare = collect($response['Result']['Passenger'])->sum(function ($passenger) {
+                // PublishedPrice includes BasePrice, Tax, and OtherCharges.
+                return $passenger['Seat']['Price']['PublishedPrice'] ?? 0;
+            });
 
             Log::info('Total Fare Calculated: ' . $totalFare);
             // Create a pending ticket in the database
@@ -467,23 +490,19 @@ class ApiTicketController extends Controller
             $bookedTicket->user_id = Auth::id();
             $bookedTicket->pnr_number = getTrx(10);
             $bookedTicket->operator_pnr = $response['Result']['BookingId'] ?? null;
-            $bookedTicket->seats = $seats;
+            $bookedTicket->seats = $seats; // This will be cast to array by the model
             $bookedTicket->ticket_count = count($seats);
             $bookedTicket->sub_total = $totalFare;
-            $bookedTicket->total_fare = $totalFare; // Assuming no other charges for now
             $bookedTicket->pickup_point = $request->BoardingPointId;
             $bookedTicket->dropping_point = $request->DroppingPointId;
-            $bookedTicket->date_of_journey = Carbon::parse($request->DateOfJourney)->format('Y-m-d');
+            $bookedTicket->date_of_journey = Carbon::parse($response['Result']['DepartureTime'])->format('Y-m-d');
             $bookedTicket->status = 0; // 0 for pending
-            $bookedTicket->booking_source = 'api';
             $bookedTicket->travel_name = $request->TravelName;
             $bookedTicket->bus_type = $request->BusType;
             $bookedTicket->departure_time = $request->DepartureTime;
             $bookedTicket->arrival_time = $request->ArrivalTime;
             $bookedTicket->boarding_point_details = json_encode($request->boarding_point_details);
             $bookedTicket->dropping_point_details = json_encode($request->dropping_point_details);
-            $bookedTicket->search_token_id = $request->SearchTokenId;
-            $bookedTicket->result_index = $request->ResultIndex;
             $bookedTicket->save();
 
             // Initialize Razorpay
@@ -852,4 +871,5 @@ class ApiTicketController extends Controller
             ];
         })->toArray();
     }
+
 }

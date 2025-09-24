@@ -916,42 +916,45 @@ function urlPath($routeName, $routeParam = null)
 
 function sendOtp($mobile, $otp, $userName = "Guest")
 {
-    $apiUrl = env('WHATSAPP_API_URL');
-    $apiKey = env('WHATSAPP_API_KEY');
-    // $otp    = (string) rand(100000, 999999);
+    try {
+        $apiUrl = env('WHATSAPP_API_URL');
+        $apiKey = env('WHATSAPP_API_KEY');
+        // $otp    = (string) rand(100000, 999999);
 
-    $payload = [
-        "apiKey" => $apiKey,
-        "campaignName" => "whatsapp_otp",
-        "destination" => "91{$mobile}",
-        "userName" => $userName,
-        "templateParams" => [$otp],
-        "source" => "new-landing-page form",
-        "media" => [],
-        "buttons" => [
-            [
-                "type" => "button",
-                "sub_type" => "url",
-                "index" => 0,
-                "parameters" => [
-                    [
-                        "type" => "text",
-                        "text" => $otp, // Replace with dynamic or fixed value if needed
+        $payload = [
+            "apiKey" => $apiKey,
+            "campaignName" => "whatsapp_otp",
+            "destination" => "91{$mobile}",
+            "userName" => $userName,
+            "templateParams" => [$otp],
+            "source" => "new-landing-page form",
+            "media" => [],
+            "buttons" => [
+                [
+                    "type" => "button",
+                    "sub_type" => "url",
+                    "index" => 0,
+                    "parameters" => [
+                        [
+                            "type" => "text",
+                            "text" => $otp, // Replace with dynamic or fixed value if needed
+                        ],
                     ],
-                ],
-            ]
-        ],
-        "carouselCards" => [],
-        "location" => [],
-        "paramsFallbackValue" => ["FirstName" => "user"],
-    ];
+                ]
+            ],
+            "carouselCards" => [],
+            "location" => [],
+            "paramsFallbackValue" => ["FirstName" => "user"],
+        ];
 
-    $response = Http::post($apiUrl, $payload);
-    if ($response->successful()) {
-        return $otp; // Return OTP if the API call succeeds
-    } else {
-        throw new \Exception("Failed to send OTP. Error: " . $response->body());
-        return $response->body();
+        $response = Http::post($apiUrl, $payload);
+        if ($response->successful()) {
+            return $otp; // Return OTP if the API call succeeds
+        } else {
+            throw new \Exception("Failed to send OTP. Error: " . $response->body());
+        }
+    } catch (\Exception $e) {
+        Log::error("Failed to send OTP: " . $e->getMessage());
     }
 }
 

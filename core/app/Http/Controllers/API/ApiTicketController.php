@@ -483,26 +483,43 @@ class ApiTicketController extends Controller
                 // PublishedPrice includes BasePrice, Tax, and OtherCharges.
                 return $passenger['Seat']['Price']['PublishedPrice'] ?? 0;
             });
+            $unitPrice = collect($response['Result']['Passenger'])->sum(function ($passenger) {
+                // PublishedPrice includes BasePrice, Tax, and OtherCharges.
+                return $passenger['Seat']['Price']['OfferedPrice'] ?? 0;
+            });
 
             Log::info('Total Fare Calculated: ' . $totalFare);
             // Create a pending ticket in the database
             $bookedTicket = new BookedTicket();
             $bookedTicket->user_id = Auth::id();
-            $bookedTicket->pnr_number = getTrx(10);
-            $bookedTicket->operator_pnr = $response['Result']['BookingId'] ?? null;
+            $bookedTicket->bus_type = $response['Result']['BusType'];
+            $bookedTicket->travel_name = $response['Result']['TravelName'];
+            $bookedTicket->departure_time = $response['Result']['DepartureTime'];
+            $bookedTicket->arrival_time = $response['Result']['ArrivalTime'];
+            $bookedTicket->operator_pnr = $response['Result']['BookingId'] ?? null; //update on time of booking
+            $bookedTicket->boarding_point_details = $response['Result']['BoardingPointdetails'];
+            // $bookedTicket->dropping_point_details = $response['Result']['DroppingPointsdetails']; //update on time of booking
             $bookedTicket->seats = $seats; // This will be cast to array by the model
             $bookedTicket->ticket_count = count($seats);
+            $bookedTicket->unit_price = $unitPrice;
             $bookedTicket->sub_total = $totalFare;
+            $bookedTicket->pnr_number = getTrx(10);
             $bookedTicket->pickup_point = $request->BoardingPointId;
             $bookedTicket->dropping_point = $request->DroppingPointId;
             $bookedTicket->date_of_journey = Carbon::parse($response['Result']['DepartureTime'])->format('Y-m-d');
+            $bookedTicket->passenger_names = $response['Result']['Passenger'][''];
+            // TODO: modify to get names of all passengers
+            $bookedTicket->passenger_phone = $response['Result']['Passenger'][''][''];
+            // TODO: modify to get phone number of lead passenger
+            $bookedTicket->passenger_email = $response['Result']['Passenger'][''][''][''];
+            // TODO: modify to get email of lead passenger otherwise provide null
+            $bookedTicket->passenger_address = $response['']['Passenger'][''][''][''];
+            // TODO: modify to get address of lead passenger otherwise provide null
+            $bookedTicket->passenger_name = $response[''][''][''][''][''];
+            // TODO: modify to get name of lead passenger otherwise provide null
+            $bookedTicket->passenger_age = $response[''][''][''][''][''];
+            // TODO: modify to get age of lead passenger otherwise provide null
             $bookedTicket->status = 0; // 0 for pending
-            $bookedTicket->travel_name = $request->TravelName;
-            $bookedTicket->bus_type = $request->BusType;
-            $bookedTicket->departure_time = $request->DepartureTime;
-            $bookedTicket->arrival_time = $request->ArrivalTime;
-            $bookedTicket->boarding_point_details = json_encode($request->boarding_point_details);
-            $bookedTicket->dropping_point_details = json_encode($request->dropping_point_details);
             $bookedTicket->save();
 
             // Initialize Razorpay

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ManageTripController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\SiteController;
+use App\Http\Controllers\API\UserController;
 
 Route::get('/clear', function () {
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
@@ -450,8 +451,8 @@ Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 've
 Route::get('/admin/markup', [SiteController::class, 'showMarkupPage'])->name('admin.markup');
 
 // Add these routes to your web.php file
-Route::post('/send-otp', [OtpController::class, 'sendOtp'])->name('send.otp');
-Route::post('/verify-otp', [OtpController::class, 'verifyOtp'])->name('verify.otp');
+Route::post('/send-otp', [UserController::class, 'sendOTP'])->name('send.otp');
+Route::post('/verify-otp', [UserController::class, 'verifyOtp'])->name('verify.otp');
 // Add this to your routes/web.php file
 
 

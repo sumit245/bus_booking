@@ -19,7 +19,7 @@ class UserController extends Controller
     public function sendOTP(Request $request)
     {
         $this->validatePhone($request);
-
+        Log::info("Sending OTP to", ["phone" => $request->all()]);
         try {
             // Generate OTP
             $otp = (string) rand(100000, 999999);
@@ -38,7 +38,7 @@ class UserController extends Controller
 
 
             // Send OTP via WhatsApp API
-            sendOtp($request->mobile_number, $otp, $request->user_name, );
+            sendOtp($request->mobile_number, $otp);
 
             return response()->json([
                 'message' => 'OTP sent successfully to ' . $request->mobile_number,

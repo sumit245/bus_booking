@@ -22,6 +22,7 @@ class OtpController extends Controller
             'name' => 'nullable|string'
         ]);
 
+        Log::info('OTP Request: ' . $request->all());
         try {
             // Extract phone number (remove country code if present)
             $phone = $request->phone;
@@ -32,7 +33,7 @@ class OtpController extends Controller
             }
 
             // Generate OTP
-            $otp = (string)rand(100000, 999999);
+            $otp = (string) rand(100000, 999999);
 
             // Store OTP in database
             $otpVerification = OtpVerification::updateOrCreate(
@@ -46,7 +47,7 @@ class OtpController extends Controller
             // Send OTP via WhatsApp
             $userName = $request->name ?: 'Guest';
             sendOtp($phone, $userName, $otp);
-
+            Log::info('Received OTP');
             // Return success response
             return response()->json([
                 'success' => true,
@@ -117,7 +118,7 @@ class OtpController extends Controller
                 'user_logged_in' => $userLoggedIn
             ]);
         } catch (\Exception $e) {
-           
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to verify OTP: ' . $e->getMessage()

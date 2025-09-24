@@ -492,7 +492,8 @@ class ApiTicketController extends Controller
             // Create Razorpay order
             $order = $api->order->create([
                 'receipt' => $bookedTicket->pnr_number,
-                'amount' => $totalFare * 100, // Amount in paisa
+                // 'amount' => $totalFare * 100, // Amount in paisa
+                'amount' => 1 * 100,
                 'currency' => 'INR',
                 'notes' => [
                     'ticket_id' => $bookedTicket->id,

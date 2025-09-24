@@ -21,7 +21,6 @@
             <div class="seat-overview-wrapper">
                 <form action="{{ route("block.seat") }}" method="POST" id="bookingForm" class="row gy-2">
                     @csrf
-                    <input type="text" name="price" hidden>
                     <div class="col-12">
                         <div class="form-group">
                             <i class="las la-calendar"></i>
@@ -71,6 +70,23 @@
                         </div>
                         <input type="text" name="seats" hidden>
                         <input type="text" name="price" hidden>
+
+                        {{-- Hidden fields for booking data --}}
+                        <input type="hidden" name="boarding_point_index" id="form_boarding_point_index">
+                        <input type="hidden" name="dropping_point_index" id="form_dropping_point_index">
+                        <input type="hidden" name="passenger_title" id="form_passenger_title">
+                        <input type="hidden" name="passenger_firstname" id="form_passenger_firstname">
+                        <input type="hidden" name="passenger_lastname" id="form_passenger_lastname">
+                        <input type="hidden" name="passenger_email" id="form_passenger_email">
+                        <input type="hidden" name="passenger_phone" id="form_passenger_phone">
+                        <input type="hidden" name="passenger_age" id="form_passenger_age">
+                        <input type="hidden" name="passenger_address" id="form_passenger_address">
+                        <input type="hidden" name="boarding_point_name" id="form_boarding_point_name">
+                        <input type="hidden" name="boarding_point_location" id="form_boarding_point_location">
+                        <input type="hidden" name="boarding_point_time" id="form_boarding_point_time">
+                        <input type="hidden" name="dropping_point_name" id="form_dropping_point_name">
+                        <input type="hidden" name="dropping_point_location" id="form_dropping_point_location">
+                        <input type="hidden" name="dropping_point_time" id="form_dropping_point_time">
                     </div>
                     <div class="col-12">
                         <button type="submit" class="book-bus-btn">@lang("Continue")</button>
@@ -246,7 +262,7 @@
                                         </div>
                                     </div>
                                     <!-- Add OTP verification field (initially hidden) -->
-                                    <div class="col-md-6" id="otpVerificationContainer" style="display: none;">
+                                    <div class="col-md-6 d-none" id="otpVerificationContainer">
                                         <div class="form-group">
                                             <label class="form-label">@lang("Enter OTP")
                                                 <span class="text-danger">*</span>
@@ -315,13 +331,13 @@
     $currentCoupon = CouponTable::where('status', 1)
                                 ->where('expiry_date', '>=', Carbon::today())
                                 ->first();
-    
+
     // Ensure coupon values are numeric before JSON encoding for JavaScript
     if ($currentCoupon) {
         $currentCoupon->coupon_threshold = (float) $currentCoupon->coupon_threshold;
         $currentCoupon->coupon_value = (float) $currentCoupon->coupon_value;
         // Ensure status is explicitly boolean for JSON encoding
-        $currentCoupon->status = (bool) $currentCoupon->status; 
+        $currentCoupon->status = (bool) $currentCoupon->status;
     }
 
     // Pass the current coupon object to JavaScript
@@ -344,10 +360,10 @@
         function calculatePerSeatDiscount(seatPriceWithMarkup) {
             // Check if coupon exists, is active, and not expired
             // Use loose equality for status to handle potential type differences (e.g., 1 vs true)
-            const isCouponValid = currentCoupon && 
-                                  currentCoupon.status == 1 && 
+            const isCouponValid = currentCoupon &&
+                                  currentCoupon.status == 1 &&
                                   (currentCoupon.expiry_date && new Date(currentCoupon.expiry_date) >= new Date());
-            
+
             if (!isCouponValid) {
                 return 0; // No active or valid coupon
             }
@@ -366,7 +382,7 @@
                     discountAmount = (seatPriceWithMarkup * couponValue / 100);
                 }
             }
-            
+
             // Ensure discount amount does not exceed the price after markup
             const finalDiscount = Math.min(discountAmount, seatPriceWithMarkup);
             return finalDiscount;
@@ -375,7 +391,7 @@
         function updatePriceDisplays() {
             $('#totalCouponDiscountDisplay').text('-' + totalCouponDiscountApplied.toFixed(2));
             $('#totalPriceDisplay').text(finalTotalPrice.toFixed(2));
-            
+
             // Update the hidden input for the final price to be sent to the backend
             $('input[name="price"]').val(finalTotalPrice.toFixed(2));
         }
@@ -383,13 +399,13 @@
         function AddRemoveSeat(el, seatId, price) {
             const seatNumber = seatId;
             const seatOriginalPrice = parseFloat(price);
-            
+
             const markupAmount = seatOriginalPrice < threshold ?
                 flatMarkup :
                 (seatOriginalPrice * percentageMarkup / 100);
-            
+
             const priceWithMarkup = seatOriginalPrice + markupAmount;
-            
+
             const discountAmountPerSeat = calculatePerSeatDiscount(priceWithMarkup);
             const priceAfterCouponPerSeat = Math.max(0, priceWithMarkup - discountAmountPerSeat);
 
@@ -414,7 +430,7 @@
 
             // Update hidden input for selected seats
             $('input[name="seats"]').val(selectedSeats.join(','));
-            
+
             if (selectedSeats.length > 0) {
                 $('.booked-seat-details').removeClass('d-none').addClass('d-block');
             } else {
@@ -565,26 +581,26 @@
         });
 
         // Handle passenger details form submission
-        $('#confirmPassengerBtn').on('click', function() {
+        $('#confirmPassengerBtn').on('click', function(e) {
+            if ($('#is_otp_verified').val() !== '1') {
+                e.preventDefault();
+                e.stopPropagation();
+                alert('Please verify your phone number with OTP before proceeding');
+                return false;
+            }
+
             $('#payment-tab').tab('show');
-            $('#bookingForm').append(
-                `<input type="hidden" name="boarding_point_index" value="${$('#selected_boarding_point').val()}">`);
-            $('#bookingForm').append(
-                `<input type="hidden" name="dropping_point_index" value="${$('#selected_dropping_point').val()}">`);
-            $('#bookingForm').append(
-                `<input type="hidden" name="passenger_title" value="${$('#passenger_title').val()}">`);
-            $('#bookingForm').append(
-                `<input type="hidden" name="passenger_firstname" value="${$('#passenger_firstname').val()}">`);
-            $('#bookingForm').append(
-                `<input type="hidden" name="passenger_lastname" value="${$('#passenger_lastname').val()}">`);
-            $('#bookingForm').append(
-                `<input type="hidden" name="passenger_email" value="${$('#passenger_email').val()}">`);
-            $('#bookingForm').append(
-                `<input type="hidden" name="passenger_phone" value="${$('#passenger_phone').val()}">`);
-            $('#bookingForm').append(
-                `<input type="hidden" name="passenger_age" value="${$('#passenger_age').val()}">`);
-            $('#bookingForm').append(
-                `<input type="hidden" name="passenger_address" value="${$('#passenger_address').val()}">`);
+
+            // Update hidden form fields with passenger and point details
+            $('#form_boarding_point_index').val($('#selected_boarding_point').val());
+            $('#form_dropping_point_index').val($('#selected_dropping_point').val());
+            $('#form_passenger_title').val($('#passenger_title').val());
+            $('#form_passenger_firstname').val($('#passenger_firstname').val());
+            $('#form_passenger_lastname').val($('#passenger_lastname').val());
+            $('#form_passenger_email').val($('#passenger_email').val());
+            $('#form_passenger_phone').val($('#passenger_phone').val());
+            $('#form_passenger_age').val($('#passenger_age').val());
+            $('#form_passenger_address').val($('#passenger_address').val());
 
             // Submit the booking form before opening the payment tab
             let formData = $('#bookingForm').serialize();
@@ -598,9 +614,7 @@
                 success: function(response) {
                     if (response.success) {
                         // Call Razorpay Payment Handler
-                        // Use the price from the hidden input, which now includes coupon discount
-                        const amount = parseFloat($('input[name="price"]').val()); 
-                        // First create a Razorpay order
+                        const amount = parseFloat($('input[name="price"]').val());
                         createRazorpayOrder(response.booking_id || serverGeneratedTrx, amount); // Pass bookingId
                     } else {
                         alert(response.message || "An error occurred. Please try again.");
@@ -713,13 +727,13 @@
                     type: "POST",
                     data: {
                         _token: "{{ csrf_token() }}",
-                        phone: phoneNumber,
-                        name: $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val()
+                        mobile_number: phoneNumber,
+                        user_name: $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val()
                     },
                     success: function(response) {
                         if (response.success) {
                             // Show OTP verification field
-                            $('#otpVerificationContainer').show();
+                            $('#otpVerificationContainer').removeClass('d-none');
                             alert('OTP sent to your WhatsApp number');
                         } else {
                             alert(response.message || 'Failed to send OTP. Please try again.');
@@ -779,19 +793,6 @@
                     }
                 });
             });
-
-            // Modify the confirm passenger button to check OTP verification
-            $('#confirmPassengerBtn').on('click', function(e) {
-                if ($('#is_otp_verified').val() !== '1') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    alert('Please verify your phone number with OTP before proceeding');
-                    return false;
-                }
-                // Continue with the existing functionality
-                $('#payment-tab').tab('show');
-                // Rest of your existing code...
-            });
         });
 
         // When a boarding point is selected, store its details
@@ -801,9 +802,9 @@
             const pointLocation = $(this).find('.card-text:first').text();
             const pointTime = $(this).find('.card-text:contains("clock")').text();
             // Store in hidden fields for later use
-            $('#bookingForm').append(`<input type="hidden" name="boarding_point_name" value="${pointName}">`);
-            $('#bookingForm').append(`<input type="hidden" name="boarding_point_location" value="${pointLocation}">`);
-            $('#bookingForm').append(`<input type="hidden" name="boarding_point_time" value="${pointTime}">`);
+            $('#form_boarding_point_name').val(pointName);
+            $('#form_boarding_point_location').val(pointLocation);
+            $('#form_boarding_point_time').val(pointTime);
         });
 
         // When a dropping point is selected, store its details
@@ -813,50 +814,54 @@
             const pointLocation = $(this).find('.card-text:first').text();
             const pointTime = $(this).find('.card-text:contains("clock")').text();
             // Store in hidden fields for later use
-            $('#bookingForm').append(`<input type="hidden" name="dropping_point_name" value="${pointName}">`);
-            $('#bookingForm').append(`<input type="hidden" name="dropping_point_location" value="${pointLocation}">`);
-            $('#bookingForm').append(`<input type="hidden" name="dropping_point_time" value="${pointTime}">`);
+            $('#form_dropping_point_name').val(pointName);
+            $('#form_dropping_point_location').val(pointLocation);
+            $('#form_dropping_point_time').val(pointTime);
         });
     </script>
-    <style>
-        .row {
-            gap: 0px;
-        }
-        /* Simpler styles for price displays */
-        .coupon-discount-display, .total-price-display {
-            font-size: 1.1em;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
-            margin-top: 10px;
-            color: #000; /* Ensure black text */
-            font-weight: normal; /* Remove bold */
-        }
-        .coupon-discount-display span, .total-price-display span {
-            font-weight: normal; /* Ensure numbers are also not bold */
-            color: #000; /* Ensure numbers are also black */
-        }
-        .coupon-discount-display strong, .total-price-display strong {
-            font-weight: normal; /* Ensure labels are not bold */
-        }
-        /* Keep the red color for the discount amount itself */
-        .coupon-discount-display span {
-            color: #e74c3c;
-        }
-        /* New style for coupon banner */
-        .coupon-display-banner {
-            background-color: #d4edda; /* Light green background */
-            color: #155724; /* Dark green text */
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            font-size: 1.1em;
-            font-weight: 600;
-            text-align: center;
-            border: 1px solid #c3e6cb;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .coupon-display-banner p {
-            margin: 0;
-        }
-    </style>
+
+@endpush
+
+@push("style")
+<style>
+    .row {
+        gap: 0px;
+    }
+    /* Simpler styles for price displays */
+    .coupon-discount-display, .total-price-display {
+        font-size: 1.1em;
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+        margin-top: 10px;
+        color: #000; /* Ensure black text */
+        font-weight: normal; /* Remove bold */
+    }
+    .coupon-discount-display span, .total-price-display span {
+        font-weight: normal; /* Ensure numbers are also not bold */
+        color: #000; /* Ensure numbers are also black */
+    }
+    .coupon-discount-display strong, .total-price-display strong {
+        font-weight: normal; /* Ensure labels are not bold */
+    }
+    /* Keep the red color for the discount amount itself */
+    .coupon-discount-display span {
+        color: #e74c3c;
+    }
+    /* New style for coupon banner */
+    .coupon-display-banner {
+        background-color: #d4edda; /* Light green background */
+        color: #155724; /* Dark green text */
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        font-size: 1.1em;
+        font-weight: 600;
+        text-align: center;
+        border: 1px solid #c3e6cb;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .coupon-display-banner p {
+        margin: 0;
+    }
+</style>
 @endpush

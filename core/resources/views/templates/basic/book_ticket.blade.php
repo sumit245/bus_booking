@@ -252,9 +252,9 @@
                                                 <span class="text-danger">*</span>
                                             </label>
                                             <div class="input-group">
-                                                <input type="tel" class="form--control" id="passenger_phone" name="passenger_phone"
+                                                <input type="tel" class="form--control my-2" id="passenger_phone" name="passenger_phone"
                                                     placeholder="@lang("Enter Phone Number")" value="">
-                                                <button type="button" class="btn btn--base" id="sendOtpBtn">
+                                                <button type="button" class="btn btn--danger btn--sm" id="sendOtpBtn">
                                                     @lang("Send OTP")
                                                 </button>
                                             </div>
@@ -270,7 +270,7 @@
                                             <div class="input-group">
                                                 <input type="text" class="form--control" id="otp_code" name="otp_code"
                                                     placeholder="@lang("Enter OTP sent to WhatsApp")" maxlength="6">
-                                                <button type="button" class="btn btn--base" id="verifyOtpBtn">
+                                                <button type="button" class="btn btn--danger btn--sm" id="verifyOtpBtn">
                                                     @lang("Verify")
                                                 </button>
                                             </div>
@@ -317,19 +317,18 @@
 @endsection
 
 @php
-    // Explicitly import classes within the @php block
     use App\Models\MarkupTable;
     use App\Models\CouponTable;
     use Carbon\Carbon;
 
-    $markupData = MarkupTable::orderBy("id", "desc")->first();
+    $markupData = \App\Models\MarkupTable::orderBy("id", "desc")->first();
     $flatMarkup = isset($markupData->flat_markup) ? (float) $markupData->flat_markup : 0;
     $percentageMarkup = isset($markupData->percentage_markup) ? (float) $markupData->percentage_markup : 0;
     $threshold = isset($markupData->threshold) ? (float) $markupData->threshold : 0;
-
-    // Fetch the current active and unexpired coupon directly in the blade file
-    $currentCoupon = CouponTable::where('status', 1)
-                                ->where('expiry_date', '>=', Carbon::today())
+    
+    // Fetch the current active and unexpired coupon directly in the blade file using fully qualified class names
+    $currentCoupon = \App\Models\CouponTable::where('status', 1)
+                                ->where('expiry_date', '>=', \Carbon\Carbon::today())
                                 ->first();
 
     // Ensure coupon values are numeric before JSON encoding for JavaScript
@@ -356,7 +355,7 @@
         const percentageMarkup = parseFloat("{{ $percentageMarkup }}");
         const threshold = parseFloat("{{ $threshold }}");
         const currentCoupon = {!! $currentCouponJson !!}; // Coupon object from PHP, will be null if no active coupon
-
+        console.log(currentCoupon)
         function calculatePerSeatDiscount(seatPriceWithMarkup) {
             // Check if coupon exists, is active, and not expired
             // Use loose equality for status to handle potential type differences (e.g., 1 vs true)
@@ -731,9 +730,10 @@
                         user_name: $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val()
                     },
                     success: function(response) {
-                        if (response.success) {
+                        console.log(response);
+                        if (response.status===200) {
                             // Show OTP verification field
-                            $('#otpVerificationContainer').removeClass('d-none');
+                            $('#otpVerificationContainer').removeClass('d-none').addClass('d-block');
                             alert('OTP sent to your WhatsApp number');
                         } else {
                             alert(response.message || 'Failed to send OTP. Please try again.');
@@ -766,11 +766,11 @@
                     type: "POST",
                     data: {
                         _token: "{{ csrf_token() }}",
-                        phone: phone,
+                        mobile_number: phone,
                         otp: otp
                     },
                     success: function(response) {
-                        if (response.success) {
+                        if (response.status===200) {
                             // Mark OTP as verified
                             $('#is_otp_verified').val('1');
                             $('#otpVerificationContainer').removeClass('has-error').addClass('has-success');

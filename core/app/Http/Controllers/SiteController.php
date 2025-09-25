@@ -394,13 +394,13 @@ class SiteController extends Controller
             $phone = substr($phone, 2);
         }
 
-        $verifiedPhone = Session::get('otp_verified_phone');
-        if (!$verifiedPhone || $verifiedPhone !== $phone) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Phone number not verified with OTP'
-            ], 400);
-        }
+        // $verifiedPhone = Session::get('otp_verified_phone');
+        // if (!$verifiedPhone || $verifiedPhone !== $phone) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Phone number not verified with OTP'
+        //     ], 400);
+        // }
 
         // Register user if not already registered
         if (!Auth::check()) {

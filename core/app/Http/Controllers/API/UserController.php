@@ -118,63 +118,97 @@ class UserController extends Controller
     // UserController.php
     public function userHistoryByPhone(Request $request)
     {
-        $request->validate([
-            'mobile_number' => ['required', 'string', 'regex:/^[6-9]\d{9}$/']
-        ]);
+        try {
+            $request->validate([
+                'mobile_number' => ['required', 'string', 'regex:/^[6-9]\d{9}$/']
+            ]);
 
-        $user = User::where('mobile', $request->mobile_number)->first();
+            $user = User::where('mobile', $request->mobile_number)->first();
 
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            }
+
+            // Fetch all tickets for the user, including completed and cancelled ones.
+            $tickets = BookedTicket::with([
+                'trip.fleetType',
+                'pickup',
+                'drop'
+            ])
+                ->where('user_id', $user->id)
+                // Explicitly fetch tickets with any status if needed, or filter for specific ones.
+                // ->whereIn('status', [1, 3]) // 1 for Booked, 3 for Cancelled
+                ->orderBy('id', 'desc')
+                ->get();
+
+            Log::info("Fetched tickets", ["tickets" => $tickets]);
+            // Transform the data for a clean API response
+            $formattedTickets = $tickets->map(function ($ticket) {
+                $seats = is_array($ticket->seats) ? $ticket->seats : [];
+                $nameParts = explode(' ', $ticket->passenger_name, 2);
+                $firstName = $nameParts[0] ?? '';
+                $lastName = $nameParts[1] ?? '';
+
+                foreach ($seats as $index => $seat) {
+                    $isLead = ($index === 0);
+                    $passengers[] = [
+                        'LeadPassenger' => $isLead,
+                        'Title' => 'Mr', // Defaulting as gender is not available per passenger
+                        'Address' => $isLead ? $ticket->passenger_address : null,
+                        'Age' => $isLead ? $ticket->passenger_age : null,
+                        'Email' => $isLead ? $ticket->passenger_email : null,
+                        'FirstName' => $firstName,
+                        'Gender' => 1, // Defaulting to Male
+                        'LastName' => $lastName,
+                        'Phoneno' => $isLead ? $ticket->passenger_phone : null,
+                        'Seat' => [
+                            'SeatName' => $seat,
+                            'Price' => $ticket->unit_price, // Price per seat is not available in this context
+                        ],
+                    ];
+                }
+                return [
+                    'pnr_number' => $ticket->pnr_number,
+                    'travel_name' => $ticket->travel_name ?? $ticket->trip->fleetType->name ?? 'N/A',
+                    'bus_type' => $ticket->bus_type ?? 'N/A',
+                    'date_of_journey' => Carbon::parse($ticket->date_of_journey)->format('Y-m-d'),
+                    'departure_time' => $ticket->departure_time ? Carbon::parse($ticket->departure_time)->format('h:i A') : 'N/A',
+                    'arrival_time' => $ticket->arrival_time ? Carbon::parse($ticket->arrival_time)->format('h:i A') : 'N/A',
+                    'duration' => Carbon::parse($ticket->arrival_time)
+                        ->diff($ticket->departure_time)
+                        ->format('%H:%I'),
+                    'boarding_point_details' => $ticket->boarding_point_details ? json_decode($ticket->boarding_point_details) : null,
+                    'boarding_point' => $ticket->origin_city,
+                    'dropping_point_details' => $ticket->dropping_point_details ? json_decode($ticket->dropping_point_details) : null,
+                    'dropping_point' => $ticket->destination_city,
+                    'passengers' => $passengers,
+                    'total_fare' => round((float) $ticket->sub_total, 2),
+                    'status' => $ticket->status == 1 ? 'Booked' : ($ticket->status == 3 ? 'Cancelled' : 'Rejected'),
+                    'booked_at' => $ticket->created_at->toDateTimeString(),
+                    'cancellation_details' => $ticket->status == 3 ? [
+                        'cancelled_at' => $ticket->cancelled_at ? Carbon::parse($ticket->cancelled_at)->toDateTimeString() : null,
+                        'remarks' => $ticket->cancellation_remarks,
+                    ] : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'user' => [
+                    'name' => $user->firstname . ' ' . $user->lastname,
+                    'mobile' => $user->mobile,
+                ],
+                'tickets' => $formattedTickets
+            ]);
+        } catch (\Exception $e) {
+            //throw $th;
+            Log::error('Error in userHistoryByPhone: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'status' => 500,
+            ], 500);
         }
 
-        // Fetch all tickets for the user, including completed and cancelled ones.
-        $tickets = BookedTicket::with([
-            'trip.fleetType',
-            'pickup',
-            'drop'
-        ])
-            ->where('user_id', $user->id)
-            // Explicitly fetch tickets with any status if needed, or filter for specific ones.
-            // ->whereIn('status', [1, 3]) // 1 for Booked, 3 for Cancelled
-            ->orderBy('id', 'desc')
-            ->get();
-
-        // Transform the data for a clean API response
-        $formattedTickets = $tickets->map(function ($ticket) {
-            return [
-                'pnr_number' => $ticket->pnr_number,
-                'operator_pnr' => $ticket->operator_pnr,
-                'travel_name' => $ticket->travel_name ?? $ticket->trip->fleetType->name ?? 'N/A',
-                'bus_type' => $ticket->bus_type ?? 'N/A',
-                'date_of_journey' => Carbon::parse($ticket->date_of_journey)->format('Y-m-d'),
-                'departure_time' => $ticket->departure_time ? Carbon::parse($ticket->departure_time)->format('h:i A') : 'N/A',
-                'arrival_time' => $ticket->arrival_time ? Carbon::parse($ticket->arrival_time)->format('h:i A') : 'N/A',
-                'pickup_point' => $ticket->pickup->name ?? 'N/A',
-                'dropping_point' => $ticket->drop->name ?? 'N/A',
-                'boarding_point_details' => $ticket->boarding_point_details ? json_decode($ticket->boarding_point_details) : null,
-                'boarding_point' => $ticket->boarding_point,
-                'dropping_point_details' => $ticket->dropping_point_details ? json_decode($ticket->dropping_point_details) : null,
-                'dropping_point' => $ticket->dropping_point,
-                'seats' => is_array($ticket->seats) ? implode(', ', $ticket->seats) : $ticket->seats,
-                'ticket_count' => $ticket->ticket_count,
-                'total_fare' => round((float) $ticket->sub_total, 2),
-                'status' => $ticket->status == 1 ? 'Booked' : ($ticket->status == 3 ? 'Cancelled' : 'Pending'),
-                'booked_at' => $ticket->created_at->toDateTimeString(),
-                'cancellation_details' => $ticket->status == 3 ? [
-                    'cancelled_at' => $ticket->cancelled_at ? Carbon::parse($ticket->cancelled_at)->toDateTimeString() : null,
-                    'remarks' => $ticket->cancellation_remarks,
-                ] : null,
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'user' => [
-                'name' => $user->firstname . ' ' . $user->lastname,
-                'mobile' => $user->mobile,
-            ],
-            'tickets' => $formattedTickets
-        ]);
     }
 }

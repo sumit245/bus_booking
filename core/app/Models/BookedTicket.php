@@ -17,7 +17,7 @@ class BookedTicket extends Model
     ];
 
     protected $appends = ['photo'];
-    
+
     protected $fillable = [
         'user_id',
         'gender',
@@ -38,7 +38,22 @@ class BookedTicket extends Model
         'passenger_email',
         'passenger_address',
         'passenger_age',
-        'api_response'
+        'api_response',
+        'boarding_point_details',
+        'dropping_point_details',
+        'search_token_id',
+        'operator_pnr',
+        'bus_type',
+        'travel_name',
+        'api_invoice',
+        'api_invoice_amount',
+        'api_invoice_date',
+        'api_booking_id',
+        'api_ticket_no',
+        'agent_commission',
+        'tds_from_api',
+        'origin_city',
+        'destination_city'
     ];
 
     // Add date mutator to fix invalid dates
@@ -50,36 +65,44 @@ class BookedTicket extends Model
         return $value;
     }
 
-    public function getPhotoAttribute(){
+    public function getPhotoAttribute()
+    {
         return $this->where('status', 0);
     }
 
-    public function trip(){
+    public function trip()
+    {
         return $this->belongsTo(Trip::class);
     }
-    
-    public function pickup(){
+
+    public function pickup()
+    {
         return $this->belongsTo(Counter::class, 'pickup_point');
     }
-    
-    public function drop(){
+
+    public function drop()
+    {
         return $this->belongsTo(Counter::class, 'dropping_point');
     }
 
-    public function user(){
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
     //scope
-    public function scopePending(){
+    public function scopePending()
+    {
         return $this->where('status', 2);
     }
 
-    public function scopeBooked(){
+    public function scopeBooked()
+    {
         return $this->where('status', 1);
     }
 
-    public function scopeRejected(){
+    public function scopeRejected()
+    {
         return $this->where('status', 0);
     }
 }

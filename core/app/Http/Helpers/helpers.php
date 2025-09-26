@@ -1134,6 +1134,9 @@ function blockSeatHelper($SearchTokenID, $ResultIndex, $boardingPointId, $droppi
 function bookAPITicket($userIp, $searchTokenId, $resultIndex, $boardingPointId, $droppingPointId, $passengers)
 {
     try {
+        // Corrected Line 1
+        Log::info('Booking API called with data', ['userIp' => $userIp, 'searchTokenId' => $searchTokenId, 'resultIndex' => $resultIndex, 'boardingPointId' => $boardingPointId, 'droppingPointId' => $droppingPointId, 'passengers' => $passengers]);
+
         $busUrl = env('LIVE_BUS_API') . '/busservice/rest/book';
         $busUser = env('LIVE_BUS_USERNAME');
         $busPass = env('LIVE_BUS_PASSWORD');
@@ -1147,15 +1150,49 @@ function bookAPITicket($userIp, $searchTokenId, $resultIndex, $boardingPointId, 
             'Passenger' => $passengers
         ];
 
+        // Corrected Line 2
+        Log::info('Sending data to ' . $busUrl . ' with user ' . $busUser, ['booking' => $data]);
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Username' => $busUser,
             'Password' => $busPass,
         ])->post($busUrl, $data);
-
+        Log::info('Got Response', ['Response from api' => $response]);
         return $response->json();
     } catch (\Exception $e) {
         Log::error('Book ticket API exception: ' . $e->getMessage());
+        return [
+            'Error' => [
+                'ErrorCode' => 500,
+                'ErrorMessage' => $e->getMessage()
+            ]
+        ];
+    }
+}
+
+function getAPITicketDetails($userIp, $searchTokenId, $bookingId)
+{
+    try {
+        Log::info("I am trying to fetch ticket details");
+        $busUrl = env('LIVE_BUS_API') . '/busservice/rest/getbookingdetail';
+        $busUser = env('LIVE_BUS_USERNAME');
+        $busPass = env('LIVE_BUS_PASSWORD');
+        $data = [
+            'UserIp' => $userIp,
+            'SearchTokenId' => $searchTokenId,
+            'BookingId' => $bookingId
+        ];
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Username' => $busUser,
+            'Password' => $busPass,
+        ])->post($busUrl, $data);
+        Log::info('Got Response', ['Response from api' => $response]);
+        return $response->json();
+
+    } catch (\Exception $e) {
+        Log::error('Get ticket details API exception: ' . $e->getMessage());
         return [
             'Error' => [
                 'ErrorCode' => 500,

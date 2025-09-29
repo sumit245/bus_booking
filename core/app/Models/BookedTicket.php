@@ -53,7 +53,8 @@ class BookedTicket extends Model
         'agent_commission',
         'tds_from_api',
         'origin_city',
-        'destination_city'
+        'destination_city',
+        'cancellation_policy',
     ];
 
     // Add date mutator to fix invalid dates

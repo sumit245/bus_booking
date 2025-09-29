@@ -148,6 +148,10 @@ class UserController extends Controller
                 $nameParts = explode(' ', $ticket->passenger_name, 2);
                 $firstName = $nameParts[0] ?? '';
                 $lastName = $nameParts[1] ?? '';
+                $response = json_decode($ticket->api_response);
+                $booking_id = $response && isset($response->Result->BookingID) ? $response->Result->BookingID : null;
+                $search_token_id = $response && isset($response->SearchTokenId) ? $response->SearchTokenId : null;
+                $userIp = $response && isset($response->UserIp) ? $response->UserIp : null;
 
                 foreach ($seats as $index => $seat) {
                     $isLead = ($index === 0);
@@ -185,6 +189,9 @@ class UserController extends Controller
                     'total_fare' => round((float) $ticket->sub_total, 2),
                     'status' => $ticket->status == 1 ? 'Booked' : ($ticket->status == 3 ? 'Cancelled' : 'Rejected'),
                     'booked_at' => $ticket->created_at->toDateTimeString(),
+                    'booking_id' => $booking_id,
+                    'search_token_id' => $search_token_id,
+                    'user_ip' => $userIp,
                     'cancellation_details' => $ticket->status == 3 ? [
                         'cancelled_at' => $ticket->cancelled_at ? Carbon::parse($ticket->cancelled_at)->toDateTimeString() : null,
                         'remarks' => $ticket->cancellation_remarks,

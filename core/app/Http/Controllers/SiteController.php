@@ -33,9 +33,12 @@ use Exception;
 
 class SiteController extends Controller
 {
-    public function __construct()
+    protected $busService;
+
+    public function __construct(BusService $busService)
     {
         $this->activeTemplate = activeTemplate();
+        $this->busService = $busService;
     }
 
     public function index()
@@ -187,51 +190,44 @@ class SiteController extends Controller
     public function ticketSearch(Request $request)
     {
         try {
-            BusService::validateSearchRequest($request);
+            Log::info($request->all());
 
-            $resp = BusService::fetchAndProcessAPIResponse(
-                $request->OriginId,
-                $request->DestinationId,
-                $request->DateOfJourney,
-                $request->ip()
-            );
+            $validatedData = $request->validate([
+                'OriginId' => 'required|integer',
+                'DestinationId' => 'required|integer|different:OriginId',
+                'DateOfJourney' => 'required|after_or_equal:today',
+                'sortBy' => 'sometimes|string|in:departure,price-low,price-high,duration',
+                'fleetType' => 'sometimes|array',
+                'fleetType.*' => 'string|in:A/c,Non-A/c,Seater,Sleeper',
+                'departure_time' => 'sometimes|array',
+                'departure_time.*' => 'string|in:morning,afternoon,evening,night',
+                'live_tracking' => 'sometimes|boolean',
+                'min_price' => 'sometimes|numeric|min:0',
+                'max_price' => 'sometimes|numeric|gt:min_price',
+            ]);
 
-            BusService::storeSearchSession($request, $resp['SearchTokenId']);
+            // Store key search parameters in session
+            session([
+                'origin_id' => $validatedData['OriginId'],
+                'destination_id' => $validatedData['DestinationId'],
+                'date_of_journey' => $validatedData['DateOfJourney'],
+                'user_ip' => $request->ip(),
+            ]);
 
-            if ($request->DateOfJourney) {
-                $journeyDate = Carbon::parse($request->DateOfJourney)->format('Y-m-d');
-                session()->put('date_of_journey', $journeyDate);
-            }
+            $result = $this->busService->searchBuses($validatedData);
 
-            if (!is_array($resp) || !isset($resp['Result']) || empty($resp['Result'])) {
-                abort(404, 'No buses found for this route and date');
-            }
+            // Store the search token ID
+            session(['search_token_id' => $result['SearchTokenId']]);
 
-            if ($resp['Error']['ErrorCode'] == 0) {
-                $trips = BusService::sortTripsByDepartureTime($resp['Result']);
+            $viewData = $this->prepareAndReturnView($result['trips']);
+            $viewData['currentCoupon'] = BusService::getCurrentCoupon();
 
-                // Apply markup first
-                $trips = BusService::applyMarkup($trips);
+            return view($this->activeTemplate . 'ticket', $viewData);
 
-                // Then apply coupon discount
-                $trips = BusService::applyCoupon($trips);
-
-                if ($request->hasAny(['departure_time', 'amenities', 'min_price', 'max_price', 'fleetType'])) {
-                    $trips = BusService::applyFilters($trips, $request);
-                }
-
-                // Get current coupon for frontend display
-                $currentCoupon = BusService::getCurrentCoupon();
-
-                $viewData = $this->prepareAndReturnView($trips);
-                $viewData['currentCoupon'] = $currentCoupon; // Add coupon data to view
-
-                return view($this->activeTemplate . 'ticket', $viewData);
-            } else {
-                return redirect()->back()->withNotify($resp);
-            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $notify[] = ['error', 'Validation failed. Please check your inputs.'];
+            return redirect()->back()->withNotify($notify)->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::info($request);
             $notify[] = ['error', $e->getMessage()];
             return redirect()->back()->withNotify($notify);
         }
@@ -239,7 +235,6 @@ class SiteController extends Controller
 
     private function prepareAndReturnView($trips)
     {
-        Log::info($trips);
         try {
             $viewData = [
                 'pageTitle' => 'Search Result',
@@ -251,7 +246,7 @@ class SiteController extends Controller
                 'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
             ];
             return $viewData;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $notify[] = ['error', $e->getMessage()];
             return redirect()->back()->withNotify($notify);
         }

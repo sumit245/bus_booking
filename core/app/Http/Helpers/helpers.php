@@ -1238,96 +1238,457 @@ function cancelAPITicket($userIp, $searchTokenId, $bookingId, $seatId, $remarks)
     }
 }
 
+// Replace your current parseSeatHtmlToJson + processDeckSeatNodes with the code below.
+// (Make sure this is placed inside the same file and namespace as your current helpers.php.)
 
-function parseSeatHtmlToJson($html)
-{
-    $crawler = new Crawler($html);
-    $result = [
-        'seat' => [
-            'upper_deck' => ['rows' => []],
-            'lower_deck' => ['rows' => []]
-        ]
-    ];
+if (!function_exists('parseSeatHtmlToJson')) {
+    function parseSeatHtmlToJson(string $html): array
+    {
+        Log::info('--- Starting parseSeatHtmlToJson (robust) ---');
 
-    $crawler->filter('.outerseat, .outerlowerseat')->each(function ($deckNode) use (&$result) {
-        $deck = str_contains($deckNode->attr('class'), 'outerseat') ? 'upper_deck' : 'lower_deck';
-        $rowNumber = 1;
+        if (empty(trim($html))) {
+            Log::warning('HTML input was empty. Returning empty layout.');
+            return ['seat' => ['upper_deck' => ['rows' => []], 'lower_deck' => ['rows' => []]]];
+        }
 
-        $deckNode->filter('.seatcontainer > div')->each(function ($seatNode) use (&$result, $deck, &$rowNumber) {
-            $classes = explode(' ', $seatNode->attr('class') ?? '');
-            $style = $seatNode->attr('style') ?? '';
-            $onclick = $seatNode->attr('onclick') ?? '';
-            $id = $seatNode->attr('id') ?? '';
+        try {
+            $dom = new \DOMDocument();
+            // Ensure encoding is preserved; helps avoid weird DOM reflows
+            @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_NOERROR | LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED);
+            $xpath = new \DOMXPath($dom);
 
-            // Extract position
-            preg_match('/top:\s*(\d+)px/', $style, $topMatch);
-            $top = $topMatch[1] ?? 0;
+            $result = ['seat' => ['upper_deck' => ['rows' => []], 'lower_deck' => ['rows' => []]]];
 
-            // Determine row (each 30px is a new row)
-            $currentRow = floor($top / 30) + 1;
-            if ($currentRow > $rowNumber) {
-                $rowNumber = $currentRow;
+            // GLOBAL outer wrappers: must be global to fetch both wrappers
+            $deckNodes = $xpath->query(
+                '//div[contains(concat(" ", normalize-space(@class), " "), " outerseat ")
+                  or contains(concat(" ", normalize-space(@class), " "), " outerlowerseat ")]'
+            );
+
+            Log::info('[parseSeatHtmlToJson] deck containers found: ' . ($deckNodes ? $deckNodes->length : 0));
+
+            foreach ($deckNodes as $idx => $deckNode) {
+                $classes = ' ' . preg_replace('/\s+/', ' ', trim($deckNode->getAttribute('class'))) . ' ';
+                $isLower = (strpos($classes, ' outerlowerseat ') !== false);
+                $deckKey = $isLower ? 'lower_deck' : 'upper_deck';
+
+                // Debug: log deck snippet if counts misbehave (helpful)
+                if ($idx === 0 || $idx === 1) {
+                    $deckHtml = $dom->saveHTML($deckNode);
+                    Log::info("[parseSeatHtmlToJson] deckIdx={$idx} key={$deckKey} classes='{$classes}' htmlSnippet(length)=" . strlen($deckHtml));
+                }
+
+                // SCOPED inner query (dot starts search from $deckNode)
+                $seatNodes = $xpath->query(
+                    './/div[contains(concat(" ", normalize-space(@class), " "), " busSeatrgt ")]'
+                    . '//div[contains(concat(" ", normalize-space(@class), " "), " busSeat ")]'
+                    . '//div[contains(concat(" ", normalize-space(@class), " "), " seatcontainer ")]/div',
+                    $deckNode
+                );
+
+                Log::info("[parseSeatHtmlToJson] deck={$deckKey} seatNodes=" . ($seatNodes ? $seatNodes->length : 0));
+
+                if ($seatNodes && $seatNodes->length > 0) {
+                    $rows = processDeckSeatNodes($seatNodes, ucfirst($deckKey));
+                    foreach ($rows as $rnum => $rowSeats) {
+                        if (!isset($result['seat'][$deckKey]['rows'][$rnum])) {
+                            $result['seat'][$deckKey]['rows'][$rnum] = [];
+                        }
+                        $result['seat'][$deckKey]['rows'][$rnum] = array_merge($result['seat'][$deckKey]['rows'][$rnum], $rowSeats);
+                    }
+                }
             }
 
-            // Initialize row if not exists
-            if (!isset($result['seat'][$deck]['rows'][$rowNumber])) {
-                $result['seat'][$deck]['rows'][$rowNumber] = [];
+            // Ensure consistent ordering
+            foreach (['upper_deck', 'lower_deck'] as $dk) {
+                if (!isset($result['seat'][$dk]['rows']))
+                    $result['seat'][$dk]['rows'] = [];
+                ksort($result['seat'][$dk]['rows']);
             }
 
-            $seatType = $classes[0] ?? '';
-            $isAvailable = false;
-            $isSleeper = false;
-            $price = 0;
-            $seatId = $id;
-
-            // Determine seat characteristics based on class
-            if ($seatType === 'hseat') {
-                $isSleeper = true;
-                $isAvailable = true;
-            } elseif ($seatType === 'bhseat') {
-                $isSleeper = true;
-                $isAvailable = false;
-            } elseif ($seatType === 'nseat') {
-                $isSleeper = false;
-                $isAvailable = true;
-            } elseif ($seatType === 'bseat') {
-                $isSleeper = false;
-                $isAvailable = false;
-            } elseif ($seatType === 'vseat') {
-                $isSleeper = true;
-                $isAvailable = true;
-            } elseif ($seatType === 'bvseat') {
-                $isSleeper = true;
-                $isAvailable = false;
-            }
-
-            // Override from onclick if available
-            if ($onclick && preg_match("/AddRemoveSeat\(.*?,'(.*?)','(.*?)'/", $onclick, $matches)) {
-                $seatId = $matches[1];
-                $price = (float) $matches[2];
-                // Maintain type from class, only update availability
-                $isAvailable = true;
-            }
-
-            $result['seat'][$deck]['rows'][$rowNumber][] = [
-                'seat_id' => $seatId,
-                'price' => $price,
-                'is_sleeper' => $isSleeper,
-                'type' => $seatType,
-                'category' => $isSleeper ? 'sleeper' : 'seater',
-                'position' => (int) $top,
-                'is_available' => $isAvailable
-            ];
-        });
-    });
-
-    return $result;
+            Log::info('[parseSeatHtmlToJson] finished parsing. upper_rows='
+                . count($result['seat']['upper_deck']['rows']) . ', lower_rows='
+                . count($result['seat']['lower_deck']['rows']));
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('parseSeatHtmlToJson exception: ' . $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine()]);
+            return ['seat' => ['upper_deck' => ['rows' => []], 'lower_deck' => ['rows' => []]]];
+        }
+    }
 }
 
 
-if (!function_exists('formatCancelPolicy')) {
-    function formatCancelPolicy(array $cancelPolicy)
+
+if (!function_exists('processDeckSeatNodes')) {
+    /**
+     * Process seat <div> nodes inside a deck (context: only nodes passed in).
+     * Returns array indexed by row number => array of seat objects.
+     *
+     * @param \DOMNodeList $seatNodes
+     * @param string $deckName
+     * @return array
+     */
+    function processDeckSeatNodes(\DOMNodeList $seatNodes, string $deckName): array
     {
+        Log::info(" -> Starting processDeckSeatNodes for '{$deckName}' deck with {$seatNodes->length} nodes.");
+        $seatsByRow = [];
+
+        $seatTypeMap = [
+            'hseat' => ['is_sleeper' => true, 'is_available' => true],
+            'bhseat' => ['is_sleeper' => true, 'is_available' => false],
+            'nseat' => ['is_sleeper' => false, 'is_available' => true],
+            'bseat' => ['is_sleeper' => false, 'is_available' => false],
+            'vseat' => ['is_sleeper' => true, 'is_available' => true],
+            'bvseat' => ['is_sleeper' => true, 'is_available' => false],
+        ];
+
+        foreach ($seatNodes as $node) {
+            $style = $node->getAttribute('style');
+            if (!$style || strpos($style, 'top:') === false) {
+                // skip nodes that don't have position info
+                continue;
+            }
+
+            // extract top/left (position)
+            preg_match('/top:\s*([0-9]+)px/', $style, $topMatch);
+            $top = (int) ($topMatch[1] ?? 0);
+            $rowNumber = floor($top / 30) + 1;
+
+            preg_match('/left:\s*([0-9]+)px/', $style, $leftMatch);
+            $left = (int) ($leftMatch[1] ?? 0);
+
+            // pick seat type from the token list (don't assume it's the first token)
+            $classesStr = $node->getAttribute('class') ?? '';
+            $tokens = preg_split('/\s+/', trim($classesStr));
+            $seatType = '';
+            foreach ($tokens as $t) {
+                if (isset($seatTypeMap[$t])) {
+                    $seatType = $t;
+                    break;
+                }
+            }
+            // fallback: first token or empty
+            if (!$seatType)
+                $seatType = $tokens[0] ?? '';
+
+            $seatDetails = $seatTypeMap[$seatType] ?? ['is_sleeper' => false, 'is_available' => false];
+
+            $seatId = $node->getAttribute('id') ?? '';
+            $price = 0.0;
+            $onclick = $node->getAttribute('onclick') ?? '';
+
+            // safer onclick parsing (looks for AddRemoveSeat(...,'seatId','price')
+            if ($onclick && preg_match("/AddRemoveSeat\([^,]*,\s*'([^']+)'\s*,\s*'([^']+)'/", $onclick, $m)) {
+                $seatId = $m[1];
+                // remove comma thousand separators if any and coerce to float
+                $price = (float) str_replace(',', '', $m[2]);
+                // mark available if AddRemoveSeat exists
+                $seatDetails['is_available'] = true;
+            }
+
+            $seatsByRow[$rowNumber][] = [
+                'seat_id' => $seatId,
+                'price' => $price,
+                'is_sleeper' => $seatDetails['is_sleeper'],
+                'type' => $seatType,
+                'category' => $seatDetails['is_sleeper'] ? 'sleeper' : 'seater',
+                'position' => $top,
+                'is_available' => $seatDetails['is_available'],
+                '_left' => $left, // temporary helper used for sorting
+            ];
+        }
+
+        // sort seats left->right within each row, remove helper field
+        foreach ($seatsByRow as &$row) {
+            usort($row, fn($a, $b) => $a['_left'] <=> $b['_left']);
+            foreach ($row as &$s)
+                unset($s['_left']);
+        }
+        unset($row, $s);
+
+        ksort($seatsByRow);
+        Log::info(" -> Finished processDeckSeatNodes for '{$deckName}' deck. Processed into " . count($seatsByRow) . " rows.");
+        return $seatsByRow;
+    }
+}
+
+
+// if (!function_exists('parseSeatHtmlToJson')) {
+//     /**
+//      * Parses raw HTML of a bus seat layout into a structured JSON-like array.
+//      * This version includes detailed logging and a corrected XPath query to
+//      * properly distinguish between upper and lower decks.
+//      *
+//      * @param string $html The raw HTML string of the seat layout.
+//      * @return array The structured array representing the seat layout.
+//      */
+//     function parseSeatHtmlToJson(string $html): array
+//     {
+//         Log::info('--- Starting parseSeatHtmlToJson ---');
+//         if (empty(trim($html))) {
+//             Log::warning('HTML input was empty. Returning empty layout.');
+//             return [
+//                 'seat' => [
+//                     'upper_deck' => ['rows' => []],
+//                     'lower_deck' => ['rows' => []]
+//                 ]
+//             ];
+//         }
+
+//         try {
+//             $dom = new \DOMDocument();
+//             @$dom->loadHTML($html, LIBXML_NOERROR | LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+//             $xpath = new \DOMXPath($dom);
+
+//             $result = [
+//                 'seat' => [
+//                     'upper_deck' => ['rows' => []],
+//                     'lower_deck' => ['rows' => []]
+//                 ]
+//             ];
+
+//             // 1. Process lower deck
+//             // This query robustly finds any div that has the 'outerlowerseat' class, even if other classes are present.
+//             $lowerDeckSeatNodes = $xpath->query('//div[contains(concat(" ", normalize-space(@class), " "), " outerlowerseat ")]//div[contains(@class, "seatcontainer")]/div');
+//             Log::info('[1/3] Lower Deck Query: Found ' . ($lowerDeckSeatNodes ? $lowerDeckSeatNodes->length : '0') . ' seat nodes.');
+//             if ($lowerDeckSeatNodes && $lowerDeckSeatNodes->length > 0) {
+//                 $result['seat']['lower_deck']['rows'] = processDeckSeatNodes($lowerDeckSeatNodes, 'Lower');
+//             }
+
+//             // 2. Process upper deck
+//             // THE DEFINITIVE FIX: This query is now robust. It finds any div that:
+//             //   a) HAS the class 'outerseat'.
+//             //   b) AND explicitly DOES NOT HAVE the class 'outerlowerseat'.
+//             // This correctly separates the decks, solving the root cause of all previous issues.
+//             $upperDeckSeatNodes = $xpath->query('//div[contains(concat(" ", normalize-space(@class), " "), " outerseat ") and not(contains(concat(" ", normalize-space(@class), " "), " outerlowerseat "))]//div[contains(@class, "seatcontainer")]/div');
+//             Log::info('[2/3] Upper Deck Query: Found ' . ($upperDeckSeatNodes ? $upperDeckSeatNodes->length : '0') . ' seat nodes.');
+//             if ($upperDeckSeatNodes && $upperDeckSeatNodes->length > 0) {
+//                 $result['seat']['upper_deck']['rows'] = processDeckSeatNodes($upperDeckSeatNodes, 'Upper');
+//             }
+
+//             Log::info('[3/3] Parsing Complete. Final counts -> Lower Deck Rows: ' . count($result['seat']['lower_deck']['rows']) . ', Upper Deck Rows: ' . count($result['seat']['upper_deck']['rows']));
+//             Log::info('--- Finished parseSeatHtmlToJson ---');
+//             return $result;
+
+//         } catch (\Throwable $e) {
+//             Log::error('A critical error occurred during HTML parsing.', [
+//                 'message' => $e->getMessage(),
+//                 'file' => $e->getFile(),
+//                 'line' => $e->getLine()
+//             ]);
+//             return [
+//                 'seat' => [
+//                     'upper_deck' => ['rows' => []],
+//                     'lower_deck' => ['rows' => []]
+//                 ]
+//             ];
+//         }
+//     }
+// }
+
+// if (!function_exists('processDeckSeatNodes')) {
+//     /**
+//      * Internal helper to process a list of seat nodes for a single deck.
+//      * @param \DOMNodeList $seatNodes The list of seat <div> nodes.
+//      * @param string $deckName A simple name for logging purposes ('Upper' or 'Lower').
+//      * @return array An associative array of rows.
+//      */
+//     function processDeckSeatNodes(\DOMNodeList $seatNodes, string $deckName): array
+//     {
+//         Log::info(" -> Starting processDeckSeatNodes for '{$deckName}' deck with {$seatNodes->length} nodes.");
+//         $seatsByRow = [];
+//         $seatTypeMap = [
+//             'hseat' => ['is_sleeper' => true, 'is_available' => true],
+//             'bhseat' => ['is_sleeper' => true, 'is_available' => false],
+//             'nseat' => ['is_sleeper' => false, 'is_available' => true],
+//             'bseat' => ['is_sleeper' => false, 'is_available' => false],
+//             'vseat' => ['is_sleeper' => true, 'is_available' => true],
+//             'bvseat' => ['is_sleeper' => true, 'is_available' => false],
+//         ];
+
+//         foreach ($seatNodes as $node) {
+//             $style = $node->getAttribute('style');
+//             if (!$style || strpos($style, 'top:') === false)
+//                 continue;
+
+//             preg_match('/top:\s*(\d+)px/', $style, $topMatch);
+//             $top = (int) ($topMatch[1] ?? 0);
+//             $rowNumber = floor($top / 30) + 1;
+
+//             preg_match('/left:\s*(\d+)px/', $style, $leftMatch);
+//             $left = (int) ($leftMatch[1] ?? 0);
+
+//             $classes = $node->getAttribute('class');
+//             $seatType = explode(' ', $classes, 2)[0] ?? '';
+//             $seatDetails = $seatTypeMap[$seatType] ?? ['is_sleeper' => false, 'is_available' => false];
+//             $price = 0.0;
+//             $seatId = $node->getAttribute('id');
+
+//             $onclick = $node->getAttribute('onclick');
+//             if ($onclick && preg_match("/AddRemoveSeat\(.*?,'(.*?)','(.*?)'/", $onclick, $matches)) {
+//                 $seatId = $matches[1];
+//                 $price = (float) $matches[2];
+//                 $seatDetails['is_available'] = true;
+//             }
+
+//             $seatsByRow[$rowNumber][] = [
+//                 'seat_id' => $seatId,
+//                 'price' => $price,
+//                 'is_sleeper' => $seatDetails['is_sleeper'],
+//                 'type' => $seatType,
+//                 'category' => $seatDetails['is_sleeper'] ? 'sleeper' : 'seater',
+//                 'position' => $top,
+//                 'is_available' => $seatDetails['is_available'],
+//                 '_left' => $left,
+//             ];
+//         }
+
+//         foreach ($seatsByRow as &$row) {
+//             usort($row, fn($a, $b) => $a['_left'] <=> $b['_left']);
+//             foreach ($row as &$seat) {
+//                 unset($seat['_left']);
+//             }
+//         }
+//         unset($row, $seat);
+//         ksort($seatsByRow);
+
+//         Log::info(" -> Finished processDeckSeatNodes for '{$deckName}' deck. Processed into " . count($seatsByRow) . " rows.");
+//         return $seatsByRow;
+//     }
+// }
+
+
+// function parseSeatHtmlToJson($html)
+// {
+//     $crawler = new Crawler($html);
+//     $result = [
+//         'seat' => [
+//             'upper_deck' => ['rows' => []],
+//             'lower_deck' => ['rows' => []]
+//         ]
+//     ];
+
+//     $crawler->filter('.outerseat, .outerlowerseat')->each(function ($deckNode) use (&$result) {
+//         $deck = str_contains($deckNode->attr('class'), 'outerseat') ? 'upper_deck' : 'lower_deck';
+//         $rowNumber = 1;
+
+//         $deckNode->filter('.seatcontainer > div')->each(function ($seatNode) use (&$result, $deck, &$rowNumber) {
+//             $classes = explode(' ', $seatNode->attr('class') ?? '');
+//             $style = $seatNode->attr('style') ?? '';
+//             $onclick = $seatNode->attr('onclick') ?? '';
+//             $id = $seatNode->attr('id') ?? '';
+
+//             // Extract position
+//             preg_match('/top:\s*(\d+)px/', $style, $topMatch);
+//             $top = $topMatch[1] ?? 0;
+
+//             // Determine row (each 30px is a new row)
+//             $currentRow = floor($top / 30) + 1;
+//             if ($currentRow > $rowNumber) {
+//                 $rowNumber = $currentRow;
+//             }
+
+//             // Initialize row if not exists
+//             if (!isset($result['seat'][$deck]['rows'][$rowNumber])) {
+//                 $result['seat'][$deck]['rows'][$rowNumber] = [];
+//             }
+
+//             $seatType = $classes[0] ?? '';
+//             $isAvailable = false;
+//             $isSleeper = false;
+//             $price = 0;
+//             $seatId = $id;
+
+//             // Determine seat characteristics based on class
+//             if ($seatType === 'hseat') {
+//                 $isSleeper = true;
+//                 $isAvailable = true;
+//             } elseif ($seatType === 'bhseat') {
+//                 $isSleeper = true;
+//                 $isAvailable = false;
+//             } elseif ($seatType === 'nseat') {
+//                 $isSleeper = false;
+//                 $isAvailable = true;
+//             } elseif ($seatType === 'bseat') {
+//                 $isSleeper = false;
+//                 $isAvailable = false;
+//             } elseif ($seatType === 'vseat') {
+//                 $isSleeper = true;
+//                 $isAvailable = true;
+//             } elseif ($seatType === 'bvseat') {
+//                 $isSleeper = true;
+//                 $isAvailable = false;
+//             }
+
+//             // Override from onclick if available
+//             if ($onclick && preg_match("/AddRemoveSeat\(.*?,'(.*?)','(.*?)'/", $onclick, $matches)) {
+//                 $seatId = $matches[1];
+//                 $price = (float) $matches[2];
+//                 // Maintain type from class, only update availability
+//                 $isAvailable = true;
+//             }
+
+//             $result['seat'][$deck]['rows'][$rowNumber][] = [
+//                 'seat_id' => $seatId,
+//                 'price' => $price,
+//                 'is_sleeper' => $isSleeper,
+//                 'type' => $seatType,
+//                 'category' => $isSleeper ? 'sleeper' : 'seater',
+//                 'position' => (int) $top,
+//                 'is_available' => $isAvailable
+//             ];
+//         });
+//     });
+
+//     return $result;
+// }
+
+
+if (!function_exists('formatCancelPolicy')) {
+    /**
+     * Formats an array of cancellation policies into human-readable strings and sorts them by date.
+     *
+     * This function is optimized by first sorting the policies to ensure chronological order.
+     * It now also handles cases where 'FromDate' and 'ToDate' might be swapped in the input data.
+     *
+     * @param array $cancelPolicy The array of cancellation policy objects.
+     * Each object should contain 'FromDate', 'ToDate', 'CancellationCharge', and 'CancellationChargeType'.
+     * @return array An array of formatted, human-readable cancellation policy strings.
+     */
+    function formatCancelPolicy(array $cancelPolicy): array
+    {
+        // Return early if the input is empty to avoid unnecessary processing.
+        if (empty($cancelPolicy)) {
+            return [];
+        }
+
+        // Pre-process the array to correct any policies where FromDate is after ToDate.
+        // This ensures sorting works as expected, even with inconsistent data.
+        foreach ($cancelPolicy as &$policy) { // Note the use of a reference '&'
+            if (strtotime($policy['FromDate']) > strtotime($policy['ToDate'])) {
+                // Swap the dates if they are in the wrong order
+                $tempDate = $policy['FromDate'];
+                $policy['FromDate'] = $policy['ToDate'];
+                $policy['ToDate'] = $tempDate;
+            }
+        }
+        unset($policy); // It's good practice to unset the reference after the loop.
+
+
+        // Sort the policies by 'FromDate' and then by 'ToDate' chronologically.
+        // This is more efficient than sorting complex objects later.
+        usort($cancelPolicy, function ($a, $b) {
+            // Using strtotime for fast comparison during sort.
+            $fromA = strtotime($a['FromDate']);
+            $fromB = strtotime($b['FromDate']);
+
+            if ($fromA === $fromB) {
+                return strtotime($a['ToDate']) <=> strtotime($b['ToDate']);
+            }
+
+            return $fromA <=> $fromB;
+        });
+
         $formatted = [];
         foreach ($cancelPolicy as $policy) {
             $charge = $policy['CancellationCharge'] ?? "0";
@@ -1335,12 +1696,14 @@ if (!function_exists('formatCancelPolicy')) {
             $from = Carbon::parse($policy['FromDate']);
             $to = Carbon::parse($policy['ToDate']);
 
-            // Format times for display
+            // Format times for display.
             $fromTime = $from->format('g:i A');
             $fromDate = $from->format('d M Y');
             $toTime = $to->format('g:i A');
             $toDate = $to->format('d M Y');
 
+            $label = '';
+            // Generate a human-readable label for the date/time range.
             if ($from->isSameDay($to)) {
                 if ($from->eq($to)) {
                     $label = "After {$fromTime}, {$fromDate}";
@@ -1353,18 +1716,18 @@ if (!function_exists('formatCancelPolicy')) {
                 $label = "Between {$fromTime}, {$fromDate} to {$toTime}, {$toDate}";
             }
 
-            // Decide charge string
-            if ($chargeType == 2) {
-                $chargeStr = "{$charge}% charge";
-            } elseif ($chargeType == 1) {
-                $chargeStr = "₹" . number_format($charge, 2) . " charge";
-            } else {
-                $chargeStr = "No refund";
-            }
-
-            // Special case: 100% = no refund
-            if ($chargeType == 2 && $charge == 100) {
-                $chargeStr = "No refund";
+            $chargeStr = '';
+            // Use a switch statement for cleaner and slightly faster charge type handling.
+            switch ($chargeType) {
+                case 1: // Fixed amount
+                    $chargeStr = "₹" . number_format((float) $charge, 2) . " charge";
+                    break;
+                case 2: // Percentage
+                    $chargeStr = ($charge == 100) ? "No refund" : "{$charge}% charge";
+                    break;
+                default: // Other cases
+                    $chargeStr = "No refund";
+                    break;
             }
 
             $formatted[] = "{$label} – {$chargeStr}";
@@ -1373,6 +1736,7 @@ if (!function_exists('formatCancelPolicy')) {
         return $formatted;
     }
 }
+
 
 // app/Helpers/helpers.php
 if (!function_exists('renderSeatHTML')) {

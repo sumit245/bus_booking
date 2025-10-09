@@ -116,18 +116,29 @@ class BusService
      */
     private function applySorting(array $trips, array $filters): array
     {
-        $sortBy = $filters['sortBy'] ?? 'departure';
-        $sortOrder = $filters['sortOrder'] ?? 'asc';
+        $sortBy = $filters['sortBy'] ?? 'departure'; // Default sort
+
+        // Determine sort order from the sortBy value for web requests
+        $sortOrder = 'asc';
+        if ($sortBy === 'price-high') {
+            $sortBy = 'price';
+            $sortOrder = 'desc';
+        } elseif ($sortBy === 'price-low') {
+            $sortBy = 'price';
+        }
 
         // THE FIX: Refined sorting logic using the spaceship operator for clarity and reliability.
         usort($trips, function ($a, $b) use ($sortBy, $sortOrder) {
-            $valueA = ($sortBy === 'price')
-                ? ($a['BusPrice']['PublishedPrice'] ?? 0)
-                : strtotime($a['DepartureTime'] ?? 0);
-
-            $valueB = ($sortBy === 'price')
-                ? ($b['BusPrice']['PublishedPrice'] ?? 0)
-                : strtotime($b['DepartureTime'] ?? 0);
+            if ($sortBy === 'price') {
+                $valueA = $a['BusPrice']['PublishedPrice'] ?? 0;
+                $valueB = $b['BusPrice']['PublishedPrice'] ?? 0;
+            } elseif ($sortBy === 'duration') {
+                $valueA = isset($a['ArrivalTime'], $a['DepartureTime']) ? Carbon::parse($a['ArrivalTime'])->diffInMinutes(Carbon::parse($a['DepartureTime'])) : 0;
+                $valueB = isset($b['ArrivalTime'], $b['DepartureTime']) ? Carbon::parse($b['ArrivalTime'])->diffInMinutes(Carbon::parse($b['DepartureTime'])) : 0;
+            } else { // Default to departure time
+                $valueA = strtotime($a['DepartureTime'] ?? 0);
+                $valueB = strtotime($b['DepartureTime'] ?? 0);
+            }
 
             if ($sortOrder === 'asc') {
                 return $valueA <=> $valueB; // <=> returns -1, 0, or 1
@@ -231,5 +242,16 @@ class BusService
         });
 
         return array_values($filteredTrips);
+    }
+
+    /**
+     * Get current active coupon details
+     */
+    public static function getCurrentCoupon()
+    {
+        // Return the currently active and unexpired coupon
+        return CouponTable::where('status', 1)
+            ->where('expiry_date', '>=', Carbon::today())
+            ->first();
     }
 }

@@ -326,8 +326,8 @@
                                     <span class="menu-title">@lang('Vehicles')</span>
                                 </a>
                             </li>
-                            <li class="sidebar-menu-item {{ menuActive(['admin.fleet.operators']) }}">
-                                <a href="{{ route('admin.fleet.operators') }}" class="nav-link">
+                            <li class="sidebar-menu-item {{ menuActive(['admin.fleet.operators.index']) }}">
+                                <a href="{{ route('admin.fleet.operators.index') }}" class="nav-link">
                                     <i class="menu-icon las la-dot-circle"></i>
                                     <span class="menu-title">@lang('Operators')</span>
                                 </a>

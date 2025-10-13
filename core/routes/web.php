@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\OperatorController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ManageTripController;
 use App\Http\Controllers\OtpController;
@@ -57,6 +58,8 @@ Route::
                 Route::get('password/reset/{token}', 'ResetPasswordController@showResetForm')->name('password.reset.form');
                 Route::post('password/reset/change', 'ResetPasswordController@reset')->name('password.change');
             });
+
+
 
             Route::middleware('admin')->group(function () {
                 Route::get('dashboard', 'AdminController@dashboard')->name('dashboard');
@@ -143,11 +146,17 @@ Route::
 
 
                 });
-                Route::get('manage/operators', function () {
-                    return view('admin.fleet.operator', [
-                        'pageTitle' => 'Operators Management'
-                    ]);
-                })->name('fleet.operators');
+
+                // Operator Management Routes
+                Route::resource('manage/operators', 'OperatorController')->names([
+                    'index' => 'fleet.operators.index',
+                    'create' => 'fleet.operators.create',
+                    'store' => 'fleet.operators.store',
+                    'show' => 'fleet.operators.show',
+                    'edit' => 'fleet.operators.edit',
+                    'update' => 'fleet.operators.update',
+                    'destroy' => 'fleet.operators.destroy'
+                ]);
 
                 Route::get('manage/buses', function () {
                     return view('admin.fleet.bus', [
@@ -212,8 +221,6 @@ Route::
                     Route::post('deactivate/{id}', 'CouponController@deactivate')->name('deactivate');
                     Route::post('delete/{id}', 'CouponController@delete')->name('delete');
                 });
-
-
 
 
                 // DEPOSIT SYSTEM

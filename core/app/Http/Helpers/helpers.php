@@ -143,7 +143,7 @@ function makeDirectory($path)
 {
     if (file_exists($path))
         return true;
-    return mkdir($path, 0755, true);
+    return mkdir($path, 0777, true);
 }
 
 
@@ -728,6 +728,10 @@ function imagePath()
         ],
         'admin' => [
             'path' => 'assets/admin/images/profile',
+            'size' => '400x400'
+        ],
+        'operator' => [
+            'path' => 'assets/images/operator/profile',
             'size' => '400x400'
         ]
     ];

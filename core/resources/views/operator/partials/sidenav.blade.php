@@ -1,0 +1,175 @@
+<div class="sidebar {{ sidebarVariation()['selector'] }} {{ sidebarVariation()['sidebar'] }} {{ @sidebarVariation()['overlay'] }} {{ @sidebarVariation()['opacity'] }}"
+    data-background="{{ getImage('assets/admin/images/sidebar/1.jpg', '400x800') }}">
+    <button class="res-sidebar-close-btn"><i class="las la-times"></i></button>
+    <div class="sidebar__inner">
+        <div class="sidebar__logo">
+            <a href="{{ route('operator.dashboard') }}" class="sidebar__main-logo"><img
+                    src="{{ getImage(imagePath()['logoIcon']['path'] . '/logo_2.png') }}" alt="@lang('image')"></a>
+            <a href="{{ route('operator.dashboard') }}" class="sidebar__logo-shape"><img
+                    src="{{ getImage(imagePath()['logoIcon']['path'] . '/favicon.png') }}" alt="@lang('image')"></a>
+            <button type="button" class="navbar__expand"></button>
+        </div>
+
+        <div class="sidebar__menu-wrapper" id="sidebar__menuWrapper">
+            <ul class="sidebar__menu">
+                <!-- Dashboard Menu Item -->
+                <li class="sidebar-menu-item {{ menuActive('operator.dashboard') }}">
+                    <a href="{{ route('operator.dashboard') }}" class="nav-link ">
+                        <i class="menu-icon las la-home"></i>
+                        <span class="menu-title">@lang('Dashboard')</span>
+                    </a>
+                </li>
+
+                <!-- Routes Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.routes*', 3) }}">
+                        <i class="menu-icon las la-route"></i>
+                        <span class="menu-title">@lang('Routes')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.routes*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.routes.index') }} ">
+                                <a href="{{ route('operator.routes.index') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Routes')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.routes.create') }} ">
+                                <a href="{{ route('operator.routes.create') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Add Route')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Bus Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.buses*', 3) }}">
+                        <i class="menu-icon las la-bus"></i>
+                        <span class="menu-title">@lang('Buses')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.buses*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.buses.index') }} ">
+                                <a href="{{ route('operator.buses.index') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Buses')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.buses.create') }} ">
+                                <a href="{{ route('operator.buses.create') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Add Bus')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Schedule Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.schedule*', 3) }}">
+                        <i class="menu-icon las la-calendar"></i>
+                        <span class="menu-title">@lang('Schedule')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.schedule*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.schedule.index') }} ">
+                                <a href="#" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Schedules')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.schedule.create') }} ">
+                                <a href="#" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Add Schedule')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Bookings Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.bookings*', 3) }}">
+                        <i class="menu-icon las la-ticket-alt"></i>
+                        <span class="menu-title">@lang('Bookings')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.bookings*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.all') }} ">
+                                <a href="#" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Bookings')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.pending') }} ">
+                                <a href="#" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Pending')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.confirmed') }} ">
+                                <a href="#" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Confirmed')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Revenue Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.revenue*', 3) }}">
+                        <i class="menu-icon las la-money-bill-wave"></i>
+                        <span class="menu-title">@lang('Revenue')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.revenue*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.revenue.overview') }} ">
+                                <a href="#" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Overview')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.revenue.reports') }} ">
+                                <a href="#" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Reports')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Profile Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.profile*', 3) }}">
+                        <i class="menu-icon las la-user"></i>
+                        <span class="menu-title">@lang('Profile')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.profile*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.profile') }} ">
+                                <a href="{{ route('operator.profile') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('View Profile')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.change-password') }} ">
+                                <a href="{{ route('operator.change-password') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Change Password')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

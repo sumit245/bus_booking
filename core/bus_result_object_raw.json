@@ -1,0 +1,80 @@
+{
+    "ResultIndex": "TB-39",
+    "ArrivalTime": "2025-11-06T20:20:00",
+    "AvailableSeats": 14,
+    "DepartureTime": "2025-11-06T19:05:00",
+    "RouteId": "2046687054230167673",
+    "BusType": "Non Ac Seater (2+2)",
+    "ServiceName": "Seat Seller",
+    "TravelName": "Kalpana Travels Rewa",
+    "IdProofRequired": false,
+    "IsDropPointMandatory": false,
+    "LiveTrackingAvailable": false,
+    "MTicketEnabled": true,
+    "MaxSeatsPerTicket": 6,
+    "OperatorId": 28079,
+    "PartialCancellationAllowed": true,
+    "BoardingPointsDetails": [
+        {
+            "CityPointIndex": 1,
+            "CityPointLocation": "Bus Stand",
+            "CityPointName": "Old Bus Stand Rewa",
+            "CityPointTime": "2025-11-06T19:05:00"
+        },
+        {
+            "CityPointIndex": 2,
+            "CityPointLocation": "Jai Stambh Chowk",
+            "CityPointName": "Jai Stambh Chowk",
+            "CityPointTime": "2025-11-06T19:10:00"
+        },
+        {
+            "CityPointIndex": 3,
+            "CityPointLocation": "Dhekaha Chouraha",
+            "CityPointName": "Dhekaha Chouraha",
+            "CityPointTime": "2025-11-06T19:15:00"
+        },
+        {
+            "CityPointIndex": 4,
+            "CityPointLocation": "Railway Mod",
+            "CityPointName": "Railway Mod",
+            "CityPointTime": "2025-11-06T19:20:00"
+        }
+    ],
+    "DroppingPointsDetails": [
+        {
+            "CityPointIndex": 1,
+            "CityPointLocation": "Bus Stand",
+            "CityPointName": "Bus Stand Satna",
+            "CityPointTime": "2025-11-06T20:20:00"
+        }
+    ],
+    "BusPrice": {
+        "BasePrice": 73.5,
+        "Tax": 0,
+        "OtherCharges": 0,
+        "Discount": 0,
+        "PublishedPrice": 73.5,
+        "OfferedPrice": 69.09,
+        "AgentCommission": 4.41,
+        "ServiceCharges": 0,
+        "TDS": 0.22,
+        "GST": {
+            "CGSTAmount": 0,
+            "CGSTRate": 0,
+            "IGSTAmount": 0,
+            "IGSTRate": 18,
+            "SGSTAmount": 0,
+            "SGSTRate": 0,
+            "TaxableAmount": 0
+        }
+    },
+    "CancellationPolicies": [
+        {
+            "CancellationChargeType": 2,
+            "PolicyString": "Till 19:05 on 06 Nov 2025",
+            "TimeBeforeDept": "0$-1",
+            "FromDate": "2025-10-15T01:16:10",
+            "ToDate": "2025-11-06T19:05:00"
+        }
+    ]
+}

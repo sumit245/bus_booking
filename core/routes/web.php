@@ -381,6 +381,73 @@ Route::
 
 /*
 |--------------------------------------------------------------------------
+| Start Operator Area
+|--------------------------------------------------------------------------
+*/
+
+Route::name('operator.')->prefix('operator')->group(function () {
+    Route::get('/login', 'Operator\Auth\LoginController@showLoginForm')->name('login');
+    Route::post('/login', 'Operator\Auth\LoginController@login');
+    Route::get('logout', 'Operator\Auth\LoginController@logout')->name('logout');
+
+    // Password Reset Routes
+    Route::get('password/reset', 'Operator\Auth\ForgotPasswordController@showLinkRequestForm')->name('password.reset');
+    Route::post('password/email', 'Operator\Auth\ForgotPasswordController@sendResetCodeEmail')->name('password.email');
+    Route::get('password/code-verify', 'Operator\Auth\ForgotPasswordController@codeVerify')->name('password.code.verify');
+    Route::post('password/verify-code', 'Operator\Auth\ForgotPasswordController@verifyCode')->name('password.verify.code');
+    Route::get('password/reset/{token}', 'Operator\Auth\ResetPasswordController@showResetForm')->name('password.reset.form');
+    Route::post('password/reset', 'Operator\Auth\ResetPasswordController@reset')->name('password.update');
+
+    Route::middleware('operator')->group(function () {
+        Route::get('dashboard', 'Operator\OperatorController@dashboard')->name('dashboard');
+        Route::get('profile', 'Operator\OperatorController@profile')->name('profile');
+        Route::post('profile', 'Operator\OperatorController@updateProfile');
+        Route::get('change-password', 'Operator\OperatorController@changePassword')->name('change-password');
+        Route::post('change-password', 'Operator\OperatorController@updatePassword');
+
+        // Route Management
+        Route::resource('routes', 'Operator\RouteController')->names([
+            'index' => 'routes.index',
+            'create' => 'routes.create',
+            'store' => 'routes.store',
+            'show' => 'routes.show',
+            'edit' => 'routes.edit',
+            'update' => 'routes.update',
+            'destroy' => 'routes.destroy'
+        ]);
+        Route::patch('routes/{route}/toggle-status', 'Operator\RouteController@toggleStatus')->name('routes.toggle-status');
+
+        // Bus Management
+        Route::resource('buses', 'Operator\BusController')->names([
+            'index' => 'buses.index',
+            'create' => 'buses.create',
+            'store' => 'buses.store',
+            'show' => 'buses.show',
+            'edit' => 'buses.edit',
+            'update' => 'buses.update',
+            'destroy' => 'buses.destroy'
+        ]);
+        Route::patch('buses/{bus}/toggle-status', 'Operator\BusController@toggleStatus')->name('buses.toggle-status');
+
+        // Seat Layout Management
+        Route::prefix('buses/{bus}')->name('buses.')->group(function () {
+            Route::resource('seat-layouts', 'Operator\SeatLayoutController')->names([
+                'index' => 'seat-layouts.index',
+                'create' => 'seat-layouts.create',
+                'store' => 'seat-layouts.store',
+                'show' => 'seat-layouts.show',
+                'edit' => 'seat-layouts.edit',
+                'update' => 'seat-layouts.update',
+                'destroy' => 'seat-layouts.destroy'
+            ]);
+            Route::patch('seat-layouts/{seatLayout}/toggle-status', 'Operator\SeatLayoutController@toggleStatus')->name('seat-layouts.toggle-status');
+            Route::post('seat-layouts/preview', 'Operator\SeatLayoutController@preview')->name('seat-layouts.preview');
+        });
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
 | Start User Area
 |--------------------------------------------------------------------------
 */

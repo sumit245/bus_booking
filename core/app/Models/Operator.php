@@ -4,8 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Operator extends Model
+class Operator extends Authenticatable
 {
     use HasFactory;
 
@@ -126,6 +127,52 @@ class Operator extends Model
     {
         return !empty($this->account_holder_name) && !empty($this->account_number) &&
             !empty($this->ifsc_code) && !empty($this->bank_name) && !empty($this->cancelled_cheque);
+    }
+
+    /**
+     * Get the routes for this operator.
+     */
+    public function routes()
+    {
+        return $this->hasMany(OperatorRoute::class);
+    }
+
+    /**
+     * Get the active routes for this operator.
+     */
+    public function activeRoutes()
+    {
+        return $this->hasMany(OperatorRoute::class)->where('status', 1);
+    }
+
+    /**
+     * Get all buses owned by this operator.
+     */
+    public function buses()
+    {
+        return $this->hasMany(OperatorBus::class);
+    }
+
+    /**
+     * Get active buses owned by this operator.
+     */
+    public function activeBuses()
+    {
+        return $this->buses()->where('status', 1);
+    }
+
+    /**
+     * Get the default travel name for this operator.
+     */
+    public function getDefaultTravelNameAttribute()
+    {
+        if ($this->company_name) {
+            return $this->company_name;
+        }
+
+        $firstName = $this->first_name ?: 'Operator';
+        $lastName = $this->last_name ?: '';
+        return trim($firstName . ' ' . $lastName) . ' Travels';
     }
 
     /**

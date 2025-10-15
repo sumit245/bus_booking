@@ -1,0 +1,94 @@
+{
+    "SearchTokenId": "10ed952bb4c1787001f63ec460b123b40b884b30",
+    "trips": [
+        {
+            "ResultIndex": "TB-44",
+            "ArrivalTime": "2025-11-02T05:30:00",
+            "AvailableSeats": 41,
+            "DepartureTime": "2025-11-02T04:15:00",
+            "RouteId": "5046687054194786153",
+            "BusType": "Non Ac Seater / Sleeper 2+1",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Mbbs Bus Service",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 29059,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "New Bus Stand Rewa",
+                    "CityPointName": "New Bus Stand Rewa",
+                    "CityPointTime": "2025-11-02T04:15:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Vijayant Travels New Bus Stand Shop No 20",
+                    "CityPointName": "Rewa Old Bus Stand",
+                    "CityPointTime": "2025-11-02T04:35:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "MBBS Bus Service D-14 Bus Stand",
+                    "CityPointName": "Satna bus stand\t",
+                    "CityPointTime": "2025-11-02T05:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 367.5,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 377.5,
+                "OfferedPrice": 345.44999999999998863131622783839702606201171875,
+                "AgentCommission": 22.050000000000000710542735760100185871124267578125,
+                "ServiceCharges": 0,
+                "TDS": 1.100000000000000088817841970012523233890533447265625,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 16:15 on 31 Oct 2025",
+                    "TimeBeforeDept": "36$-1",
+                    "FromDate": "2025-10-15T00:31:16",
+                    "ToDate": "2025-10-31T16:15:00"
+                },
+                {
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 16:15 on 31 Oct 2025 - 13:15 on 01 Nov 2025",
+                    "TimeBeforeDept": "15$36",
+                    "FromDate": "2025-10-31T16:15:00",
+                    "ToDate": "2025-11-01T13:15:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 13:15 on 01 Nov 2025",
+                    "TimeBeforeDept": "0$15",
+                    "FromDate": "2025-11-01T13:15:00",
+                    "ToDate": "2025-11-02T05:30:00"
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "total_results": 61,
+        "per_page": 20,
+        "current_page": 1,
+        "has_more_pages": true
+    }
+}

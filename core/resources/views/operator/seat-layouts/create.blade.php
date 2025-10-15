@@ -4,7 +4,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @endpush
 
-@section('content')
+@section('panel')
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -800,6 +800,8 @@
                 const upperDeckSection = document.getElementById('upperDeckSection');
                 const lowerDeckLabel = document.getElementById('lowerDeckLabel');
 
+                console.log('Deck type changed to:', deckType);
+
                 if (deckType === 'single') {
                     upperDeckSection.style.display = 'none';
                     lowerDeckLabel.textContent = 'Main Deck';
@@ -829,6 +831,8 @@
 
             // Initialize deck type on page load
             const initialDeckType = document.getElementById('deck_type').value;
+            console.log('Initial deck type:', initialDeckType);
+
             if (initialDeckType === 'single') {
                 document.getElementById('upperDeckSection').style.display = 'none';
                 document.getElementById('lowerDeckLabel').textContent = 'Main Deck';

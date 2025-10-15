@@ -1,6 +1,6 @@
 @extends('operator.layouts.app')
 
-@section('content')
+@section('panel')
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">

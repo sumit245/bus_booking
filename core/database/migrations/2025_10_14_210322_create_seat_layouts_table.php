@@ -17,8 +17,8 @@ return new class extends Migration {
             $table->integer('total_seats')->default(0);
             $table->integer('upper_deck_seats')->default(0);
             $table->integer('lower_deck_seats')->default(0);
-            $table->json('layout_data'); // Stores the complete layout structure
-            $table->text('html_layout'); // Stores the generated HTML layout
+            $table->json('layout_data');
+            $table->text('html_layout');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 

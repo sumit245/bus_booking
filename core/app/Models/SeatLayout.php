@@ -60,15 +60,22 @@ class SeatLayout extends Model
 
         // Process upper deck (if exists)
         if (isset($this->layout_data['upper_deck']) && !empty($this->layout_data['upper_deck']['seats'])) {
+            $html .= '<div class="deck-section mb-3">';
+            $html .= '<h6 class="deck-label mb-2">Upper Deck</h6>';
             $html .= '<div class="outerseat">';
             $html .= $this->generateDeckHtml($this->layout_data['upper_deck'], 'upper');
+            $html .= '</div>';
             $html .= '</div>';
         }
 
         // Process lower deck (always exists)
         if (isset($this->layout_data['lower_deck'])) {
+            $deckLabel = $this->deck_type === 'single' ? 'Main Deck' : 'Lower Deck';
+            $html .= '<div class="deck-section">';
+            $html .= '<h6 class="deck-label mb-2">' . $deckLabel . '</h6>';
             $html .= '<div class="outerlowerseat">';
             $html .= $this->generateDeckHtml($this->layout_data['lower_deck'], 'lower');
+            $html .= '</div>';
             $html .= '</div>';
         }
 
@@ -88,7 +95,10 @@ class SeatLayout extends Model
      */
     private function generateDeckHtml($deckData, $deckType)
     {
-        $html = '<div class="busSeatlft"><div class="lower"></div></div>';
+        // Use correct driver class based on deck type
+        $driverClass = $deckType === 'upper' ? 'upper' : 'lower';
+
+        $html = '<div class="busSeatlft"><div class="' . $driverClass . '"></div></div>';
         $html .= '<div class="busSeatrgt">';
         $html .= '<div class="busSeat">';
         $html .= '<div class="seatcontainer clearfix">';
@@ -107,6 +117,7 @@ class SeatLayout extends Model
         }
 
         $html .= '</div></div></div>';
+        $html .= '<div class="clr"></div>';
         return $html;
     }
 
@@ -121,11 +132,16 @@ class SeatLayout extends Model
         $position = $seat['position'] ?? 0;
         $left = $seat['left'] ?? 0;
 
-
         $style = "top:{$position}px;left:{$left}px;display:block;";
         $onclick = "javascript:AddRemoveSeat(this,'{$seatId}','{$price}')";
 
-        return "<div id=\"{$seatId}\" style=\"{$style}\" class=\"{$seatType}\" onclick=\"{$onclick}\"></div>";
+        // Add price and seat ID display
+        $displayText = "<div style='font-size:10px;line-height:1.1;text-align:center;'>";
+        $displayText .= "<div style='font-weight:bold;'>{$seatId}</div>";
+        $displayText .= "<div style='font-size:9px;'>₹{$price}</div>";
+        $displayText .= "</div>";
+
+        return "<div id=\"{$seatId}\" style=\"{$style}\" class=\"{$seatType}\" onclick=\"{$onclick}\">{$displayText}</div>";
     }
 
 }

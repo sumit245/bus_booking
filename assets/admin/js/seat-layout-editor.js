@@ -36,9 +36,9 @@ class SeatLayoutEditor {
         this.columnsPerRow = 10; // Default number of columns per row
 
         // Grid configuration
-        this.cellWidth = 40; // Bigger cells for better visibility
-        this.cellHeight = 40; // Bigger cells for better visibility
-        this.aisleHeight = 50; // Aisle gap height
+        this.cellWidth = 50; // Bigger cells for better visibility
+        this.cellHeight = 50; // Bigger cells for better visibility
+        this.aisleHeight = 60; // Aisle gap height
 
         this.layoutData = {
             upper_deck: { seats: [] },
@@ -55,6 +55,12 @@ class SeatLayoutEditor {
         this.createBusLayout();
         this.loadExistingData();
         console.log('Bus Seat Layout Editor setup complete');
+
+        // Debug: Check if grids are properly initialized
+        console.log('Upper deck grid:', this.upperDeckGrid);
+        console.log('Lower deck grid:', this.lowerDeckGrid);
+        console.log('Upper deck grid children:', this.upperDeckGrid?.children.length);
+        console.log('Lower deck grid children:', this.lowerDeckGrid?.children.length);
     }
 
     setupEventListeners() {
@@ -138,12 +144,18 @@ class SeatLayoutEditor {
 
         // Setup drop zones for both decks
         [this.upperDeckGrid, this.lowerDeckGrid].forEach(grid => {
-            console.log('Setting up drop zone for:', grid.id);
+            console.log('Setting up drop zone for:', grid?.id, 'Grid exists:', !!grid);
+
+            if (!grid) {
+                console.error('Grid is null or undefined:', grid);
+                return;
+            }
 
             grid.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 grid.classList.add('drag-over');
+                console.log('Drag over on:', grid.id);
             });
 
             grid.addEventListener('dragleave', (e) => {
@@ -166,7 +178,7 @@ class SeatLayoutEditor {
                     const y = e.clientY - rect.top;
 
                     const deck = grid.id === 'upperDeckGrid' ? 'upper_deck' : 'lower_deck';
-                    console.log('Drop event:', deck, x, y, data);
+                    console.log('Drop event on:', grid.id, 'Deck:', deck, 'Position:', x, y, 'Data:', data);
 
                     if (data === 'reposition' && this.draggingSeat) {
                         // Handle seat repositioning
@@ -193,16 +205,36 @@ class SeatLayoutEditor {
     }
 
     createDeckLayout(grid) {
+        console.log('=== CREATING DECK LAYOUT ===');
+        console.log('createDeckLayout called for grid:', grid?.id, 'Grid exists:', !!grid);
+
+        if (!grid) {
+            console.error('Grid is null or undefined in createDeckLayout');
+            return;
+        }
+
+        console.log('Grid children before clear:', grid.children.length);
         // Clear existing content
         grid.innerHTML = '';
+        console.log('Grid children after clear:', grid.children.length);
 
         // Parse seat layout to determine structure
         const [leftSeats, rightSeats] = this.seatLayout.split('x').map(Number);
         const aisleColumns = 1; // Aisle is always 1 column wide
 
-        // Create bus structure
+        console.log('Creating deck layout with:', { leftSeats, rightSeats, aisleColumns, columnsPerRow: this.columnsPerRow });
+
+        // Determine the correct class based on deck type
+        const isUpperDeck = grid.id === 'upperDeckGrid';
+        const deckClass = isUpperDeck ? 'outerseat' : 'outerlowerseat';
+        const driverClass = isUpperDeck ? 'upper' : 'lower';
+
+        console.log('Creating deck with class:', deckClass, 'Driver class:', driverClass);
+        console.log('Is upper deck:', isUpperDeck);
+
+        // Create bus structure with correct class
         const busStructure = document.createElement('div');
-        busStructure.className = 'outerseat';
+        busStructure.className = deckClass;
         busStructure.style.display = 'flex';
         busStructure.style.width = '100%';
         busStructure.style.height = '100%';
@@ -220,6 +252,11 @@ class SeatLayoutEditor {
         busSeatlft.style.fontSize = '12px';
         busSeatlft.style.color = '#666';
         busSeatlft.textContent = 'DRIVER';
+
+        // Create the inner div with correct class (upper/lower)
+        const driverInner = document.createElement('div');
+        driverInner.className = driverClass;
+        busSeatlft.appendChild(driverInner);
 
         // Create busSeatrgt (seat area)
         const busSeatrgt = document.createElement('div');
@@ -245,20 +282,42 @@ class SeatLayoutEditor {
         // Generate seat positions based on layout
         this.generateSeatPositions(seatcontainer, leftSeats, rightSeats, aisleColumns);
 
+        // Create clr div for proper structure
+        const clrDiv = document.createElement('div');
+        clrDiv.className = 'clr';
+
         // Assemble structure
         busSeat.appendChild(seatcontainer);
         busSeatrgt.appendChild(busSeat);
         busStructure.appendChild(busSeatlft);
         busStructure.appendChild(busSeatrgt);
+        busStructure.appendChild(clrDiv);
 
         grid.appendChild(busStructure);
+
+        console.log('Deck layout created for', grid.id, 'with class:', deckClass, 'Children count:', grid.children.length);
+        console.log('Seat positions created:', grid.querySelectorAll('.seat-position').length);
+        console.log('All seat positions in grid:');
+        const allPositions = grid.querySelectorAll('.seat-position');
+        allPositions.forEach((pos, i) => {
+            console.log(`Position ${i}:`, {
+                row: pos.dataset.row,
+                col: pos.dataset.col,
+                side: pos.dataset.side
+            });
+        });
+        console.log('=== DECK LAYOUT CREATION COMPLETE ===');
     }
 
     generateSeatPositions(container, leftSeats, rightSeats, aisleColumns) {
+        console.log('generateSeatPositions called with:', { leftSeats, rightSeats, aisleColumns });
+
         // Calculate total rows: leftSeats rows above + rightSeats rows below
         const totalRows = leftSeats + rightSeats;
         let currentTop = 0;
         let rowIndex = 0;
+
+        console.log('Total rows to create:', totalRows);
 
         // Create rows above the aisle
         for (let row = 0; row < leftSeats; row++) {
@@ -298,14 +357,20 @@ class SeatLayoutEditor {
     }
 
     createSeatRow(container, top, rowIndex, position) {
+        console.log('createSeatRow called:', { top, rowIndex, position, columnsPerRow: this.columnsPerRow });
+
         // Create seat positions based on columns per row
         for (let col = 0; col < this.columnsPerRow; col++) {
             const left = col * this.cellWidth;
             this.createSeatPosition(container, left, top, rowIndex, col, position);
         }
+
+        console.log('Created seat row with', this.columnsPerRow, 'positions');
     }
 
     createSeatPosition(container, left, top, row, col, side) {
+        console.log('createSeatPosition called:', { left, top, row, col, side });
+
         const seatPos = document.createElement('div');
         seatPos.className = 'seat-position';
         seatPos.dataset.row = row;
@@ -346,6 +411,7 @@ class SeatLayoutEditor {
         });
 
         container.appendChild(seatPos);
+        console.log('Seat position appended to container. Total positions:', container.children.length);
     }
 
     moveSeatToPosition(seatElement, deck, x, y) {
@@ -400,6 +466,8 @@ class SeatLayoutEditor {
     }
 
     addSeatToPosition(deck, x, y, type, category) {
+        console.log('addSeatToPosition called:', { deck, x, y, type, category, deckType: this.deckType });
+
         // For single decker, only allow lower deck
         if (this.deckType === 'single' && deck === 'upper_deck') {
             console.log('Cannot add seats to upper deck in single decker bus');
@@ -408,7 +476,10 @@ class SeatLayoutEditor {
 
         // Find the seat position at this location
         const grid = deck === 'upper_deck' ? this.upperDeckGrid : this.lowerDeckGrid;
+        console.log('Using grid:', grid?.id, 'Grid exists:', !!grid);
+
         const seatPosition = this.getSeatPositionAt(grid, x, y);
+        console.log('Found seat position:', !!seatPosition, seatPosition);
 
         if (!seatPosition) {
             console.log('No seat position found at location');
@@ -477,6 +548,8 @@ class SeatLayoutEditor {
 
     getSeatPositionAt(grid, x, y) {
         const positions = grid.querySelectorAll('.seat-position');
+        console.log('getSeatPositionAt: Looking for position at', x, y, 'Found', positions.length, 'positions in grid', grid.id);
+
         for (let pos of positions) {
             const rect = pos.getBoundingClientRect();
             const gridRect = grid.getBoundingClientRect();
@@ -485,17 +558,25 @@ class SeatLayoutEditor {
 
             if (x >= posX && x <= posX + rect.width &&
                 y >= posY && y <= posY + rect.height) {
+                console.log('Found matching position:', pos.dataset.row, pos.dataset.col);
                 return pos;
             }
         }
+        console.log('No matching position found');
         return null;
     }
 
     generateSeatId(deck, row, col, side) {
         // Generate seat ID matching API format
-        const deckPrefix = deck === 'upper_deck' ? 'U' : 'L';
-        const seatNumber = (row * 10) + (col + 1);
-        return `${deckPrefix}${seatNumber}`;
+        if (deck === 'upper_deck') {
+            // Upper deck: U1, U2, U3...
+            const seatNumber = (row * 10) + (col + 1);
+            return `U${seatNumber}`;
+        } else {
+            // Lower deck: 1, 2, 3... (simple numbers)
+            const seatNumber = (row * 10) + (col + 1);
+            return `${seatNumber}`;
+        }
     }
 
     getSeatWidth(type) {
@@ -577,7 +658,24 @@ class SeatLayoutEditor {
         seatElement.style.cursor = 'pointer';
         seatElement.style.zIndex = '5';
         seatElement.style.transition = 'all 0.2s ease';
-        seatElement.textContent = seatData.seat_id;
+        seatElement.style.flexDirection = 'column';
+        seatElement.style.lineHeight = '1.1';
+        seatElement.style.padding = '3px';
+        seatElement.style.boxSizing = 'border-box';
+
+        // Create content with seat ID and price
+        const seatIdDiv = document.createElement('div');
+        seatIdDiv.textContent = seatData.seat_id;
+        seatIdDiv.style.fontSize = '12px';
+        seatIdDiv.style.fontWeight = 'bold';
+
+        const priceDiv = document.createElement('div');
+        priceDiv.textContent = `₹${seatData.price}`;
+        priceDiv.style.fontSize = '10px';
+        priceDiv.style.opacity = '0.8';
+
+        seatElement.appendChild(seatIdDiv);
+        seatElement.appendChild(priceDiv);
         seatElement.dataset.seatId = seatData.seat_id;
         seatElement.dataset.deck = deck;
         seatElement.dataset.seatData = JSON.stringify(seatData);
@@ -755,15 +853,63 @@ class SeatLayoutEditor {
         }
     }
 
-    setDeckType(deckType) {
+    setDeckType(deckType, skipDataClear = false) {
+        console.log('=== SETTING DECK TYPE ===');
+        console.log('setDeckType called with:', deckType, 'skipDataClear:', skipDataClear);
+        console.log('Current deck type:', this.deckType);
+        console.log('Upper deck grid exists before:', !!this.upperDeckGrid);
+        console.log('Upper deck grid children before:', this.upperDeckGrid?.children.length);
+
+        // Store existing seat data before recreating grid
+        const existingUpperDeckSeats = this.layoutData.upper_deck?.seats || [];
+        console.log('Storing existing upper deck seats:', existingUpperDeckSeats.length);
+
         this.deckType = deckType;
 
-        // Clear upper deck data for single decker
+        // Clear upper deck data for single decker (but not during initial load)
         if (deckType === 'single') {
-            this.layoutData.upper_deck = { seats: [] };
+            if (!skipDataClear) {
+                this.layoutData.upper_deck = { seats: [] };
+                console.log('Cleared upper deck data for single decker');
+            } else {
+                console.log('Skipped clearing upper deck data (initial load)');
+            }
             // Clear upper deck visual elements
             this.upperDeckGrid.innerHTML = '';
+            console.log('Cleared upper deck visual elements for single decker');
+        } else {
+            // For double decker, only recreate the upper deck layout if not during initial load
+            if (!skipDataClear) {
+                console.log('Recreating upper deck layout for double decker (user change)');
+                console.log('Upper deck grid before createDeckLayout:', this.upperDeckGrid);
+                this.createDeckLayout(this.upperDeckGrid);
+                console.log('Upper deck grid after createDeckLayout:', this.upperDeckGrid);
+                console.log('Upper deck grid children after createDeckLayout:', this.upperDeckGrid?.children.length);
+
+                // Re-render existing seats if we have any
+                if (existingUpperDeckSeats.length > 0) {
+                    console.log('Re-rendering existing upper deck seats after grid recreation');
+                    existingUpperDeckSeats.forEach((seat, index) => {
+                        console.log(`Re-rendering upper deck seat ${index}:`, seat);
+                        const grid = this.upperDeckGrid;
+                        const selector = `[data-row="${seat.row}"][data-col="${seat.col}"][data-side="${seat.side}"]`;
+                        const position = grid.querySelector(selector);
+                        if (position) {
+                            console.log(`Re-creating upper deck seat element for seat ${index}`);
+                            this.createSeatElement('upper_deck', seat, position);
+                        } else {
+                            console.error(`Position not found for re-rendering upper deck seat ${index}:`, seat);
+                        }
+                    });
+                }
+            } else {
+                console.log('Skipping upper deck grid recreation during initial load (seats already loaded)');
+            }
         }
+
+        console.log('Upper deck grid exists after:', !!this.upperDeckGrid);
+        console.log('Upper deck grid children after:', this.upperDeckGrid?.children.length);
+        console.log('=== DECK TYPE SET COMPLETE ===');
 
         this.updateSeatCounts();
         this.updateLayoutDataInput();
@@ -894,31 +1040,35 @@ class SeatLayoutEditor {
                         .preview-seat-item {
                             position: absolute;
                             border: 2px solid;
-                            border-radius: 4px;
+                            border-radius: 6px;
                             display: flex;
+                            flex-direction: column;
                             align-items: center;
                             justify-content: center;
-                            font-size: 10px;
+                            font-size: 12px;
                             font-weight: bold;
                             cursor: pointer;
+                            line-height: 1.1;
+                            padding: 3px;
+                            box-sizing: border-box;
                         }
                         .preview-seat-item.nseat {
-                            width: 30px;
-                            height: 25px;
+                            width: 45px !important;
+                            height: 40px !important;
                             background-color: #fff;
                             border-color: #666;
                             color: #333;
                         }
                         .preview-seat-item.hseat {
-                            width: 40px;
-                            height: 25px;
+                            width: 60px !important;
+                            height: 40px !important;
                             background-color: #e3f2fd;
                             border-color: #1976d2;
                             color: #1976d2;
                         }
                         .preview-seat-item.vseat {
-                            width: 30px;
-                            height: 40px;
+                            width: 40px !important;
+                            height: 80px !important;
                             background-color: #f3e5f5;
                             border-color: #7b1fa2;
                             color: #7b1fa2;
@@ -1001,17 +1151,34 @@ class SeatLayoutEditor {
 
     loadExistingData() {
         const existingData = this.layoutDataInput.value;
+        console.log('=== LOADING EXISTING DATA ===');
+        console.log('Raw existing data:', existingData);
+
         if (existingData && existingData !== '{}') {
             try {
                 this.layoutData = JSON.parse(existingData);
+                console.log('Parsed layout data:', this.layoutData);
+                console.log('Upper deck data:', this.layoutData.upper_deck);
+                console.log('Lower deck data:', this.layoutData.lower_deck);
+                console.log('Upper deck seats count:', this.layoutData.upper_deck?.seats?.length || 0);
+                console.log('Lower deck seats count:', this.layoutData.lower_deck?.seats?.length || 0);
+
                 this.renderExistingLayout();
             } catch (error) {
                 console.error('Error loading existing layout data:', error);
             }
+        } else {
+            console.log('No existing data found or empty data');
         }
     }
 
     renderExistingLayout() {
+        console.log('=== RENDERING EXISTING LAYOUT ===');
+        console.log('Upper deck grid exists:', !!this.upperDeckGrid);
+        console.log('Lower deck grid exists:', !!this.lowerDeckGrid);
+        console.log('Upper deck grid children before clear:', this.upperDeckGrid?.children.length);
+        console.log('Lower deck grid children before clear:', this.lowerDeckGrid?.children.length);
+
         // Clear existing seats but keep positions
         this.upperDeckGrid.querySelectorAll('.seat-item').forEach(seat => {
             const position = seat.parentElement;
@@ -1022,28 +1189,69 @@ class SeatLayoutEditor {
             position.innerHTML = '<span>+</span>';
         });
 
+        console.log('Upper deck grid children after clear:', this.upperDeckGrid?.children.length);
+        console.log('Lower deck grid children after clear:', this.lowerDeckGrid?.children.length);
+
         // Render upper deck seats
-        if (this.layoutData.upper_deck.seats) {
-            this.layoutData.upper_deck.seats.forEach(seat => {
+        if (this.layoutData.upper_deck && this.layoutData.upper_deck.seats) {
+            console.log('=== RENDERING UPPER DECK SEATS ===');
+            console.log('Upper deck seats to render:', this.layoutData.upper_deck.seats.length);
+
+            this.layoutData.upper_deck.seats.forEach((seat, index) => {
+                console.log(`Upper deck seat ${index}:`, seat);
                 const grid = this.upperDeckGrid;
-                const position = grid.querySelector(`[data-row="${seat.row}"][data-col="${seat.col}"][data-side="${seat.side}"]`);
+                const selector = `[data-row="${seat.row}"][data-col="${seat.col}"][data-side="${seat.side}"]`;
+                console.log(`Looking for position with selector: ${selector}`);
+
+                const position = grid.querySelector(selector);
+                console.log(`Found position for upper deck seat ${index}:`, !!position, position);
+
                 if (position) {
+                    console.log(`Creating upper deck seat element for seat ${index}`);
                     this.createSeatElement('upper_deck', seat, position);
+                } else {
+                    console.error(`Position not found for upper deck seat ${index}:`, seat);
+                    console.log('Available positions in upper deck grid:');
+                    const allPositions = grid.querySelectorAll('.seat-position');
+                    allPositions.forEach((pos, i) => {
+                        console.log(`Position ${i}:`, {
+                            row: pos.dataset.row,
+                            col: pos.dataset.col,
+                            side: pos.dataset.side
+                        });
+                    });
                 }
             });
+        } else {
+            console.log('No upper deck seats to render');
         }
 
         // Render lower deck seats
-        if (this.layoutData.lower_deck.seats) {
-            this.layoutData.lower_deck.seats.forEach(seat => {
+        if (this.layoutData.lower_deck && this.layoutData.lower_deck.seats) {
+            console.log('=== RENDERING LOWER DECK SEATS ===');
+            console.log('Lower deck seats to render:', this.layoutData.lower_deck.seats.length);
+
+            this.layoutData.lower_deck.seats.forEach((seat, index) => {
+                console.log(`Lower deck seat ${index}:`, seat);
                 const grid = this.lowerDeckGrid;
-                const position = grid.querySelector(`[data-row="${seat.row}"][data-col="${seat.col}"][data-side="${seat.side}"]`);
+                const selector = `[data-row="${seat.row}"][data-col="${seat.col}"][data-side="${seat.side}"]`;
+                console.log(`Looking for position with selector: ${selector}`);
+
+                const position = grid.querySelector(selector);
+                console.log(`Found position for lower deck seat ${index}:`, !!position, position);
+
                 if (position) {
+                    console.log(`Creating lower deck seat element for seat ${index}`);
                     this.createSeatElement('lower_deck', seat, position);
+                } else {
+                    console.error(`Position not found for lower deck seat ${index}:`, seat);
                 }
             });
+        } else {
+            console.log('No lower deck seats to render');
         }
 
         this.updateSeatCounts();
+        console.log('=== RENDERING COMPLETE ===');
     }
 }

@@ -40,7 +40,7 @@ class BusController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        $routes = $operator->routes()->active()->get();
+        $routes = $operator->routes()->active()->with(['originCity', 'destinationCity'])->get();
 
         return view('operator.buses.index', compact('pageTitle', 'buses', 'routes'));
     }
@@ -54,7 +54,7 @@ class BusController extends Controller
     {
         $pageTitle = "Add New Bus";
         $operator = Auth::guard('operator')->user();
-        $routes = $operator->routes()->active()->get();
+        $routes = $operator->routes()->active()->with(['originCity', 'destinationCity'])->get();
 
         // Prefill travel name with operator's default travel name
         $defaultTravelName = $operator->default_travel_name;
@@ -203,7 +203,7 @@ class BusController extends Controller
             abort(403, 'Unauthorized access to this bus.');
         }
 
-        $routes = $operator->routes()->active()->get();
+        $routes = $operator->routes()->active()->with(['originCity', 'destinationCity'])->get();
 
         return view('operator.buses.edit', compact('pageTitle', 'bus', 'routes'));
     }

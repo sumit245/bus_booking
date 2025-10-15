@@ -1,6 +1,6 @@
 @extends('operator.layouts.app')
 
-@section('content')
+@section('panel')
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -498,14 +498,14 @@
                 }
             });
 
-            // Initialize deck type on page load
+            // Initialize deck type on page load (skip data clear during initial load)
             const initialDeckType = document.getElementById('deck_type').value;
             if (initialDeckType === 'single') {
                 document.getElementById('upperDeckSection').style.display = 'none';
                 document.getElementById('lowerDeckLabel').textContent = 'Main Deck';
-                editor.setDeckType('single');
+                editor.setDeckType('single', true); // Skip data clear during initial load
             } else {
-                editor.setDeckType('double');
+                editor.setDeckType('double', true); // Skip data clear during initial load
             }
 
             // Handle form submission

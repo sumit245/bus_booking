@@ -1,6 +1,6 @@
 @extends('operator.layouts.app')
 
-@section('content')
+@section('panel')
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
@@ -228,37 +228,54 @@
         .bus-layout-preview .vseat {
             position: absolute;
             border: 2px solid;
-            border-radius: 4px;
+            border-radius: 6px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
+            line-height: 1.1;
+            padding: 3px;
+            box-sizing: border-box;
         }
 
         .bus-layout-preview .nseat {
-            width: 30px;
-            height: 25px;
+            width: 45px;
+            height: 40px;
             background-color: #fff;
             border-color: #666;
             color: #333;
         }
 
         .bus-layout-preview .hseat {
-            width: 40px;
-            height: 25px;
+            width: 60px;
+            height: 40px;
             background-color: #e3f2fd;
             border-color: #1976d2;
             color: #1976d2;
         }
 
         .bus-layout-preview .vseat {
-            width: 30px;
-            height: 40px;
+            width: 40px;
+            height: 80px;
             background-color: #f3e5f5;
             border-color: #7b1fa2;
             color: #7b1fa2;
+        }
+
+        /* Deck Labels */
+        .deck-section {
+            margin-bottom: 20px;
+        }
+
+        .deck-label {
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
         }
 
         .layout-preview {

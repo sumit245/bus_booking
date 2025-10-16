@@ -1,0 +1,1981 @@
+{
+    "SearchTokenId": "acf62a5f577804895e8ddfeeaef0ce88e844c8d6",
+    "trips": [
+        {
+            "ResultIndex": "OP_1",
+            "BusType": "Non Ac Seater (2+2)",
+            "TravelName": "Sutra Seva",
+            "ServiceName": "Seat Seller",
+            "DepartureTime": "2025-11-03 00:00:00",
+            "ArrivalTime": "2025-11-04 00:00:00",
+            "Duration": "24h",
+            "Origin": "Patna",
+            "Destination": "Delhi",
+            "TotalSeats": 36,
+            "AvailableSeats": 36,
+            "LiveTrackingAvailable": true,
+            "MTicketEnabled": true,
+            "PartialCancellationAllowed": true,
+            "Description": "Volvo Bus",
+            "BusPrice": {
+                "PublishedPrice": 83.5,
+                "OfferedPrice": 69.090000000000003410605131648480892181396484375,
+                "AgentCommission": 4.410000000000000142108547152020037174224853515625,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "ServiceCharges": 0,
+                "TDS": 0,
+                "CGSTAmount": 0,
+                "CGSTRate": 0,
+                "IGSTAmount": 0,
+                "IGSTRate": 18,
+                "SGSTAmount": 0,
+                "SGSTRate": 0,
+                "TaxableAmount": 0
+            },
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointName": "Kali Pahadi",
+                    "CityPointLocation": "Kali Pahadi",
+                    "CityPointTime": null
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointName": "Main Bus Stand",
+                    "CityPointLocation": "Main Bus Stand",
+                    "CityPointTime": null
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointName": "Anand Vihar",
+                    "CityPointLocation": "Anand Vihar",
+                    "CityPointTime": null
+                }
+            ],
+            "SeatLayout": "<div class=\"deck-section mb-3\"><h6 class=\"deck-label mb-2\">Upper Deck</h6><div class=\"outerseat\"><div class=\"busSeatlft\"><div class=\"upper\"></div></div><div class=\"busSeatrgt\"><div class=\"busSeat\"><div class=\"seatcontainer clearfix\"><div id=\"U1\" style=\"top:0px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U1','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U1</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U1\" style=\"top:0px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U1','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U1</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U3\" style=\"top:0px;left:80px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U3','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U3</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U5\" style=\"top:0px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U5','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U5</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U7\" style=\"top:0px;left:240px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U7','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U7</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U19\" style=\"top:40px;left:320px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U19','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U19</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U9\" style=\"top:0px;left:320px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U9','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U9</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U11\" style=\"top:40px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U11','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U11</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U13\" style=\"top:40px;left:80px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U13','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U13</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U15\" style=\"top:40px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U15','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U15</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U17\" style=\"top:40px;left:240px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U17','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U17</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U21\" style=\"top:130px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U21','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U21</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U23\" style=\"top:130px;left:80px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U23','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U23</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U25\" style=\"top:130px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U25','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U25</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U27\" style=\"top:130px;left:240px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U27','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U27</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U29\" style=\"top:130px;left:320px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U29','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U29</div><div style='font-size:9px;'>₹0</div></div></div></div></div></div><div class=\"clr\"></div></div></div><div class=\"deck-section\"><h6 class=\"deck-label mb-2\">Lower Deck</h6><div class=\"outerlowerseat\"><div class=\"busSeatlft\"><div class=\"lower\"></div></div><div class=\"busSeatrgt\"><div class=\"busSeat\"><div class=\"seatcontainer clearfix\"><div id=\"1\" style=\"top:0px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'1','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>1</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"21\" style=\"top:130px;left:0px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'21','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>21</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"22\" style=\"top:130px;left:40px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'22','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>22</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"23\" style=\"top:130px;left:80px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'23','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>23</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"24\" style=\"top:130px;left:120px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'24','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>24</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"25\" style=\"top:130px;left:160px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'25','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>25</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"26\" style=\"top:130px;left:200px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'26','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>26</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"27\" style=\"top:130px;left:240px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'27','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>27</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"28\" style=\"top:130px;left:280px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'28','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>28</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"29\" style=\"top:130px;left:320px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'29','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>29</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"30\" style=\"top:130px;left:360px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'30','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>30</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"11\" style=\"top:40px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'11','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>11</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"3\" style=\"top:0px;left:80px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'3','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>3</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"5\" style=\"top:0px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'5','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>5</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"7\" style=\"top:0px;left:240px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'7','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>7</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"13\" style=\"top:40px;left:80px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'13','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>13</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"15\" style=\"top:40px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'15','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>15</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"17\" style=\"top:40px;left:240px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'17','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>17</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"9\" style=\"top:0px;left:320px;display:block;\" class=\"vseat\" onclick=\"javascript:AddRemoveSeat(this,'9','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>9</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"10\" style=\"top:0px;left:360px;display:block;\" class=\"vseat\" onclick=\"javascript:AddRemoveSeat(this,'10','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>10</div><div style='font-size:9px;'>₹0</div></div></div></div></div></div><div class=\"clr\"></div></div></div>",
+            "OperatorBusId": 1,
+            "OperatorRouteId": 1,
+            "IsOperatorBus": true
+        },
+        {
+            "ResultIndex": "TB-12",
+            "ArrivalTime": "2025-11-04T07:20:00",
+            "AvailableSeats": 1,
+            "DepartureTime": "2025-11-03T02:00:00",
+            "RouteId": "1000007954204279708",
+            "BusType": "Bharat Benz A/c Seater /sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Laxmi Holidays",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 17958,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna Bus Stand",
+                    "CityPointName": "Patna Bus Stand",
+                    "CityPointTime": "2025-11-03T02:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "ISBT KASHMIRI GATE INSIDE ARRIVAL PLATFORM NEAR 53 AND 54",
+                    "CityPointName": "ISBT Kashmiri Gate",
+                    "CityPointTime": "2025-11-04T07:20:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 4198.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 4618.850000000000363797880709171295166015625,
+                "OfferedPrice": 3947.010000000000218278728425502777099609375,
+                "AgentCommission": 251.93999999999999772626324556767940521240234375,
+                "ServiceCharges": 0,
+                "TDS": 12.5999999999999996447286321199499070644378662109375,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 15,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 14:00 on 26 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-26T14:00:00"
+                },
+                {
+                    "CancellationCharge": 15,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 14:00 on 26 Oct 2025 - 14:00 on 30 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-26T14:00:00",
+                    "ToDate": "2025-10-30T14:00:00"
+                },
+                {
+                    "CancellationCharge": 15,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 14:00 on 30 Oct 2025 - 14:00 on 01 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-30T14:00:00",
+                    "ToDate": "2025-11-01T14:00:00"
+                },
+                {
+                    "CancellationCharge": 25,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 14:00 on 01 Nov 2025 - 02:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-01T14:00:00",
+                    "ToDate": "2025-11-02T02:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 02:00 on 02 Nov 2025 - 10:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "16$24",
+                    "FromDate": "2025-11-02T02:00:00",
+                    "ToDate": "2025-11-02T10:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 10:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$16",
+                    "FromDate": "2025-11-02T10:00:00",
+                    "ToDate": "2025-11-04T07:20:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-13",
+            "ArrivalTime": "2025-11-04T09:30:00",
+            "AvailableSeats": 38,
+            "DepartureTime": "2025-11-03T09:30:00",
+            "RouteId": "5000007954200446924",
+            "BusType": "A/c Seater / Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Panwar Tour And Travels",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 20443,
+            "PartialCancellationAllowed": false,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bari pahari panwar travels Hotel Glance inn",
+                    "CityPointName": "Bari pahari panwar travels Hotel Glance inn",
+                    "CityPointTime": "2025-11-03T09:30:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "zeromile Singh petrol pump",
+                    "CityPointName": "zeromile Singh petrol pump",
+                    "CityPointTime": "2025-11-03T09:30:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Zero Point Greater Noida Above Starting Point Yamuna Express",
+                    "CityPointName": "Zero Point Greater Noida Above Starting Point Yamuna Express",
+                    "CityPointTime": "2025-11-04T09:00:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "I.P.extension MCD authorised parking patparganj anand vihar",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T09:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2308.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 2539.84999999999990905052982270717620849609375,
+                "OfferedPrice": 2170.40999999999985448084771633148193359375,
+                "AgentCommission": 138.539999999999992041921359486877918243408203125,
+                "ServiceCharges": 0,
+                "TDS": 6.92999999999999971578290569595992565155029296875,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 10,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 21:30 on 01 Nov 2025",
+                    "TimeBeforeDept": "36$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-11-01T21:30:00"
+                },
+                {
+                    "CancellationCharge": 40,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 21:30 on 01 Nov 2025 - 09:30 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-01T21:30:00",
+                    "ToDate": "2025-11-02T09:30:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 09:30 on 02 Nov 2025 - 13:30 on 02 Nov 2025",
+                    "TimeBeforeDept": "20$24",
+                    "FromDate": "2025-11-02T09:30:00",
+                    "ToDate": "2025-11-02T13:30:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 13:30 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$20",
+                    "FromDate": "2025-11-02T13:30:00",
+                    "ToDate": "2025-11-04T09:30:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-17",
+            "ArrivalTime": "2025-11-04T10:00:00",
+            "AvailableSeats": 72,
+            "DepartureTime": "2025-11-03T13:00:00",
+            "RouteId": "5000007954207064324",
+            "BusType": "A/c Seater / Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Shree Balajee Travels And Cargo",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 26773,
+            "PartialCancellationAllowed": false,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "PHARI GAYA  ROAD OPPOSITE HOTEL GELNCEIN",
+                    "CityPointName": "PHARI GAYA  ROAD OPPOSITE HOTEL GELNCEIN",
+                    "CityPointTime": "2025-11-03T13:00:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Zero Mile",
+                    "CityPointName": "Zero Mile",
+                    "CityPointTime": "2025-11-03T13:10:00"
+                },
+                {
+                    "CityPointIndex": 3,
+                    "CityPointLocation": "Patliputra bus terminal bairya pahadi near zero mile Patna gate no 2 Patna",
+                    "CityPointName": "Patliputra bus terminal bairya pahadi near zero mile Patna gate no 2 Patna",
+                    "CityPointTime": "2025-11-03T13:15:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "ANAND VIHAR PARKING NO.1. call this no. 8*6*9*0*5*4*1*1*5*3",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T10:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2098.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 2308.84999999999990905052982270717620849609375,
+                "OfferedPrice": 1973.009999999999990905052982270717620849609375,
+                "AgentCommission": 125.93999999999999772626324556767940521240234375,
+                "ServiceCharges": 0,
+                "TDS": 6.29999999999999982236431605997495353221893310546875,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 10,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 01:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-11-02T01:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 01:00 on 02 Nov 2025 - 13:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T01:00:00",
+                    "ToDate": "2025-11-02T13:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 13:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$24",
+                    "FromDate": "2025-11-02T13:00:00",
+                    "ToDate": "2025-11-04T10:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-18",
+            "ArrivalTime": "2025-11-04T08:00:00",
+            "AvailableSeats": 39,
+            "DepartureTime": "2025-11-03T13:00:00",
+            "RouteId": "5000007954207079122",
+            "BusType": "Ve A/c Seater / Sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "E Bus India",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 19980,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna Bariya Bus Stand Gate no 1",
+                    "CityPointName": "Patna Bariya Bus Stand Gate no 1",
+                    "CityPointTime": "2025-11-03T13:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Anand Vihar (2 no parking Near EDM mall)",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T08:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2413.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 2655.34999999999990905052982270717620849609375,
+                "OfferedPrice": 2269.11000000000012732925824820995330810546875,
+                "AgentCommission": 144.840000000000003410605131648480892181396484375,
+                "ServiceCharges": 0,
+                "TDS": 7.2400000000000002131628207280300557613372802734375,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 30,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 01:00 on 27 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-27T01:00:00"
+                },
+                {
+                    "CancellationCharge": 40,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 01:00 on 27 Oct 2025 - 01:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-27T01:00:00",
+                    "ToDate": "2025-10-31T01:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 01:00 on 31 Oct 2025 - 01:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-31T01:00:00",
+                    "ToDate": "2025-11-02T01:00:00"
+                },
+                {
+                    "CancellationCharge": 70,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 01:00 on 02 Nov 2025 - 13:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T01:00:00",
+                    "ToDate": "2025-11-02T13:00:00"
+                },
+                {
+                    "CancellationCharge": 95,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 13:00 on 02 Nov 2025 - 21:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "16$24",
+                    "FromDate": "2025-11-02T13:00:00",
+                    "ToDate": "2025-11-02T21:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 21:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$16",
+                    "FromDate": "2025-11-02T21:00:00",
+                    "ToDate": "2025-11-04T08:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-6",
+            "ArrivalTime": "2025-11-04T14:00:00",
+            "AvailableSeats": 42,
+            "DepartureTime": "2025-11-03T14:00:00",
+            "RouteId": "2000007954200185017",
+            "BusType": "Ac Seater (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Aman Bus Service",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 35255,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Gandhi Maidan",
+                    "CityPointName": "Gandhi Maidan",
+                    "CityPointTime": "2025-11-03T14:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Anand Vihar",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T14:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 1470,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 1617,
+                "OfferedPrice": 1381.799999999999954525264911353588104248046875,
+                "AgentCommission": 88.2000000000000028421709430404007434844970703125,
+                "ServiceCharges": 0,
+                "TDS": 4.410000000000000142108547152020037174224853515625,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 10,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 02:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-11-02T02:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 02:00 on 02 Nov 2025 - 14:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T02:00:00",
+                    "ToDate": "2025-11-02T14:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 14:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$24",
+                    "FromDate": "2025-11-02T14:00:00",
+                    "ToDate": "2025-11-04T14:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-14",
+            "ArrivalTime": "2025-11-04T09:00:00",
+            "AvailableSeats": 39,
+            "DepartureTime": "2025-11-03T14:00:00",
+            "RouteId": "5000007954201704975",
+            "BusType": "Ve A/c Seater / Sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "E Bus India",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": true,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 19980,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna Bariya Bus Stand Gate no 1",
+                    "CityPointName": "Patna Bariya Bus Stand Gate no 1",
+                    "CityPointTime": "2025-11-03T14:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Anand Vihar (2 no parking Near EDM mall)",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T09:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2413.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 2655.34999999999990905052982270717620849609375,
+                "OfferedPrice": 2269.11000000000012732925824820995330810546875,
+                "AgentCommission": 144.840000000000003410605131648480892181396484375,
+                "ServiceCharges": 0,
+                "TDS": 7.2400000000000002131628207280300557613372802734375,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 30,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 02:00 on 27 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-27T02:00:00"
+                },
+                {
+                    "CancellationCharge": 40,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 02:00 on 27 Oct 2025 - 02:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-27T02:00:00",
+                    "ToDate": "2025-10-31T02:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 02:00 on 31 Oct 2025 - 02:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-31T02:00:00",
+                    "ToDate": "2025-11-02T02:00:00"
+                },
+                {
+                    "CancellationCharge": 70,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 02:00 on 02 Nov 2025 - 14:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T02:00:00",
+                    "ToDate": "2025-11-02T14:00:00"
+                },
+                {
+                    "CancellationCharge": 95,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 14:00 on 02 Nov 2025 - 22:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "16$24",
+                    "FromDate": "2025-11-02T14:00:00",
+                    "ToDate": "2025-11-02T22:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 22:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$16",
+                    "FromDate": "2025-11-02T22:00:00",
+                    "ToDate": "2025-11-04T09:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-2",
+            "ArrivalTime": "2025-11-04T09:00:00",
+            "AvailableSeats": 31,
+            "DepartureTime": "2025-11-03T14:30:00",
+            "RouteId": "9000007954200791719",
+            "BusType": "A/c Seater/sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Shri Shyam Baba Travels",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 32394,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bairiya Bus Stand ISBT Patna",
+                    "CityPointName": "Bairiya Bus Stand ISBT Patna",
+                    "CityPointTime": "2025-11-03T14:30:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Anand Vihar",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T09:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 3253.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3579.34999999999990905052982270717620849609375,
+                "OfferedPrice": 3058.7100000000000363797880709171295166015625,
+                "AgentCommission": 195.240000000000009094947017729282379150390625,
+                "ServiceCharges": 0,
+                "TDS": 9.7599999999999997868371792719699442386627197265625,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 02:30 on 27 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-27T02:30:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 02:30 on 27 Oct 2025 - 02:30 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-27T02:30:00",
+                    "ToDate": "2025-10-31T02:30:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 02:30 on 31 Oct 2025 - 02:30 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-31T02:30:00",
+                    "ToDate": "2025-11-02T02:30:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 02:30 on 02 Nov 2025 - 23:30 on 02 Nov 2025",
+                    "TimeBeforeDept": "15$36",
+                    "FromDate": "2025-11-02T02:30:00",
+                    "ToDate": "2025-11-02T23:30:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-16",
+            "ArrivalTime": "2025-11-04T10:00:00",
+            "AvailableSeats": 54,
+            "DepartureTime": "2025-11-03T15:00:00",
+            "RouteId": "5000007954206851445",
+            "BusType": "Ve A/c Seater / Sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "E Bus India",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": true,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 19980,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna Bariya Bus Stand Gate no 1",
+                    "CityPointName": "Patna Bariya Bus Stand Gate no 1",
+                    "CityPointTime": "2025-11-03T15:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Anand Vihar (2 no parking Near EDM mall)",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T10:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2413.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 2655.34999999999990905052982270717620849609375,
+                "OfferedPrice": 2269.11000000000012732925824820995330810546875,
+                "AgentCommission": 144.840000000000003410605131648480892181396484375,
+                "ServiceCharges": 0,
+                "TDS": 7.2400000000000002131628207280300557613372802734375,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 30,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 03:00 on 27 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-27T03:00:00"
+                },
+                {
+                    "CancellationCharge": 40,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 03:00 on 27 Oct 2025 - 03:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-27T03:00:00",
+                    "ToDate": "2025-10-31T03:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 03:00 on 31 Oct 2025 - 03:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-31T03:00:00",
+                    "ToDate": "2025-11-02T03:00:00"
+                },
+                {
+                    "CancellationCharge": 70,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 03:00 on 02 Nov 2025 - 15:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T03:00:00",
+                    "ToDate": "2025-11-02T15:00:00"
+                },
+                {
+                    "CancellationCharge": 95,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 15:00 on 02 Nov 2025 - 23:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "16$24",
+                    "FromDate": "2025-11-02T15:00:00",
+                    "ToDate": "2025-11-02T23:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 23:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$16",
+                    "FromDate": "2025-11-02T23:00:00",
+                    "ToDate": "2025-11-04T10:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-3",
+            "ArrivalTime": "2025-11-04T10:00:00",
+            "AvailableSeats": 54,
+            "DepartureTime": "2025-11-03T16:00:00",
+            "RouteId": "9000007954200934578",
+            "BusType": "Ve A/c Seater / Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "International Tourist Centre",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 17556,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna",
+                    "CityPointName": "Patna",
+                    "CityPointTime": "2025-11-03T16:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Edm Mall Anand Vihar",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T10:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 3148.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3463.84999999999990905052982270717620849609375,
+                "OfferedPrice": 2960.010000000000218278728425502777099609375,
+                "AgentCommission": 188.93999999999999772626324556767940521240234375,
+                "ServiceCharges": 0,
+                "TDS": 9.449999999999999289457264239899814128875732421875,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 25,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 04:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-31T04:00:00"
+                },
+                {
+                    "CancellationCharge": 25,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 04:00 on 31 Oct 2025 - 04:00 on 01 Nov 2025",
+                    "TimeBeforeDept": "60$84",
+                    "FromDate": "2025-10-31T04:00:00",
+                    "ToDate": "2025-11-01T04:00:00"
+                },
+                {
+                    "CancellationCharge": 25,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 04:00 on 01 Nov 2025 - 04:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$60",
+                    "FromDate": "2025-11-01T04:00:00",
+                    "ToDate": "2025-11-02T04:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 04:00 on 02 Nov 2025 - 16:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T04:00:00",
+                    "ToDate": "2025-11-02T16:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 16:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$24",
+                    "FromDate": "2025-11-02T16:00:00",
+                    "ToDate": "2025-11-04T10:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-8",
+            "ArrivalTime": "2025-11-04T09:00:00",
+            "AvailableSeats": 34,
+            "DepartureTime": "2025-11-03T16:00:00",
+            "RouteId": "9000007954201327361",
+            "BusType": "Ve A/c Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Mohindra Smart Bus",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 35222,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna Bairiya Bus Stand",
+                    "CityPointName": "Patna Bairiya Bus Stand",
+                    "CityPointTime": "2025-11-03T16:00:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Dana Pur Railway Station",
+                    "CityPointName": "Dana Pur Railway Station",
+                    "CityPointTime": "2025-11-03T16:30:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Zero point yamuna expressway",
+                    "CityPointName": "Zero point yamuna expressway",
+                    "CityPointTime": "2025-11-04T07:40:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Noida gate chilla border DTC BUS STOP",
+                    "CityPointName": "Noida gate chilla border DTC BUS STOP",
+                    "CityPointTime": "2025-11-04T08:15:00"
+                },
+                {
+                    "CityPointIndex": 3,
+                    "CityPointLocation": "Akshardham metro station pillar no 36",
+                    "CityPointName": "Akshardham Metro Station",
+                    "CityPointTime": "2025-11-04T08:30:00"
+                },
+                {
+                    "CityPointIndex": 4,
+                    "CityPointLocation": "ISBT KASHMIRI GATE METRO GATE NO 5",
+                    "CityPointName": "ISBT Kashmiri Gate",
+                    "CityPointTime": "2025-11-04T09:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 3778.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 4156.850000000000363797880709171295166015625,
+                "OfferedPrice": 3552.2100000000000363797880709171295166015625,
+                "AgentCommission": 226.740000000000009094947017729282379150390625,
+                "ServiceCharges": 0,
+                "TDS": 11.339999999999999857891452847979962825775146484375,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 04:00 on 27 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-27T04:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 04:00 on 27 Oct 2025 - 04:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-27T04:00:00",
+                    "ToDate": "2025-10-31T04:00:00"
+                },
+                {
+                    "CancellationCharge": 10,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 04:00 on 31 Oct 2025 - 04:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-31T04:00:00",
+                    "ToDate": "2025-11-02T04:00:00"
+                },
+                {
+                    "CancellationCharge": 35,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 04:00 on 02 Nov 2025 - 16:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T04:00:00",
+                    "ToDate": "2025-11-02T16:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 16:00 on 02 Nov 2025 - 20:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "20$24",
+                    "FromDate": "2025-11-02T16:00:00",
+                    "ToDate": "2025-11-02T20:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 20:00 on 02 Nov 2025 - 01:00 on 03 Nov 2025",
+                    "TimeBeforeDept": "15$20",
+                    "FromDate": "2025-11-02T20:00:00",
+                    "ToDate": "2025-11-03T01:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 01:00 on 03 Nov 2025",
+                    "TimeBeforeDept": "0$15",
+                    "FromDate": "2025-11-03T01:00:00",
+                    "ToDate": "2025-11-04T09:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-10",
+            "ArrivalTime": "2025-11-04T14:00:00",
+            "AvailableSeats": 30,
+            "DepartureTime": "2025-11-03T17:00:00",
+            "RouteId": "9000007954201343342",
+            "BusType": "A/c Seater / Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Sri Krishna Rath",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 20316,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "SRI KRISHNA RATH OFFICE ZERO MILE PAHARI",
+                    "CityPointName": "SRI KRISHNA RATH OFFICE ZERO MILE PAHARI",
+                    "CityPointTime": "2025-11-03T17:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Anand Vihar",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T14:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 1048.950000000000045474735088646411895751953125,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 1153.84999999999990905052982270717620849609375,
+                "OfferedPrice": 986.009999999999990905052982270717620849609375,
+                "AgentCommission": 62.93999999999999772626324556767940521240234375,
+                "ServiceCharges": 0,
+                "TDS": 3.149999999999999911182158029987476766109466552734375,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 05:00 on 27 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-27T05:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:00 on 27 Oct 2025 - 05:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-27T05:00:00",
+                    "ToDate": "2025-10-31T05:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:00 on 31 Oct 2025 - 05:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-31T05:00:00",
+                    "ToDate": "2025-11-02T05:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:00 on 02 Nov 2025 - 17:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T05:00:00",
+                    "ToDate": "2025-11-02T17:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 17:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$24",
+                    "FromDate": "2025-11-02T17:00:00",
+                    "ToDate": "2025-11-04T14:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-9",
+            "ArrivalTime": "2025-11-04T08:30:00",
+            "AvailableSeats": 34,
+            "DepartureTime": "2025-11-03T17:00:00",
+            "RouteId": "9000007954201329679",
+            "BusType": "Ve A/c Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Shree Radhe Bus Service",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 34627,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna Bariya Bus stand",
+                    "CityPointName": "Patna Bariya Bus stand",
+                    "CityPointTime": "2025-11-03T17:00:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Danapur Railway Station",
+                    "CityPointName": "Danapur Railway Station",
+                    "CityPointTime": "2025-11-03T17:30:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Zero point yamuna expressway",
+                    "CityPointName": "Zero point yamuna expressway",
+                    "CityPointTime": "2025-11-04T07:30:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Noida Gate Chilla Border DTC Bus Stop",
+                    "CityPointName": "Noida Gate Chilla Border DTC Bus Stop",
+                    "CityPointTime": "2025-11-04T07:45:00"
+                },
+                {
+                    "CityPointIndex": 3,
+                    "CityPointLocation": "Akshardham Metro Station Pillar No 36 37",
+                    "CityPointName": "Akshardham Metro Station",
+                    "CityPointTime": "2025-11-04T08:00:00"
+                },
+                {
+                    "CityPointIndex": 4,
+                    "CityPointLocation": "ISBT KASHMIRI GATE METRO GATE NO 5",
+                    "CityPointName": "ISBT Kashmiri Gate",
+                    "CityPointTime": "2025-11-04T08:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 3358.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3694.84999999999990905052982270717620849609375,
+                "OfferedPrice": 3157.40999999999985448084771633148193359375,
+                "AgentCommission": 201.539999999999992041921359486877918243408203125,
+                "ServiceCharges": 0,
+                "TDS": 10.0800000000000000710542735760100185871124267578125,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 17:00 on 03 Nov 2025",
+                    "TimeBeforeDept": "0$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-11-03T17:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-19",
+            "ArrivalTime": "2025-11-04T09:00:00",
+            "AvailableSeats": 39,
+            "DepartureTime": "2025-11-03T17:00:00",
+            "RouteId": "5000007954207108363",
+            "BusType": "Bharat Benz A/c Seater / Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Star City Bus",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 29722,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna Zero mail Bairiya Stand",
+                    "CityPointName": "Patna Zero mail Bairiya Stand",
+                    "CityPointTime": "2025-11-03T16:30:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Danapur Railway Station",
+                    "CityPointName": "Danapur Railway Station",
+                    "CityPointTime": "2025-11-03T17:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Jewar Toll Plaza",
+                    "CityPointName": "Jewar Toll Plaza",
+                    "CityPointTime": "2025-11-04T07:30:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Zero Point Noida Yemuna Express",
+                    "CityPointName": "Zero Point Noida Yemuna Express",
+                    "CityPointTime": "2025-11-04T07:45:00"
+                },
+                {
+                    "CityPointIndex": 3,
+                    "CityPointLocation": "Noida Gate Chilla Border DTC Bus Stop",
+                    "CityPointName": "Chilla Border",
+                    "CityPointTime": "2025-11-04T08:15:00"
+                },
+                {
+                    "CityPointIndex": 4,
+                    "CityPointLocation": "Akshardham Metro Station Pillar no36",
+                    "CityPointName": "Akshardham Metro Station",
+                    "CityPointTime": "2025-11-04T08:30:00"
+                },
+                {
+                    "CityPointIndex": 5,
+                    "CityPointLocation": "ISBT Kashmiri Gate",
+                    "CityPointName": "ISBT Kashmiri Gate",
+                    "CityPointTime": "2025-11-04T09:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 3463.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3810.34999999999990905052982270717620849609375,
+                "OfferedPrice": 3256.11000000000012732925824820995330810546875,
+                "AgentCommission": 207.840000000000003410605131648480892181396484375,
+                "ServiceCharges": 0,
+                "TDS": 10.3900000000000005684341886080801486968994140625,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 30,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 05:00 on 01 Nov 2025",
+                    "TimeBeforeDept": "60$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-11-01T05:00:00"
+                },
+                {
+                    "CancellationCharge": 40,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:00 on 01 Nov 2025 - 05:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$60",
+                    "FromDate": "2025-11-01T05:00:00",
+                    "ToDate": "2025-11-02T05:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:00 on 02 Nov 2025 - 17:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T05:00:00",
+                    "ToDate": "2025-11-02T17:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 17:00 on 02 Nov 2025 - 23:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "18$24",
+                    "FromDate": "2025-11-02T17:00:00",
+                    "ToDate": "2025-11-02T23:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 23:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$18",
+                    "FromDate": "2025-11-02T23:00:00",
+                    "ToDate": "2025-11-04T09:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-7",
+            "ArrivalTime": "2025-11-04T11:20:00",
+            "AvailableSeats": 49,
+            "DepartureTime": "2025-11-03T17:00:00",
+            "RouteId": "9000007954201324431",
+            "BusType": "Ve A/c Seater (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Rao Travels India Pvt Ltd.",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 23230,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bairiya Bus Stand Patna",
+                    "CityPointName": "Bairiya Bus Stand Patna",
+                    "CityPointTime": "2025-11-03T17:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "AKSHAR DHAM METRO STATION",
+                    "CityPointName": "Akshardham Metro Station",
+                    "CityPointTime": "2025-11-04T10:50:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "ISBT Kashmere Gate",
+                    "CityPointName": "ISBT Kashmiri Gate",
+                    "CityPointTime": "2025-11-04T11:20:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 3675,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 4042.5,
+                "OfferedPrice": 3454.5,
+                "AgentCommission": 220.5,
+                "ServiceCharges": 0,
+                "TDS": 11.0299999999999993605115378159098327159881591796875,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 10,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 05:00 on 27 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-27T05:00:00"
+                },
+                {
+                    "CancellationCharge": 25,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:00 on 27 Oct 2025 - 05:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-27T05:00:00",
+                    "ToDate": "2025-10-31T05:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:00 on 31 Oct 2025 - 05:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-31T05:00:00",
+                    "ToDate": "2025-11-02T05:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 05:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$36",
+                    "FromDate": "2025-11-02T05:00:00",
+                    "ToDate": "2025-11-04T11:20:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-11",
+            "ArrivalTime": "2025-11-04T11:30:00",
+            "AvailableSeats": 27,
+            "DepartureTime": "2025-11-03T17:30:00",
+            "RouteId": "9000007954201448062",
+            "BusType": "Bharat Benz A/c Sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Ourbus India Limited",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 31742,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bus Stand Patna",
+                    "CityPointName": "Bus Stand Patna",
+                    "CityPointTime": "2025-11-03T17:30:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Noida Stadium",
+                    "CityPointName": "Noida Stadium",
+                    "CityPointTime": "2025-11-04T11:30:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "ISBT Anand Vihar",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T12:00:00"
+                },
+                {
+                    "CityPointIndex": 3,
+                    "CityPointLocation": "ISBT Kashmiri Gate",
+                    "CityPointName": "ISBT Kashmiri Gate",
+                    "CityPointTime": "2025-11-04T13:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2899,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3188.90000000000009094947017729282379150390625,
+                "OfferedPrice": 2725.05999999999994543031789362430572509765625,
+                "AgentCommission": 173.93999999999999772626324556767940521240234375,
+                "ServiceCharges": 0,
+                "TDS": 8.699999999999999289457264239899814128875732421875,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 05:30 on 01 Nov 2025",
+                    "TimeBeforeDept": "60$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-11-01T05:30:00"
+                },
+                {
+                    "CancellationCharge": 25,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:30 on 01 Nov 2025 - 05:30 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$60",
+                    "FromDate": "2025-11-01T05:30:00",
+                    "ToDate": "2025-11-02T05:30:00"
+                },
+                {
+                    "CancellationCharge": 25,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:30 on 02 Nov 2025 - 19:30 on 02 Nov 2025",
+                    "TimeBeforeDept": "22$36",
+                    "FromDate": "2025-11-02T05:30:00",
+                    "ToDate": "2025-11-02T19:30:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 19:30 on 02 Nov 2025 - 01:30 on 03 Nov 2025",
+                    "TimeBeforeDept": "16$22",
+                    "FromDate": "2025-11-02T19:30:00",
+                    "ToDate": "2025-11-03T01:30:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 01:30 on 03 Nov 2025",
+                    "TimeBeforeDept": "0$16",
+                    "FromDate": "2025-11-03T01:30:00",
+                    "ToDate": "2025-11-04T11:30:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-20",
+            "ArrivalTime": "2025-11-04T11:45:00",
+            "AvailableSeats": 42,
+            "DepartureTime": "2025-11-03T17:45:00",
+            "RouteId": "5000007954207234393",
+            "BusType": "A/c Seater / Sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Panwar Tour And Travels",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 20443,
+            "PartialCancellationAllowed": false,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bari pahari panwar travels Hotel Glance inn",
+                    "CityPointName": "Bari pahari panwar travels Hotel Glance inn",
+                    "CityPointTime": "2025-11-03T17:45:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Danapur glomber near railway station",
+                    "CityPointName": "Danapur glomber near railway station",
+                    "CityPointTime": "2025-11-03T18:45:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Zero Point Greater Noida Above Starting Point Yamuna Express",
+                    "CityPointName": "Zero Point Greater Noida Above Starting Point Yamuna Express",
+                    "CityPointTime": "2025-11-04T11:45:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "I.P.extension MCD authorised parking patparganj anand vihar",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T11:45:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2728.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3001.84999999999990905052982270717620849609375,
+                "OfferedPrice": 2565.2100000000000363797880709171295166015625,
+                "AgentCommission": 163.740000000000009094947017729282379150390625,
+                "ServiceCharges": 0,
+                "TDS": 8.1899999999999995026200849679298698902130126953125,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 10,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 05:45 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-11-02T05:45:00"
+                },
+                {
+                    "CancellationCharge": 40,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 05:45 on 02 Nov 2025 - 17:45 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T05:45:00",
+                    "ToDate": "2025-11-02T17:45:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 17:45 on 02 Nov 2025 - 21:45 on 02 Nov 2025",
+                    "TimeBeforeDept": "20$24",
+                    "FromDate": "2025-11-02T17:45:00",
+                    "ToDate": "2025-11-02T21:45:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 21:45 on 02 Nov 2025",
+                    "TimeBeforeDept": "0$20",
+                    "FromDate": "2025-11-02T21:45:00",
+                    "ToDate": "2025-11-04T11:45:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-15",
+            "ArrivalTime": "2025-11-04T12:30:00",
+            "AvailableSeats": 16,
+            "DepartureTime": "2025-11-03T19:15:00",
+            "RouteId": "5000007954206840151",
+            "BusType": "A/c Seater / Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Rajdhani Express",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 30063,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bairiya Bus Stand ISBT Patna",
+                    "CityPointName": "Bairiya Bus Stand ISBT Patna",
+                    "CityPointTime": "2025-11-03T19:15:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Anand vihar edm moll",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T12:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 3043.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3348.34999999999990905052982270717620849609375,
+                "OfferedPrice": 2861.30999999999994543031789362430572509765625,
+                "AgentCommission": 182.6399999999999863575794734060764312744140625,
+                "ServiceCharges": 0,
+                "TDS": 9.1300000000000007815970093361102044582366943359375,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 30,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 07:15 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-31T07:15:00"
+                },
+                {
+                    "CancellationCharge": 40,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 07:15 on 31 Oct 2025 - 07:15 on 01 Nov 2025",
+                    "TimeBeforeDept": "60$84",
+                    "FromDate": "2025-10-31T07:15:00",
+                    "ToDate": "2025-11-01T07:15:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 07:15 on 01 Nov 2025 - 07:15 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$60",
+                    "FromDate": "2025-11-01T07:15:00",
+                    "ToDate": "2025-11-02T07:15:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 07:15 on 02 Nov 2025 - 04:15 on 03 Nov 2025",
+                    "TimeBeforeDept": "15$36",
+                    "FromDate": "2025-11-02T07:15:00",
+                    "ToDate": "2025-11-03T04:15:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 04:15 on 03 Nov 2025",
+                    "TimeBeforeDept": "0$15",
+                    "FromDate": "2025-11-03T04:15:00",
+                    "ToDate": "2025-11-04T12:30:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-1",
+            "ArrivalTime": "2025-11-04T12:00:00",
+            "AvailableSeats": 30,
+            "DepartureTime": "2025-11-03T20:00:00",
+            "RouteId": "5000007954208818919",
+            "BusType": "A/c Seater / Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Rajdhani Express",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 30063,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bairiya Bus Stand ISBT Patna",
+                    "CityPointName": "Bairiya Bus Stand ISBT Patna",
+                    "CityPointTime": "2025-11-03T20:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Noida sec 37",
+                    "CityPointName": "Noida sec 37",
+                    "CityPointTime": "2025-11-04T11:30:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Anand vihar edm moll",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-04T12:00:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2833.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3117.34999999999990905052982270717620849609375,
+                "OfferedPrice": 2663.90999999999985448084771633148193359375,
+                "AgentCommission": 170.039999999999992041921359486877918243408203125,
+                "ServiceCharges": 0,
+                "TDS": 8.5,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 30,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 08:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-31T08:00:00"
+                },
+                {
+                    "CancellationCharge": 40,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 08:00 on 31 Oct 2025 - 08:00 on 01 Nov 2025",
+                    "TimeBeforeDept": "60$84",
+                    "FromDate": "2025-10-31T08:00:00",
+                    "ToDate": "2025-11-01T08:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 08:00 on 01 Nov 2025 - 08:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$60",
+                    "FromDate": "2025-11-01T08:00:00",
+                    "ToDate": "2025-11-02T08:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 08:00 on 02 Nov 2025 - 05:00 on 03 Nov 2025",
+                    "TimeBeforeDept": "15$36",
+                    "FromDate": "2025-11-02T08:00:00",
+                    "ToDate": "2025-11-03T05:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 05:00 on 03 Nov 2025",
+                    "TimeBeforeDept": "0$15",
+                    "FromDate": "2025-11-03T05:00:00",
+                    "ToDate": "2025-11-04T12:00:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-5",
+            "ArrivalTime": "2025-11-04T10:30:00",
+            "AvailableSeats": 38,
+            "DepartureTime": "2025-11-03T20:00:00",
+            "RouteId": "9000007954201144887",
+            "BusType": "A/c Seater / Sleeper (2+2)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Mohindra Smart Bus",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 35222,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Patna Bairiya Bus Stand",
+                    "CityPointName": "Patna Bairiya Bus Stand",
+                    "CityPointTime": "2025-11-03T20:00:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Akshardham metro station pillar no 36",
+                    "CityPointName": "Akshardham Metro Station",
+                    "CityPointTime": "2025-11-04T10:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 3253.9499999999998181010596454143524169921875,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 3579.34999999999990905052982270717620849609375,
+                "OfferedPrice": 3058.7100000000000363797880709171295166015625,
+                "AgentCommission": 195.240000000000009094947017729282379150390625,
+                "ServiceCharges": 0,
+                "TDS": 9.7599999999999997868371792719699442386627197265625,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 08:00 on 27 Oct 2025",
+                    "TimeBeforeDept": "180$-1",
+                    "FromDate": "2025-10-15T18:03:17",
+                    "ToDate": "2025-10-27T08:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 08:00 on 27 Oct 2025 - 08:00 on 31 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-27T08:00:00",
+                    "ToDate": "2025-10-31T08:00:00"
+                },
+                {
+                    "CancellationCharge": 10,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 08:00 on 31 Oct 2025 - 08:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "36$84",
+                    "FromDate": "2025-10-31T08:00:00",
+                    "ToDate": "2025-11-02T08:00:00"
+                },
+                {
+                    "CancellationCharge": 35,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 08:00 on 02 Nov 2025 - 20:00 on 02 Nov 2025",
+                    "TimeBeforeDept": "24$36",
+                    "FromDate": "2025-11-02T08:00:00",
+                    "ToDate": "2025-11-02T20:00:00"
+                },
+                {
+                    "CancellationCharge": 50,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 20:00 on 02 Nov 2025 - 00:00 on 03 Nov 2025",
+                    "TimeBeforeDept": "20$24",
+                    "FromDate": "2025-11-02T20:00:00",
+                    "ToDate": "2025-11-03T00:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 00:00 on 03 Nov 2025 - 05:00 on 03 Nov 2025",
+                    "TimeBeforeDept": "15$20",
+                    "FromDate": "2025-11-03T00:00:00",
+                    "ToDate": "2025-11-03T05:00:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 05:00 on 03 Nov 2025",
+                    "TimeBeforeDept": "0$15",
+                    "FromDate": "2025-11-03T05:00:00",
+                    "ToDate": "2025-11-04T10:30:00"
+                }
+            ]
+        }
+    ],
+    "pagination": {
+        "total_results": 21,
+        "per_page": 20,
+        "current_page": 1,
+        "has_more_pages": true
+    }
+}

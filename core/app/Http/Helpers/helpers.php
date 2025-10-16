@@ -1744,8 +1744,69 @@ if (!function_exists('formatCancelPolicy')) {
 
 // app/Helpers/helpers.php
 if (!function_exists('renderSeatHTML')) {
-    function renderSeatHTML($html)
+    function renderSeatHTML($html, $parsedLayout = null, $isOperatorBus = false)
     {
-        return $html; // You could sanitize here if needed
+        // For operator buses, use the parsed layout to generate clean HTML
+        if ($isOperatorBus && $parsedLayout && isset($parsedLayout['seat'])) {
+            return generateCleanSeatHTML($parsedLayout);
+        }
+
+        // For third-party buses, return the HTML as-is
+        return $html;
+    }
+
+    function generateCleanSeatHTML($parsedLayout)
+    {
+        $html = '';
+
+        // Upper Deck
+        if (isset($parsedLayout['seat']['upper_deck']['rows']) && !empty($parsedLayout['seat']['upper_deck']['rows'])) {
+            $html .= '<div class="outerseat">';
+            $html .= '<div class="busSeatlft"><div class="upper"></div></div>';
+            $html .= '<div class="busSeatrgt"><div class="busSeat"><div class="seatcontainer clearfix">';
+
+            foreach ($parsedLayout['seat']['upper_deck']['rows'] as $rowNumber => $seats) {
+                $html .= '<div class="row' . $rowNumber . '">';
+                foreach ($seats as $seat) {
+                    $html .= '<div class="' . $seat['type'] . '" ';
+                    $html .= 'data-seat="' . $seat['seat_id'] . '" ';
+                    $html .= 'data-price="' . $seat['price'] . '" ';
+                    $html .= 'onclick="javascript:AddRemoveSeat(this,\'' . $seat['seat_id'] . '\',\'' . $seat['price'] . '\')">';
+                    $html .= '<div style="font-size:10px;line-height:1.1;text-align:center;">';
+                    $html .= '<div style="font-weight:bold;">' . $seat['seat_id'] . '</div>';
+                    $html .= '<div style="font-size:9px;">₹' . $seat['price'] . '</div>';
+                    $html .= '</div></div>';
+                }
+                $html .= '</div>';
+            }
+
+            $html .= '</div></div></div><div class="clr"></div></div>';
+        }
+
+        // Lower Deck
+        if (isset($parsedLayout['seat']['lower_deck']['rows']) && !empty($parsedLayout['seat']['lower_deck']['rows'])) {
+            $html .= '<div class="outerlowerseat">';
+            $html .= '<div class="busSeatlft"><div class="lower"></div></div>';
+            $html .= '<div class="busSeatrgt"><div class="busSeat"><div class="seatcontainer clearfix">';
+
+            foreach ($parsedLayout['seat']['lower_deck']['rows'] as $rowNumber => $seats) {
+                $html .= '<div class="row' . $rowNumber . '">';
+                foreach ($seats as $seat) {
+                    $html .= '<div class="' . $seat['type'] . '" ';
+                    $html .= 'data-seat="' . $seat['seat_id'] . '" ';
+                    $html .= 'data-price="' . $seat['price'] . '" ';
+                    $html .= 'onclick="javascript:AddRemoveSeat(this,\'' . $seat['seat_id'] . '\',\'' . $seat['price'] . '\')">';
+                    $html .= '<div style="font-size:10px;line-height:1.1;text-align:center;">';
+                    $html .= '<div style="font-weight:bold;">' . $seat['seat_id'] . '</div>';
+                    $html .= '<div style="font-size:9px;">₹' . $seat['price'] . '</div>';
+                    $html .= '</div></div>';
+                }
+                $html .= '</div>';
+            }
+
+            $html .= '</div></div></div><div class="clr"></div></div>';
+        }
+
+        return $html;
     }
 }

@@ -286,22 +286,56 @@ class SiteController extends Controller
         session()->put('result_index', $resultIndex);
         $token = session()->get('search_token_id');
         $userIp = session()->get('user_ip');
-        // Get seat layout from API
-        $response = getAPIBusSeats($resultIndex, $token, $userIp);
+
+        // Check if this is an operator bus (ResultIndex starts with 'OP_')
+        if (str_starts_with($resultIndex, 'OP_')) {
+            // Handle operator bus seat layout
+            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+            $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout'])->find($operatorBusId);
+
+            if (!$operatorBus || !$operatorBus->activeSeatLayout) {
+                abort(404, 'Seat layout not found for this bus');
+            }
+
+            $seatLayout = $operatorBus->activeSeatLayout;
+            $seatHtml = $seatLayout->html_layout;
+            $parsedLayout = parseSeatHtmlToJson($seatHtml);
+            $isOperatorBus = true;
+
+            // Store bus details in session
+            session()->put('bus_details', [
+                'bus_type' => $operatorBus->bus_type ?? null,
+                'travel_name' => $operatorBus->travel_name ?? null,
+                'departure_time' => null, // Will be set from search results
+                'arrival_time' => null,   // Will be set from search results
+                'is_operator_bus' => true
+            ]);
+
+        } else {
+            // Handle third-party API buses
+            $response = getAPIBusSeats($resultIndex, $token, $userIp);
+
+            if (!isset($response['Result'])) {
+                abort(404, 'Seat layout not found');
+            }
+
+            $seatHtml = $response['Result']['HTMLLayout'];
+            $parsedLayout = $response['Result']['SeatLayout'];
+            $isOperatorBus = false;
+
+            // Store bus details in session if available
+            if (isset($response['Result']['BusType'])) {
+                session()->put('bus_details', [
+                    'bus_type' => $response['Result']['BusType'] ?? null,
+                    'travel_name' => $response['Result']['TravelName'] ?? null,
+                    'departure_time' => $response['Result']['DepartureTime'] ?? null,
+                    'arrival_time' => $response['Result']['ArrivalTime'] ?? null,
+                    'is_operator_bus' => false
+                ]);
+            }
+        }
 
         $pageTitle = 'Select Seats';
-        $seatHtml = $response['Result']['HTMLLayout'];
-        $seatLayout = $response['Result']['SeatLayout'];
-
-        // Store bus details in session if available
-        if (isset($response['Result']['BusType'])) {
-            session()->put('bus_details', [
-                'bus_type' => $response['Result']['BusType'] ?? null,
-                'travel_name' => $response['Result']['TravelName'] ?? null,
-                'departure_time' => $response['Result']['DepartureTime'] ?? null,
-                'arrival_time' => $response['Result']['ArrivalTime'] ?? null
-            ]);
-        }
 
         if (auth()->user()) {
             $layout = 'layouts.master';
@@ -312,7 +346,15 @@ class SiteController extends Controller
         $cities = DB::table("cities")->get();
         $originCity = DB::table("cities")->where("city_id", $request->session()->get("origin_id"))->first();
         $destinationCity = DB::table("cities")->where("city_id", $request->session()->get("destination_id"))->first();
-        return view($this->activeTemplate . 'book_ticket', compact('pageTitle', 'seatLayout', 'layout', 'cities', 'originCity', 'destinationCity', 'seatHtml'));
+
+        // Provide default cities if session data is not available
+        if (!$originCity) {
+            $originCity = DB::table("cities")->where("city_name", "Patna")->first();
+        }
+        if (!$destinationCity) {
+            $destinationCity = DB::table("cities")->where("city_name", "Delhi")->first();
+        }
+        return view($this->activeTemplate . 'book_ticket', compact('pageTitle', 'parsedLayout', 'layout', 'cities', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
     }
 
     public function placeholderImage($size = null)
@@ -347,10 +389,67 @@ class SiteController extends Controller
     // 3. We will offer boarding and dropping points details
     public function getBoardingPoints(Request $request)
     {
-
         $SearchTokenID = session()->get('search_token_id');
         $ResultIndex = session()->get('result_index');
         $UserIp = $request->ip();
+
+
+        // Check if this is an operator bus
+        if (str_starts_with($ResultIndex, 'OP_')) {
+            // Handle operator bus boarding/dropping points
+            $operatorBusId = (int) str_replace('OP_', '', $ResultIndex);
+            $operatorBus = \App\Models\OperatorBus::with(['currentRoute.boardingPoints', 'currentRoute.droppingPoints'])->find($operatorBusId);
+
+            if (!$operatorBus || !$operatorBus->currentRoute) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Operator bus or route not found'
+                ], 400);
+            }
+
+            $route = $operatorBus->currentRoute;
+
+            // Transform boarding points to match API format
+            $boardingPoints = $route->boardingPoints->map(function ($point) {
+                return [
+                    'CityPointIndex' => $point->id,
+                    'CityPointName' => $point->point_name,
+                    'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
+                    'CityPointTime' => $point->point_time ?: '00:00:00',
+                    'CityPointLandmark' => $point->point_landmark,
+                    'CityPointContactNumber' => $point->contact_number,
+                ];
+            })->toArray();
+
+            // Transform dropping points to match API format
+            $droppingPoints = $route->droppingPoints->map(function ($point) {
+                return [
+                    'CityPointIndex' => $point->id,
+                    'CityPointName' => $point->point_name,
+                    'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
+                    'CityPointTime' => $point->point_time ?: '00:00:00',
+                    'CityPointLandmark' => $point->point_landmark,
+                    'CityPointContactNumber' => $point->contact_number,
+                ];
+            })->toArray();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'BoardingPointsDetails' => $boardingPoints,
+                    'DroppingPointsDetails' => $droppingPoints
+                ]
+            ]);
+        }
+
+        // Handle third-party API buses
+        if (!$SearchTokenID || !$ResultIndex) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing search token or result index'
+            ], 400);
+        }
+
         $response = getBoardingPoints($SearchTokenID, $ResultIndex, $UserIp);
 
         if (!$response || isset($response['Error']['ErrorCode']) && $response['Error']['ErrorCode'] != 0) {

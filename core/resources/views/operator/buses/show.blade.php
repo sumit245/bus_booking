@@ -423,148 +423,55 @@
                         <div class="col-12">
                             <div class="card">
                                 <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">@lang('Seat Layout Management')</h5>
-                                    <div class="d-flex gap-2">
-                                        <a href="{{ route('operator.buses.seat-layouts.index', $bus) }}"
-                                            class="btn btn--primary btn-sm">
-                                            <i class="las la-chair"></i> @lang('Manage Layouts')
-                                        </a>
+                                    <h5 class="card-title mb-0">@lang('Seat Layout')</h5>
+                                    @php
+                                        $activeLayout = $bus->activeSeatLayout;
+                                    @endphp
+                                    @if (!$activeLayout)
                                         <a href="{{ route('operator.buses.seat-layouts.create', $bus) }}"
                                             class="btn btn--success btn-sm">
                                             <i class="las la-plus"></i> @lang('Create Layout')
                                         </a>
-                                    </div>
+                                    @endif
                                 </div>
                                 <div class="card-body">
-                                    @php
-                                        $activeLayout = $bus->activeSeatLayout;
-                                        $totalLayouts = $bus->seatLayouts()->count();
-                                    @endphp
-
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="stat-card">
-                                                <div class="stat-card__icon">
-                                                    <i class="las la-chair"></i>
-                                                </div>
-                                                <div class="stat-card__content">
-                                                    <h3>{{ $totalLayouts }}</h3>
-                                                    <p>@lang('Total Layouts')</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="stat-card">
-                                                <div class="stat-card__icon">
-                                                    <i class="las la-check-circle"></i>
-                                                </div>
-                                                <div class="stat-card__content">
-                                                    <h3>{{ $activeLayout ? 1 : 0 }}</h3>
-                                                    <p>@lang('Active Layout')</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
                                     @if ($activeLayout)
-                                        <div class="mt-4">
-                                            <h6>@lang('Current Active Layout')</h6>
-                                            <div class="alert alert-success">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <strong>{{ $activeLayout->layout_name }}</strong>
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            @lang('Total Seats'): {{ $activeLayout->total_seats }} |
-                                                            @lang('Upper Deck'): {{ $activeLayout->upper_deck_seats }} |
-                                                            @lang('Lower Deck'): {{ $activeLayout->lower_deck_seats }}
-                                                        </small>
-                                                    </div>
-                                                    <div class="d-flex gap-2">
-                                                        <a href="{{ route('operator.buses.seat-layouts.show', [$bus, $activeLayout]) }}"
-                                                            class="btn btn-sm btn--info">
-                                                            <i class="las la-eye"></i> @lang('View')
-                                                        </a>
-                                                        <a href="{{ route('operator.buses.seat-layouts.edit', [$bus, $activeLayout]) }}"
-                                                            class="btn btn-sm btn--primary">
-                                                            <i class="las la-edit"></i> @lang('Edit')
-                                                        </a>
-                                                    </div>
+                                        <div class="alert alert-success">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>{{ $activeLayout->layout_name }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        @lang('Total Seats'): {{ $activeLayout->total_seats }} |
+                                                        @lang('Upper Deck'): {{ $activeLayout->upper_deck_seats }} |
+                                                        @lang('Lower Deck'): {{ $activeLayout->lower_deck_seats }}
+                                                    </small>
                                                 </div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <div class="mt-4">
-                                            <div class="alert alert-warning">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <i class="las la-exclamation-triangle"></i>
-                                                        <strong>@lang('No Active Seat Layout')</strong>
-                                                        <br>
-                                                        <small>@lang('This bus does not have an active seat layout. Create one to enable seat booking.')</small>
-                                                    </div>
-                                                    <a href="{{ route('operator.buses.seat-layouts.create', $bus) }}"
-                                                        class="btn btn--success">
-                                                        <i class="las la-plus"></i> @lang('Create Layout')
+                                                <div class="d-flex gap-2">
+                                                    <a href="{{ route('operator.buses.seat-layouts.show', [$bus, $activeLayout]) }}"
+                                                        class="btn btn-sm btn--info">
+                                                        <i class="las la-eye"></i> @lang('View')
+                                                    </a>
+                                                    <a href="{{ route('operator.buses.seat-layouts.edit', [$bus, $activeLayout]) }}"
+                                                        class="btn btn-sm btn--primary">
+                                                        <i class="las la-edit"></i> @lang('Edit')
                                                     </a>
                                                 </div>
                                             </div>
                                         </div>
-                                    @endif
-
-                                    @if ($totalLayouts > 0)
-                                        <div class="mt-4">
-                                            <h6>@lang('All Layouts')</h6>
-                                            <div class="table-responsive">
-                                                <table class="table table--light style--two">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>@lang('Layout Name')</th>
-                                                            <th>@lang('Total Seats')</th>
-                                                            <th>@lang('Status')</th>
-                                                            <th>@lang('Created')</th>
-                                                            <th>@lang('Actions')</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach ($bus->seatLayouts()->orderBy('created_at', 'desc')->get() as $layout)
-                                                            <tr>
-                                                                <td>
-                                                                    <strong>{{ $layout->layout_name }}</strong>
-                                                                    @if ($layout->is_active)
-                                                                        <span
-                                                                            class="badge badge--success ms-2">@lang('Active')</span>
-                                                                    @endif
-                                                                </td>
-                                                                <td>{{ $layout->total_seats }}</td>
-                                                                <td>
-                                                                    @if ($layout->is_active)
-                                                                        <span
-                                                                            class="badge badge--success">@lang('Active')</span>
-                                                                    @else
-                                                                        <span
-                                                                            class="badge badge--secondary">@lang('Inactive')</span>
-                                                                    @endif
-                                                                </td>
-                                                                <td>{{ showDateTime($layout->created_at, 'd M, Y') }}</td>
-                                                                <td>
-                                                                    <div class="btn-group" role="group">
-                                                                        <a href="{{ route('operator.buses.seat-layouts.show', [$bus, $layout]) }}"
-                                                                            class="btn btn-sm btn--info"
-                                                                            title="@lang('View')">
-                                                                            <i class="las la-eye"></i>
-                                                                        </a>
-                                                                        <a href="{{ route('operator.buses.seat-layouts.edit', [$bus, $layout]) }}"
-                                                                            class="btn btn-sm btn--primary"
-                                                                            title="@lang('Edit')">
-                                                                            <i class="las la-edit"></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
+                                    @else
+                                        <div class="alert alert-warning">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="las la-exclamation-triangle"></i>
+                                                    <strong>@lang('No Seat Layout')</strong>
+                                                    <br>
+                                                    <small>@lang('This bus does not have a seat layout. Create one to enable seat booking.')</small>
+                                                </div>
+                                                <a href="{{ route('operator.buses.seat-layouts.create', $bus) }}"
+                                                    class="btn btn--success">
+                                                    <i class="las la-plus"></i> @lang('Create Layout')
+                                                </a>
                                             </div>
                                         </div>
                                     @endif

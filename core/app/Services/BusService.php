@@ -5,6 +5,8 @@ namespace App\Services;
 use Carbon\Carbon;
 use App\Models\MarkupTable;
 use App\Models\CouponTable;
+use App\Models\OperatorRoute;
+use App\Models\OperatorBus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -23,11 +25,22 @@ class BusService
             $validatedData['DateOfJourney']
         );
 
-        if (empty($apiResponse['Result'])) {
+        // Start with third-party API results
+        $trips = $apiResponse['Result'] ?? [];
+
+        // Add operator buses for this route
+        $operatorBuses = $this->fetchOperatorBuses(
+            $validatedData['OriginId'],
+            $validatedData['DestinationId'],
+            $validatedData['DateOfJourney']
+        );
+
+        // Merge operator buses with third-party results
+        $trips = array_merge($trips, $operatorBuses);
+
+        if (empty($trips)) {
             throw new \Exception('No buses found for this route and date', 404);
         }
-
-        $trips = $apiResponse['Result'];
 
         $trips = $this->applyMarkup($trips);
         $trips = $this->applyCoupon($trips);
@@ -64,6 +77,192 @@ class BusService
             }
             return $resp;
         });
+    }
+
+    /**
+     * Fetches operator buses for a specific route, with caching.
+     */
+    private function fetchOperatorBuses(int $originId, int $destinationId, string $dateOfJourney): array
+    {
+        $cacheKey = "operator_bus_search:{$originId}_{$destinationId}_{$dateOfJourney}";
+        return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney) {
+            Log::info("CACHE MISS: Fetching operator buses for {$originId}-{$destinationId} on {$dateOfJourney}");
+
+            // Find routes that match the origin and destination
+            // Note: origin_city_id and destination_city_id in operator_routes table reference cities.id
+            // But the search API uses cities.city_id, so we need to map them correctly
+            $routes = OperatorRoute::active()
+                ->whereHas('originCity', function ($query) use ($originId) {
+                    $query->where('city_id', $originId);
+                })
+                ->whereHas('destinationCity', function ($query) use ($destinationId) {
+                    $query->where('city_id', $destinationId);
+                })
+                ->with([
+                    'originCity',
+                    'destinationCity',
+                    'assignedBuses.activeSeatLayout',
+                    'assignedBuses' => function ($query) {
+                        $query->where('status', 1);
+                    }
+                ])
+                ->get();
+
+            if ($routes->isEmpty()) {
+                Log::info("No operator routes found for {$originId}-{$destinationId}");
+                return [];
+            }
+
+            $operatorBuses = [];
+            $resultIndex = 1;
+
+            foreach ($routes as $route) {
+                // Use already eager-loaded active buses
+                $buses = $route->assignedBuses->filter(function ($bus) {
+                    return $bus->status == 1;
+                });
+
+                foreach ($buses as $bus) {
+                    $operatorBuses[] = $this->transformOperatorBusToApiFormat($bus, $route, $dateOfJourney, $resultIndex++);
+                }
+            }
+
+            Log::info("Found " . count($operatorBuses) . " operator buses for route {$originId}-{$destinationId}");
+            return $operatorBuses;
+        });
+    }
+
+    /**
+     * Transforms operator bus data to match third-party API format.
+     */
+    private function transformOperatorBusToApiFormat(OperatorBus $bus, OperatorRoute $route, string $dateOfJourney, int $resultIndex): array
+    {
+        // Set departure time to 00:00 (midnight) as requested
+        $departureTime = Carbon::parse($dateOfJourney)->format('Y-m-d') . 'T00:00:00';
+
+        // Calculate arrival time based on estimated duration
+        $arrivalTime = Carbon::parse($departureTime);
+        if ($route->estimated_duration) {
+            $arrivalTime->addHours((int) $route->estimated_duration);
+        } else {
+            $arrivalTime->addHours(8); // Default 8 hours if no duration specified
+        }
+
+        // Get seat layout information
+        $seatLayout = $bus->activeSeatLayout;
+        $totalSeats = $seatLayout ? $seatLayout->total_seats : $bus->total_seats;
+        $availableSeats = $bus->available_seats ?? $totalSeats;
+
+        // Generate unique RouteId for operator buses (OP_ prefix + route ID)
+        $routeId = 'OP_' . $route->id . '_' . $bus->id;
+
+        return [
+            'ResultIndex' => 'OP_' . $resultIndex,
+            'ArrivalTime' => $arrivalTime->format('Y-m-d\TH:i:s'),
+            'AvailableSeats' => $availableSeats,
+            'DepartureTime' => $departureTime,
+            'RouteId' => $routeId,
+            'BusType' => $bus->bus_type ?? 'AC Seater',
+            'ServiceName' => $bus->service_name ?? 'Seat Seller',
+            'TravelName' => $bus->travel_name ?? $bus->operator->company_name ?? 'Operator Bus',
+            'IdProofRequired' => false,
+            'IsDropPointMandatory' => $bus->is_drop_point_mandatory ?? false,
+            'LiveTrackingAvailable' => $bus->live_tracking_available ?? false,
+            'MTicketEnabled' => $bus->m_ticket_enabled ?? true,
+            'MaxSeatsPerTicket' => 6,
+            'OperatorId' => $bus->operator_id ?? 0,
+            'PartialCancellationAllowed' => $bus->partial_cancellation_allowed ?? true,
+            'BoardingPointsDetails' => $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
+                // Parse the date of journey to get the correct date
+                $journeyDate = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+
+                // Use point_time from database, or default to 00:00:00
+                $departureTime = $point->point_time ?: '00:00:00';
+
+                // If point_time is already a full datetime, extract just the time part
+                if (strpos($departureTime, ' ') !== false) {
+                    $departureTime = Carbon::parse($departureTime)->format('H:i:s');
+                }
+
+                return [
+                    'CityPointIndex' => $point->id,
+                    'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
+                    'CityPointName' => $point->point_name,
+                    'CityPointTime' => Carbon::parse($journeyDate . ' ' . $departureTime)->format('Y-m-d\TH:i:s'),
+                    'CityPointLandmark' => $point->point_landmark,
+                    'CityPointContactNumber' => $point->contact_number,
+                ];
+            })->toArray(),
+            'DroppingPointsDetails' => $route->droppingPoints->map(function ($point) use ($dateOfJourney, $route) {
+                // Parse the date of journey to get the correct date
+                $journeyDate = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+
+                // Use point_time from database, or calculate based on route duration
+                $pointArrivalTime = $point->point_time;
+                if (!$pointArrivalTime) {
+                    // Calculate arrival time based on route duration
+                    $arrivalTime = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->setTime(0, 0, 0);
+                    if ($route->estimated_duration) {
+                        $arrivalTime->addHours((int) $route->estimated_duration);
+                    } else {
+                        $arrivalTime->addHours(8); // Default 8 hours
+                    }
+                    $pointArrivalTime = $arrivalTime->format('H:i:s');
+                } else {
+                    // If point_time is already a full datetime, extract just the time part
+                    if (strpos($pointArrivalTime, ' ') !== false) {
+                        $pointArrivalTime = Carbon::parse($pointArrivalTime)->format('H:i:s');
+                    }
+                }
+
+                return [
+                    'CityPointIndex' => $point->id,
+                    'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
+                    'CityPointName' => $point->point_name,
+                    'CityPointTime' => Carbon::parse($journeyDate . ' ' . $pointArrivalTime)->format('Y-m-d\TH:i:s'),
+                    'CityPointLandmark' => $point->point_landmark,
+                    'CityPointContactNumber' => $point->contact_number,
+                ];
+            })->toArray(),
+            'BusPrice' => [
+                'BasePrice' => (float) ($bus->base_price ?? $bus->published_price ?? 0),
+                'Tax' => (float) ($bus->tax ?? 0),
+                'OtherCharges' => (float) ($bus->other_charges ?? 0),
+                'Discount' => (float) ($bus->discount ?? 0),
+                'PublishedPrice' => (float) ($bus->published_price ?? $bus->base_price ?? 0),
+                'OfferedPrice' => (float) ($bus->offered_price ?? $bus->base_price ?? 0),
+                'AgentCommission' => (float) ($bus->agent_commission ?? 0),
+                'ServiceCharges' => (float) ($bus->service_charges ?? 0),
+                'TDS' => (float) ($bus->tds ?? 0),
+                'GST' => [
+                    'CGSTAmount' => (float) ($bus->cgst_amount ?? 0),
+                    'CGSTRate' => (float) ($bus->cgst_rate ?? 0),
+                    'IGSTAmount' => (float) ($bus->igst_amount ?? 0),
+                    'IGSTRate' => (float) ($bus->igst_rate ?? 18),
+                    'SGSTAmount' => (float) ($bus->sgst_amount ?? 0),
+                    'SGSTRate' => (float) ($bus->sgst_rate ?? 0),
+                    'TaxableAmount' => (float) ($bus->taxable_amount ?? 0),
+                ],
+            ],
+            'CancellationPolicies' => [
+                [
+                    'CancellationCharge' => 10,
+                    'CancellationChargeType' => 2,
+                    'PolicyString' => 'Till 2 hours before departure',
+                    'TimeBeforeDept' => '2$-1',
+                    'FromDate' => Carbon::now()->format('Y-m-d\TH:i:s'),
+                    'ToDate' => Carbon::parse($departureTime)->subHours(2)->format('Y-m-d\TH:i:s'),
+                ],
+                [
+                    'CancellationCharge' => 50,
+                    'CancellationChargeType' => 2,
+                    'PolicyString' => 'Between 2 hours before departure - departure time',
+                    'TimeBeforeDept' => '0$2',
+                    'FromDate' => Carbon::parse($departureTime)->subHours(2)->format('Y-m-d\TH:i:s'),
+                    'ToDate' => $departureTime,
+                ],
+            ],
+        ];
     }
 
     /**

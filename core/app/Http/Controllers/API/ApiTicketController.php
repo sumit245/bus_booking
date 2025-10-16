@@ -148,6 +148,11 @@ class ApiTicketController extends Controller
             $searchTokenId = $validated['SearchTokenId'];
             $resultIndex = $validated['ResultIndex'];
 
+            // Check if this is an operator bus (ResultIndex starts with 'OP_')
+            if (str_starts_with($resultIndex, 'OP_')) {
+                return $this->handleOperatorBusSeatLayout($resultIndex, $searchTokenId);
+            }
+
             // Create a unique cache key for this specific seat layout request.
             $cacheKey = "seat_layout_{$searchTokenId}_{$resultIndex}";
             $cacheDurationInMinutes = 60; // Cache for 1 hour.
@@ -196,6 +201,51 @@ class ApiTicketController extends Controller
             $endTime = microtime(true);
             $executionTime = ($endTime - $startTime) * 1000;
             Log::info(sprintf('showSeat request-response cycle took %.2f ms.', $executionTime));
+        }
+    }
+
+    /**
+     * Handles seat layout requests for operator buses.
+     */
+    private function handleOperatorBusSeatLayout(string $resultIndex, string $searchTokenId)
+    {
+        try {
+            // Extract operator bus ID from ResultIndex (OP_1 -> 1)
+            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+
+            // Find the operator bus
+            $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout'])->find($operatorBusId);
+
+            if (!$operatorBus) {
+                return response()->json(['error' => 'Operator bus not found'], 404);
+            }
+
+            $seatLayout = $operatorBus->activeSeatLayout;
+
+            if (!$seatLayout || !$seatLayout->html_layout) {
+                return response()->json(['error' => 'No seat layout available for this bus'], 404);
+            }
+
+            // Parse the HTML layout using the existing helper
+            $parsedLayout = parseSeatHtmlToJson($seatLayout->html_layout);
+
+            Log::info('Operator bus seat layout parsed successfully', [
+                'operator_bus_id' => $operatorBusId,
+                'result_index' => $resultIndex
+            ]);
+
+            return response()->json([
+                'html' => $parsedLayout,
+                'availableSeats' => $operatorBus->available_seats ?? $seatLayout->total_seats
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error handling operator bus seat layout:', [
+                'result_index' => $resultIndex,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json(['error' => 'Failed to retrieve seat layout'], 500);
         }
     }
 
@@ -284,6 +334,12 @@ class ApiTicketController extends Controller
         try {
             $SearchTokenID = $request->SearchTokenId;
             $ResultIndex = $request->ResultIndex;
+
+            // Check if this is an operator bus (ResultIndex starts with 'OP_')
+            if (str_starts_with($ResultIndex, 'OP_')) {
+                return $this->handleOperatorBusCounters($ResultIndex, $SearchTokenID);
+            }
+
             $response = getBoardingPoints($SearchTokenID, $ResultIndex, "192.168.12.1");
             if ($response["Error"]["ErrorCode"] == 0) {
                 $resp = $response["Result"];
@@ -301,6 +357,69 @@ class ApiTicketController extends Controller
                 'error' => $e->getMessage(),
                 'status' => 404,
             ]);
+        }
+    }
+
+    /**
+     * Handles boarding/dropping points requests for operator buses.
+     */
+    private function handleOperatorBusCounters(string $resultIndex, string $searchTokenId)
+    {
+        try {
+            // Extract operator bus ID from ResultIndex (OP_1 -> 1)
+            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+
+            // Find the operator bus with its route and boarding/dropping points
+            $operatorBus = \App\Models\OperatorBus::with([
+                'currentRoute.boardingPoints',
+                'currentRoute.droppingPoints'
+            ])->find($operatorBusId);
+
+            if (!$operatorBus || !$operatorBus->currentRoute) {
+                return response()->json(['error' => 'Operator bus or route not found'], 404);
+            }
+
+            $route = $operatorBus->currentRoute;
+
+            // Transform boarding points to match API format
+            $boardingPoints = $route->boardingPoints->map(function ($point) {
+                return [
+                    'CityPointIndex' => $point->id,
+                    'CityPointName' => $point->point_name,
+                    'CityPointLocation' => $point->address ?? $point->point_name,
+                    'CityPointTime' => $point->departure_time,
+                ];
+            })->toArray();
+
+            // Transform dropping points to match API format
+            $droppingPoints = $route->droppingPoints->map(function ($point) {
+                return [
+                    'CityPointIndex' => $point->id,
+                    'CityPointName' => $point->point_name,
+                    'CityPointLocation' => $point->address ?? $point->point_name,
+                    'CityPointTime' => $point->arrival_time,
+                ];
+            })->toArray();
+
+            Log::info('Operator bus counters retrieved successfully', [
+                'operator_bus_id' => $operatorBusId,
+                'result_index' => $resultIndex,
+                'boarding_points_count' => count($boardingPoints),
+                'dropping_points_count' => count($droppingPoints)
+            ]);
+
+            return response()->json([
+                'boarding_points' => $boardingPoints,
+                'dropping_points' => $droppingPoints
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error handling operator bus counters:', [
+                'result_index' => $resultIndex,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json(['error' => 'Failed to retrieve boarding/dropping points'], 500);
         }
     }
 

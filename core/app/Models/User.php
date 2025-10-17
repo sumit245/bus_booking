@@ -24,7 +24,8 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password', 'remember_token',
+        'password',
+        'remember_token',
     ];
 
     /**
@@ -39,7 +40,7 @@ class User extends Authenticatable
     ];
 
     protected $data = [
-        'data'=>1
+        'data' => 1
     ];
 
 
@@ -52,12 +53,17 @@ class User extends Authenticatable
 
     public function deposits()
     {
-        return $this->hasMany(Deposit::class)->where('status','!=',0);
+        return $this->hasMany(Deposit::class)->where('status', '!=', 0);
     }
 
     public function tickets()
     {
         return $this->hasMany(BookedTicket::class);
+    }
+
+    public function bookedTickets()
+    {
+        return $this->hasMany(BookedTicket::class, 'passenger_phone', 'mobile');
     }
 
     // SCOPES

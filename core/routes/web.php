@@ -49,7 +49,7 @@ Route::
         namespace('Admin')->prefix('admin')->name('admin.')->group(function () {
             Route::namespace('Auth')->group(function () {
                 Route::get('/', 'LoginController@showLoginForm')->name('login');
-                Route::post('/', 'LoginController@login')->name('login');
+                Route::post('/', 'LoginController@login');
                 Route::get('logout', 'LoginController@logout')->name('logout');
                 // Admin Password Reset
                 Route::get('password/reset', 'ForgotPasswordController@showLinkRequestForm')->name('password.reset');
@@ -443,6 +443,64 @@ Route::name('operator.')->prefix('operator')->group(function () {
             Route::patch('seat-layouts/{seatLayout}/toggle-status', 'Operator\SeatLayoutController@toggleStatus')->name('seat-layouts.toggle-status');
             Route::post('seat-layouts/preview', 'Operator\SeatLayoutController@preview')->name('seat-layouts.preview');
         });
+
+        // Staff Management
+        Route::resource('staff', 'Operator\StaffController')->names([
+            'index' => 'staff.index',
+            'create' => 'staff.create',
+            'store' => 'staff.store',
+            'show' => 'staff.show',
+            'edit' => 'staff.edit',
+            'update' => 'staff.update',
+            'destroy' => 'staff.destroy'
+        ]);
+        Route::patch('staff/{staff}/toggle-status', 'Operator\StaffController@toggleStatus')->name('staff.toggle-status');
+        Route::get('staff/get-by-role', 'Operator\StaffController@getByRole')->name('staff.get-by-role');
+
+        // Crew Assignment Management
+        Route::resource('crew', 'Operator\CrewAssignmentController')->names([
+            'index' => 'crew.index',
+            'create' => 'crew.create',
+            'store' => 'crew.store',
+            'show' => 'crew.show',
+            'edit' => 'crew.edit',
+            'update' => 'crew.update',
+            'destroy' => 'crew.destroy'
+        ]);
+        Route::get('crew/get-bus-crew', 'Operator\CrewAssignmentController@getBusCrew')->name('crew.get-bus-crew');
+        Route::get('crew/get-available-staff', 'Operator\CrewAssignmentController@getAvailableStaff')->name('crew.get-available-staff');
+        Route::post('crew/bulk-assign', 'Operator\CrewAssignmentController@bulkAssign')->name('crew.bulk-assign');
+
+        // Attendance Management
+        Route::resource('attendance', 'Operator\AttendanceController')->names([
+            'index' => 'attendance.index',
+            'create' => 'attendance.create',
+            'store' => 'attendance.store',
+            'show' => 'attendance.show',
+            'edit' => 'attendance.edit',
+            'update' => 'attendance.update',
+            'destroy' => 'attendance.destroy'
+        ]);
+        Route::patch('attendance/{attendance}/approve', 'Operator\AttendanceController@approve')->name('attendance.approve');
+        Route::post('attendance/bulk-approve', 'Operator\AttendanceController@bulkApprove')->name('attendance.bulk-approve');
+        Route::post('attendance/mark-today', 'Operator\AttendanceController@markToday')->name('attendance.mark-today');
+        Route::get('attendance/staff-summary', 'Operator\AttendanceController@getStaffSummary')->name('attendance.staff-summary');
+        Route::get('attendance/calendar-data', 'Operator\AttendanceController@getCalendarData')->name('attendance.calendar-data');
+        Route::post('attendance/update-status', 'Operator\AttendanceController@updateStatus')->name('attendance.update-status');
+        Route::get('attendance/export', 'Operator\AttendanceController@export')->name('attendance.export');
+
+        // Schedule Management
+        Route::resource('schedules', 'Operator\ScheduleController')->names([
+            'index' => 'schedules.index',
+            'create' => 'schedules.create',
+            'store' => 'schedules.store',
+            'show' => 'schedules.show',
+            'edit' => 'schedules.edit',
+            'update' => 'schedules.update',
+            'destroy' => 'schedules.destroy'
+        ]);
+        Route::patch('schedules/{schedule}/toggle-status', 'Operator\ScheduleController@toggleStatus')->name('schedules.toggle-status');
+        Route::get('schedules/get-for-date', 'Operator\ScheduleController@getSchedulesForDate')->name('schedules.get-for-date');
     });
 });
 
@@ -514,14 +572,16 @@ Route::post('/get-boarding-points', 'SiteController@getBoardingPoints')->name('g
 Route::post('/block-seat', 'SiteController@blockSeat')->name('block.seat');
 Route::post('/book-seat', 'SiteController@bookTicketApi')->name('book.ticket');
 // Razorpay routes
-Route::post('/razorpay/create-order', 'RazorpayController@createOrder')->name('razorpay.create-order');
-Route::post('/razorpay/verify-payment', 'RazorpayController@verifyPayment')->name('razorpay.verify-payment');
+// Deprecated routes
+// Route::post('/razorpay/create-order', 'RazorpayController@createOrder')->name('razorpay.create-order');
+// Route::post('/razorpay/verify-payment', 'RazorpayController@verifyPayment')->name('razorpay.verify-payment');
 // Add these routes to your web.php file
-Route::post('/create-razorpay-order', [App\Http\Controllers\RazorpayController::class, 'createOrder'])->name('create.razorpay.order');
-Route::post('/verify-razorpay-payment', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('verify.razorpay.payment');
+// Route::post('/create-razorpay-order', [App\Http\Controllers\RazorpayController::class, 'createOrder'])->name('create.razorpay.order');
+// Route::post('/verify-razorpay-payment', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('verify.razorpay.payment');
 
 // Update your existing book.ticket route to use the verification method
-Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('book.ticket');
+// Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('book.ticket');
+
 Route::get('/admin/markup', [SiteController::class, 'showMarkupPage'])->name('admin.markup');
 
 // Add these routes to your web.php file
@@ -547,3 +607,24 @@ Route::get('/{slug}', 'SiteController@pages')->name('pages');
 Route::get('/', 'SiteController@index')->name('home');
 // Add this route for AJAX filtering
 Route::get('/filter-trips', 'SiteController@filterTrips')->name('filter.trips');
+
+// Mobile Authentication Routes
+Route::prefix('mobile')->name('mobile.')->group(function () {
+    Route::get('/login', 'MobileAuthController@showMobileLogin')->name('login');
+    Route::post('/send-otp', 'MobileAuthController@sendMobileOtp')->name('send.otp');
+    Route::post('/verify-otp', 'MobileAuthController@verifyMobileOtp')->name('verify.otp');
+    Route::post('/logout', 'MobileAuthController@logout')->name('logout');
+});
+
+// User Dashboard Routes (Protected)
+Route::middleware('auth')->prefix('user')->name('user.')->group(function () {
+    Route::get('/dashboard', 'MobileAuthController@dashboard')->name('dashboard');
+    Route::get('/home', 'MobileAuthController@dashboard')->name('home'); // Alias for dashboard
+    Route::get('/booking/{id}', 'MobileAuthController@showBooking')->name('booking.show');
+    Route::post('/booking/{id}/cancel', 'MobileAuthController@cancelBooking')->name('booking.cancel');
+    Route::post('/profile/update', 'MobileAuthController@updateProfile')->name('profile.update');
+    Route::get('/ticket/history', 'MobileAuthController@dashboard')->name('ticket.history'); // Alias for dashboard
+    Route::get('/profile/setting', 'MobileAuthController@dashboard')->name('profile.setting'); // Alias for dashboard
+    Route::get('/change/password', 'MobileAuthController@dashboard')->name('change.password'); // Alias for dashboard
+    Route::post('/logout', 'MobileAuthController@logout')->name('logout');
+});

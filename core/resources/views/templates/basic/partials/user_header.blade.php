@@ -1,5 +1,5 @@
 @php
-$content = getContent('contact.content', true);
+    $content = getContent('contact.content', true);
 @endphp
 <!-- Header Section Starts Here -->
 <div class="header-top">
@@ -22,8 +22,9 @@ $content = getContent('contact.content', true);
             <div class="right-content">
                 <div>
                     <select class="langSel form--control">
-                        @foreach($language as $item)
-                        <option value="{{$item->code}}" @if(session('lang')==$item->code) selected @endif>{{ __($item->name) }}</option>
+                        @foreach ($language as $item)
+                            <option value="{{ $item->code }}" @if (session('lang') == $item->code) selected @endif>
+                                {{ __($item->name) }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -36,7 +37,7 @@ $content = getContent('contact.content', true);
         <div class="header-bottom-area">
             <div class="logo">
                 <a href="{{ route('home') }}">
-                    <img src="{{ getImage(imagePath()['logoIcon']['path'].'/logo.png') }}" alt="@lang('Logo')">
+                    <img src="{{ getImage(imagePath()['logoIcon']['path'] . '/logo.png') }}" alt="@lang('Logo')">
                 </a>
             </div> <!-- Logo End -->
             <ul class="menu">
@@ -58,10 +59,10 @@ $content = getContent('contact.content', true);
                     <a href="javascript::void()">@lang('Support Ticket')</a>
                     <ul class="sub-menu">
                         <li>
-                            <a href="{{route('ticket.open')}}">@lang('Create New')</a>
+                            <a href="{{ route('ticket.open') }}">@lang('Create New')</a>
                         </li>
                         <li>
-                            <a href="{{route('support_ticket')}}">@lang('Tickets')</a>
+                            <a href="{{ route('support_ticket') }}">@lang('Tickets')</a>
                         </li>
                     </ul>
                 </li>
@@ -97,12 +98,12 @@ $content = getContent('contact.content', true);
 <!-- Header Section Ends Here -->
 
 @push('script')
-<script>
-    $(document).ready(function() {
-        "use strict";
-        $(".langSel").on("change", function() {
-            window.location.href = "{{route('home')}}/change/" + $(this).val();
+    <script>
+        $(document).ready(function() {
+            "use strict";
+            $(".langSel").on("change", function() {
+                window.location.href = "{{ route('home') }}/change/" + $(this).val();
+            });
         });
-    });
-</script>
+    </script>
 @endpush

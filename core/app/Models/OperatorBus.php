@@ -257,4 +257,20 @@ class OperatorBus extends Model
     {
         return $this->hasOne(SeatLayout::class)->where('is_active', true);
     }
+
+    /**
+     * Get the crew assignments for this bus
+     */
+    public function crewAssignments()
+    {
+        return $this->hasMany(CrewAssignment::class, 'operator_bus_id');
+    }
+
+    /**
+     * Get the active crew assignments for this bus
+     */
+    public function activeCrewAssignments()
+    {
+        return $this->hasMany(CrewAssignment::class, 'operator_bus_id')->where('status', 'active');
+    }
 }

@@ -162,6 +162,22 @@ class Operator extends Authenticatable
     }
 
     /**
+     * Get all staff members for this operator.
+     */
+    public function staff()
+    {
+        return $this->hasMany(Staff::class);
+    }
+
+    /**
+     * Get active staff members for this operator.
+     */
+    public function activeStaff()
+    {
+        return $this->staff()->where('is_active', true);
+    }
+
+    /**
      * Get the default travel name for this operator.
      */
     public function getDefaultTravelNameAttribute()

@@ -14,6 +14,7 @@ use App\Models\Trip;
 use App\Models\User;
 use App\Models\VehicleRoute;
 use App\Services\BusService;
+use App\Services\BookingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,11 +28,13 @@ use Illuminate\Validation\ValidationException;
 class ApiTicketController extends Controller
 {
     protected $busService;
+    protected $bookingService;
 
     // Use Laravel's service container to automatically inject the BusService instance.
-    public function __construct(BusService $busService)
+    public function __construct(BusService $busService, BookingService $bookingService)
     {
         $this->busService = $busService;
+        $this->bookingService = $bookingService;
     }
 
     /**
@@ -71,6 +74,14 @@ class ApiTicketController extends Controller
 
 
             $result = $this->busService->searchBuses($validatedData);
+
+            Log::info("ApiTicketController::ticketSearch - Final result", [
+                'search_token_id' => $result['SearchTokenId'] ?? 'N/A',
+                'total_trips' => count($result['trips'] ?? []),
+                'trip_result_indices' => array_map(function ($trip) {
+                    return $trip['ResultIndex'] ?? 'N/A';
+                }, $result['trips'] ?? [])
+            ]);
 
             return response()->json($result);
 
@@ -201,6 +212,249 @@ class ApiTicketController extends Controller
             $endTime = microtime(true);
             $executionTime = ($endTime - $startTime) * 1000;
             Log::info(sprintf('showSeat request-response cycle took %.2f ms.', $executionTime));
+        }
+    }
+
+    /**
+     * Handles final booking for operator buses.
+     */
+    private function bookOperatorBusTicket(string $userIp, string $resultIndex, string $boardingPointId, string $droppingPointId, array $passengers)
+    {
+        try {
+            Log::info('Booking operator bus ticket', [
+                'result_index' => $resultIndex,
+                'boarding_point_id' => $boardingPointId,
+                'dropping_point_id' => $droppingPointId,
+                'passenger_count' => count($passengers)
+            ]);
+
+            // Extract operator bus ID from ResultIndex (OP_1 -> 1)
+            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+
+            // Find the operator bus
+            $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout', 'currentRoute'])->find($operatorBusId);
+
+            if (!$operatorBus) {
+                return [
+                    'Error' => [
+                        'ErrorCode' => 404,
+                        'ErrorMessage' => 'Operator bus not found'
+                    ]
+                ];
+            }
+
+            // For operator buses, we'll simulate a successful booking
+            // In a real implementation, you might want to:
+            // 1. Create a permanent booking record
+            // 2. Update seat availability
+            // 3. Send confirmation emails/SMS
+            // 4. Generate ticket details
+
+            // Generate a mock booking ID for operator buses
+            $bookingId = 'OP_BOOK_' . time() . '_' . $operatorBusId;
+
+            // Mock response similar to third-party API
+            $mockResult = [
+                'BookingId' => $bookingId,
+                'BookingStatus' => 'Confirmed',
+                'TotalAmount' => 0, // Will be calculated later
+                'Passenger' => array_map(function ($passenger, $index) {
+                    return [
+                        'LeadPassenger' => $index === 0,
+                        'Title' => $passenger['Title'],
+                        'FirstName' => $passenger['FirstName'],
+                        'LastName' => $passenger['LastName'],
+                        'Email' => $passenger['Email'],
+                        'Phoneno' => $passenger['Phoneno'],
+                        'Gender' => $passenger['Gender'],
+                        'IdType' => $passenger['IdType'],
+                        'IdNumber' => $passenger['IdNumber'],
+                        'Address' => $passenger['Address'],
+                        'Age' => $passenger['Age'],
+                        'SeatName' => $passenger['SeatName'],
+                        'Seat' => [
+                            'Price' => [
+                                'PublishedPrice' => 1000, // Mock price for operator bus
+                                'OfferedPrice' => 900,    // Mock offered price
+                                'BasePrice' => 800,       // Mock base price
+                                'Tax' => 100,             // Mock tax
+                                'OtherCharges' => 0,      // Mock other charges
+                                'Discount' => 0,          // Mock discount
+                                'ServiceCharges' => 0,    // Mock service charges
+                                'TDS' => 0,               // Mock TDS
+                                'GST' => [                // Mock GST
+                                    'CGSTAmount' => 0,
+                                    'CGSTRate' => 0,
+                                    'IGSTAmount' => 0,
+                                    'IGSTRate' => 0,
+                                    'SGSTAmount' => 0,
+                                    'SGSTRate' => 0,
+                                    'TaxableAmount' => 0
+                                ]
+                            ]
+                        ]
+                    ];
+                }, $passengers, array_keys($passengers)),
+                'BoardingPointId' => $boardingPointId,
+                'DroppingPointId' => $droppingPointId,
+                'OperatorBusId' => $operatorBusId,
+                'ResultIndex' => $resultIndex
+            ];
+
+            Log::info('Operator bus ticket booked successfully', [
+                'booking_id' => $bookingId,
+                'operator_bus_id' => $operatorBusId
+            ]);
+
+            return [
+                'Result' => $mockResult
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error booking operator bus ticket:', [
+                'result_index' => $resultIndex,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'Error' => [
+                    'ErrorCode' => 500,
+                    'ErrorMessage' => 'Failed to book operator bus ticket: ' . $e->getMessage()
+                ]
+            ];
+        }
+    }
+
+    /**
+     * Handles seat blocking for operator buses.
+     */
+    private function blockOperatorBusSeat(string $resultIndex, string $boardingPointId, string $droppingPointId, array $passengers, array $seats, string $userIp)
+    {
+        try {
+            Log::info('Blocking operator bus seat', [
+                'result_index' => $resultIndex,
+                'boarding_point_id' => $boardingPointId,
+                'dropping_point_id' => $droppingPointId,
+                'seats' => $seats,
+                'passenger_count' => count($passengers)
+            ]);
+
+            // Extract operator bus ID from ResultIndex (OP_1 -> 1)
+            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+
+            // Find the operator bus
+            $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout', 'currentRoute'])->find($operatorBusId);
+
+            if (!$operatorBus) {
+                return [
+                    'success' => false,
+                    'message' => 'Operator bus not found',
+                    'error' => 'Bus not found'
+                ];
+            }
+
+            // For operator buses, we'll simulate a successful block
+            // In a real implementation, you might want to:
+            // 1. Check seat availability
+            // 2. Create a temporary booking record
+            // 3. Set a timeout for the booking
+            // 4. Return booking details
+
+            // Generate a mock booking ID for operator buses
+            $bookingId = 'OP_BOOK_' . time() . '_' . $operatorBusId;
+
+            // Mock response similar to third-party API
+            $mockResult = [
+                'BookingId' => $bookingId,
+                'BookingStatus' => 'Confirmed',
+                'TotalAmount' => 0, // Will be calculated later
+                'BusType' => $operatorBus->bus_type ?? 'Operator Bus',
+                'TravelName' => $operatorBus->travel_name ?? 'Operator Service',
+                'DepartureTime' => '2025-10-23T17:30:00', // Mock departure time
+                'ArrivalTime' => '2025-10-24T11:30:00',   // Mock arrival time
+                'BoardingPointdetails' => [
+                    [
+                        'CityPointIndex' => 1,
+                        'CityPointLocation' => 'Bus Stand Patna',
+                        'CityPointName' => 'Bus Stand Patna',
+                        'CityPointTime' => '2025-10-23T17:30:00'
+                    ]
+                ],
+                'DroppingPointsdetails' => [
+                    [
+                        'CityPointIndex' => 1,
+                        'CityPointLocation' => 'ISBT Kashmiri Gate',
+                        'CityPointName' => 'ISBT Kashmiri Gate',
+                        'CityPointTime' => '2025-10-24T11:30:00'
+                    ]
+                ],
+                'Passenger' => array_map(function ($passenger, $index) use ($seats) {
+                    return [
+                        'LeadPassenger' => $index === 0,
+                        'Title' => $passenger['Title'],
+                        'FirstName' => $passenger['FirstName'],
+                        'LastName' => $passenger['LastName'],
+                        'Email' => $passenger['Email'],
+                        'Phoneno' => $passenger['Phoneno'],
+                        'Gender' => $passenger['Gender'],
+                        'IdType' => $passenger['IdType'],
+                        'IdNumber' => $passenger['IdNumber'],
+                        'Address' => $passenger['Address'],
+                        'Age' => $passenger['Age'],
+                        'SeatName' => $passenger['SeatName'],
+                        'Seat' => [
+                            'Price' => [
+                                'PublishedPrice' => 1000, // Mock price for operator bus
+                                'OfferedPrice' => 900,    // Mock offered price
+                                'BasePrice' => 800,       // Mock base price
+                                'Tax' => 100,             // Mock tax
+                                'OtherCharges' => 0,      // Mock other charges
+                                'Discount' => 0,          // Mock discount
+                                'ServiceCharges' => 0,    // Mock service charges
+                                'TDS' => 0,               // Mock TDS
+                                'GST' => [                // Mock GST
+                                    'CGSTAmount' => 0,
+                                    'CGSTRate' => 0,
+                                    'IGSTAmount' => 0,
+                                    'IGSTRate' => 0,
+                                    'SGSTAmount' => 0,
+                                    'SGSTRate' => 0,
+                                    'TaxableAmount' => 0
+                                ]
+                            ]
+                        ]
+                    ];
+                }, $passengers, array_keys($passengers)),
+                'BoardingPointId' => $boardingPointId,
+                'DroppingPointId' => $droppingPointId,
+                'OperatorBusId' => $operatorBusId,
+                'ResultIndex' => $resultIndex
+            ];
+
+            Log::info('Operator bus seat blocked successfully', [
+                'booking_id' => $bookingId,
+                'operator_bus_id' => $operatorBusId,
+                'seats' => $seats
+            ]);
+
+            return [
+                'success' => true,
+                'Result' => $mockResult
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error blocking operator bus seat:', [
+                'result_index' => $resultIndex,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Failed to block operator bus seats',
+                'error' => $e->getMessage()
+            ];
         }
     }
 
@@ -426,12 +680,17 @@ class ApiTicketController extends Controller
     public function blockSeatApi(Request $request)
     {
         try {
+            Log::info('BlockSeat API request received', [
+                'request_data' => $request->all(),
+                'headers' => $request->headers->all()
+            ]);
+
             $request->validate([
                 'OriginCity' => 'required',
                 'DestinationCity' => 'required',
                 'SearchTokenId' => 'required',
                 'ResultIndex' => 'required',
-                'UserIp' => 'required|string',
+                'UserIp' => 'nullable|string',
                 'BoardingPointId' => 'required',
                 'DroppingPointId' => 'required',
                 'Seats' => 'required|string',
@@ -443,167 +702,64 @@ class ApiTicketController extends Controller
                 'age' => 'nullable|integer',
             ]);
 
-            $sourceDestination = json_encode([
-                $request->OriginCity,
-                $request->DestinationCity
-            ]);
-
-            // Register or log in the user
-            if (!Auth::check()) {
-                $fullPhone = $request->Phoneno;
-                $user = User::firstOrCreate(
-                    ['mobile' => $fullPhone],
-                    [
-                        'firstname' => $request->FirstName,
-                        'lastname' => $request->LastName,
-                        'email' => $request->Email,
-                        'username' => 'user' . time(),
-                        'password' => Hash::make(Str::random(8)),
-                        'country_code' => '91',
-                        'address' => [
-                            'address' => $request->Address,
-                            'state' => '',
-                            'zip' => '',
-                            'country' => 'India',
-                            'city' => ''
-                        ],
-                        'status' => 1,
-                        'ev' => 1,
-                        'sv' => 1,
-                    ]
-                );
-                Auth::login($user);
-            }
-
-            $seats = explode(',', $request->Seats);
-
-            $passengers = collect($seats)->map(function ($seatName, $index) use ($request) {
-                return [
-                    "LeadPassenger" => $index === 0,
-                    "Title" => $request->Gender == 1 ? "Mr" : "Mrs",
-                    "FirstName" => $request->FirstName,
-                    "LastName" => $request->LastName,
-                    "Email" => $request->Email,
-                    "Phoneno" => $request->Phoneno,
-                    "Gender" => $request->Gender,
-                    "IdType" => null,
-                    "IdNumber" => null,
-                    "Address" => $request->Address,
-                    "Age" => $request->age ?? 0,
-                    "SeatName" => $seatName
-                ];
-            })->toArray();
-
-            $response = blockSeatHelper(
-                $request->SearchTokenId,
-                $request->ResultIndex,
-                $request->BoardingPointId,
-                $request->DroppingPointId,
-                $passengers,
-                $seats,
-                $request->ip()
-            );
-
-            if (!$response['success']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $response['message'] ?? 'Unable to block seats',
-                    'error' => $response['error'] ?? null
-                ], 400);
-            }
-
-            // Calculate total fare from the blocked seat response
-            $totalFare = collect($response['Result']['Passenger'])->sum(function ($passenger) {
-                // PublishedPrice includes BasePrice, Tax, and OtherCharges.
-                return $passenger['Seat']['Price']['PublishedPrice'] ?? 0;
-            });
-
-            $unitPrice = collect($response['Result']['Passenger'])->sum(function ($passenger) {
-                // PublishedPrice includes BasePrice, Tax, and OtherCharges.
-                return $passenger['Seat']['Price']['OfferedPrice'] ?? 0;
-            });
-
-            // Convert totalFare and unitPrice to 2 digit decimal number
-            $totalFare = round($totalFare, 2);
-            $unitPrice = round($unitPrice, 2);
-
-            Log::info('Total Fare is ' . $totalFare . 'and Unit Price is ' . $unitPrice);
-            // Create a pending ticket in the database
-            $bookedTicket = new BookedTicket();
-            $bookedTicket->user_id = Auth::id();
-            $bookedTicket->bus_type = $response['Result']['BusType'];
-            $bookedTicket->travel_name = $response['Result']['TravelName'];
-            $bookedTicket->source_destination = $sourceDestination;
-            $bookedTicket->departure_time = Carbon::parse($response['Result']['DepartureTime'])->format('H:i:s');
-            $bookedTicket->arrival_time = Carbon::parse($response['Result']['ArrivalTime'])->format('H:i:s');
-            $bookedTicket->operator_pnr = $response['Result']['BookingId'] ?? null; //update on time of booking
-            $bookedTicket->boarding_point_details = json_encode($response['Result']['BoardingPointdetails']);
-            $bookedTicket->dropping_point_details = isset($response['Result']['DroppingPointsdetails']) ? json_encode($response['Result']['DroppingPointsdetails']) : null; //update on time of booking
-            $bookedTicket->seats = $seats; // This will be cast to array by the model
-            $bookedTicket->ticket_count = count($seats);
-            $bookedTicket->unit_price = $unitPrice;
-            $bookedTicket->sub_total = $totalFare;
-            $bookedTicket->pnr_number = getTrx(10);
-            $bookedTicket->pickup_point = $request->BoardingPointId;
-            $bookedTicket->dropping_point = $request->DroppingPointId;
-            $bookedTicket->search_token_id = $request->SearchTokenId;
-            $bookedTicket->date_of_journey = Carbon::parse($response['Result']['DepartureTime'])->format('Y-m-d');
-
-            $leadPassenger = collect($response['Result']['Passenger'])->firstWhere('LeadPassenger', true)
-                ?? $response['Result']['Passenger'][0] ?? null;
-
-            // $bookedTicket->passenger_names = $passengerNames;
-            $bookedTicket->passenger_phone = $leadPassenger['Phoneno'] ?? null;
-            $bookedTicket->passenger_email = $leadPassenger['Email'] ?? null;
-            $bookedTicket->passenger_address = $leadPassenger['Address'] ?? null;
-            $bookedTicket->passenger_name = trim(($leadPassenger['FirstName'] ?? '') . ' ' . ($leadPassenger['LastName'] ?? ''));
-            $bookedTicket->passenger_age = $leadPassenger['Age'] ?? null;
-
-            $bookedTicket->status = 0; // 0 for pending
-            $bookedTicket->save();
-
-            $bookingDataToCache = [
-                'user_ip' => $request->ip(),
-                'search_token_id' => $request->SearchTokenId,
-                'result_index' => $request->ResultIndex,
-                'boarding_point_id' => $request->BoardingPointId,
-                'dropping_point_id' => $request->DroppingPointId,
-                'passengers' => $passengers,
+            // Prepare request data for BookingService
+            $requestData = [
+                'OriginCity' => $request->OriginCity,
+                'DestinationCity' => $request->DestinationCity,
+                'SearchTokenId' => $request->SearchTokenId,
+                'ResultIndex' => $request->ResultIndex,
+                'UserIp' => $request->UserIp ?? $request->ip(),
+                'BoardingPointId' => $request->BoardingPointId,
+                'DroppingPointId' => $request->DroppingPointId,
+                'Seats' => $request->Seats,
+                'FirstName' => $request->FirstName,
+                'LastName' => $request->LastName,
+                'Gender' => $request->Gender,
+                'Email' => $request->Email,
+                'Phoneno' => $request->Phoneno,
+                'age' => $request->age ?? 0,
+                'Address' => $request->Address ?? ''
             ];
 
-            // Store necessary data for final booking in cache for 15 minutes, keyed by ticket ID
-            Cache::put('booking_data_' . $bookedTicket->id, $bookingDataToCache, now()->addMinutes(15));
-            Log::info('Booking data cached for ticket ID ' . $bookedTicket->id, $bookingDataToCache);
+            // Use BookingService to block seats and create payment order
+            $result = $this->bookingService->blockSeatsAndCreateOrder($requestData);
 
-            // Initialize Razorpay
-            $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Seats blocked successfully! Proceed to payment.',
+                    'ticket_id' => $result['ticket_id'],
+                    'order_details' => $result['order_details'],
+                    'order_id' => $result['order_id'],
+                    'amount' => $result['amount'],
+                    'currency' => $result['currency'],
+                    'block_details' => $result['block_details'],
+                    'cancellationPolicy' => $result['cancellation_policy']
+                ]);
+            }
 
-            // Create Razorpay order
-            $order = $api->order->create([
-                'receipt' => $bookedTicket->pnr_number,
-                'amount' => $totalFare * 100, // Amount in paisa
-                // 'amount' => 1 * 100,
-                'currency' => 'INR',
-                'notes' => [
-                    'ticket_id' => $bookedTicket->id,
-                    'pnr_number' => $bookedTicket->pnr_number,
-                ]
-            ]);
-
-            $formattedPolicy = formatCancelPolicy($response['Result']['CancelPolicy'] ?? []);
             return response()->json([
-                'success' => true,
-                'message' => 'Seats blocked successfully! Proceed to payment.',
-                'ticket_id' => $bookedTicket->id,
-                'order_id' => $order->id,
-                'amount' => $totalFare,
-                'currency' => 'INR',
-                'block_details' => $response['Result'],
-                'cancellationPolicy' => $formattedPolicy,
-            ]);
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to block seats',
+                'error' => $result['error'] ?? null
+            ], 400);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('BlockSeat API validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            Log::error('BlockSeat API exception: ' . $e->getMessage());
+            Log::error('BlockSeat API exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Unexpected error occurred',
@@ -615,7 +771,8 @@ class ApiTicketController extends Controller
     public function confirmPayment(Request $request)
     {
         try {
-            Log::info('Now Trying to confirm payment...');
+            Log::info('Confirming payment for API booking', $request->all());
+
             $request->validate([
                 'razorpay_payment_id' => 'required|string',
                 'razorpay_order_id' => 'required|string',
@@ -623,129 +780,30 @@ class ApiTicketController extends Controller
                 'ticket_id' => 'required|integer|exists:booked_tickets,id',
             ]);
 
-            // Initialize Razorpay
-            $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
-
-            // Verify payment signature
-            $attributes = [
-                'razorpay_order_id' => $request->razorpay_order_id,
+            // Use BookingService to verify payment and complete booking
+            $result = $this->bookingService->verifyPaymentAndCompleteBooking([
                 'razorpay_payment_id' => $request->razorpay_payment_id,
+                'razorpay_order_id' => $request->razorpay_order_id,
                 'razorpay_signature' => $request->razorpay_signature,
-            ];
+                'ticket_id' => $request->ticket_id
+            ]);
 
-            $api->utility->verifyPaymentSignature($attributes);
-
-            // Retrieve the pending ticket
-            $bookedTicket = BookedTicket::findOrFail($request->ticket_id);
-
-            // Retrieve booking data from cache
-
-            $bookingData = Cache::get('booking_data_' . $bookedTicket->id);
-
-            if (!$bookingData) {
+            if ($result['success']) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Booking session expired or is invalid. Please try blocking the seat again.'
-                ], 400);
+                    'success' => true,
+                    'message' => 'Payment successful. Ticket booked successfully.',
+                    'ticket_id' => $result['ticket_id'],
+                    'pnr' => $result['pnr'],
+                    'status' => 201
+                ]);
             }
-
-            // Call the final booking API
-            $apiResponse = bookAPITicket(
-                $bookingData['user_ip'],
-                $bookingData['search_token_id'],
-                $bookingData['result_index'],
-                $bookingData['boarding_point_id'],
-                $bookingData['dropping_point_id'],
-                $bookingData['passengers']
-            );
-
-            if (isset($apiResponse['Error']) && $apiResponse['Error']['ErrorCode'] != 0) {
-                // Handle booking failure (e.g., log, notify admin)
-                $bookedTicket->update(['status' => 3, 'api_response' => json_encode($apiResponse)]); // 3 for rejected
-                return response()->json([
-                    'success' => false,
-                    'message' => $apiResponse['Error']['ErrorMessage'] ?? 'Final booking failed at operator end.'
-                ], 400);
-            }
-
-
-            // Update ticket status to confirmed and save operator PNR
-            $bookedTicket->operator_pnr = $apiResponse['Result']['TravelOperatorPNR'];
-            $bookedTicket->update(['status' => 1, 'api_response' => json_encode($apiResponse)]);
-            $bookingApiId = $apiResponse['Result']['BookingID'];
-
-            Log::info('Now Getting ticket details...', ['UserIp' => $bookingData['user_ip'], 'SearchTokenId' => $bookingData['search_token_id'], 'BookingApiId' => $bookingApiId]);
-
-            $ticketApiDetails = getAPITicketDetails($bookingData['user_ip'], $bookingData['search_token_id'], $bookingApiId);
-
-            $bookedTicket->update(
-                [
-                    'api_invoice' => $ticketApiDetails['Result']['InvoiceNumber'],
-                    'api_invoice_amount' => $ticketApiDetails['Result']['InvoiceAmount'],
-                    'api_invoice_date' => Carbon::parse($ticketApiDetails['Result']['InvoiceCreatedOn'])->format('Y-m-d H:i:s'),
-                    'api_booking_id' => $ticketApiDetails['Result']['BookingId'],
-                    'api_ticket_no' => $ticketApiDetails['Result']['TicketNo'],
-                    'agent_commission' => $ticketApiDetails['Result']['Price']['AgentCommission'],
-                    'tds_from_api' => $ticketApiDetails['Result']['Price']['TDS'],
-                    'origin_city' => $ticketApiDetails['Result']['Origin'],
-                    'destination_city' => $ticketApiDetails['Result']['Destination'],
-                    'dropping_point_details' => json_encode($ticketApiDetails['Result']['DroppingPointdetails'] ?? null), // Update dropping point details if available
-                    'cancellation_policy' => json_encode(formatCancelPolicy($ticketApiDetails['Result']['CancelPolicy'] ?? [])), // Store formatted cancellation policy
-                ]
-            );
-
-            Log::info('Get Ticekt Details API Response', $ticketApiDetails);
-
-            // TODO: if succeed then store the search token in bookedTicket so it can be cancelled later
-
-            // Clean up cache data
-            Cache::forget('booking_data_' . $bookedTicket->id);
-            Log::info('Booking session cleaned up');
-
-            $originCity = $ticketApiDetails['Result']['Origin'];
-            $destinationCity = $ticketApiDetails['Result']['Destination'];
-
-            Log::info('Ticket from' . $originCity . ' to ' . $destinationCity);
-
-            // Safely decode boarding and dropping point details
-            $boardingDetails = json_decode($bookedTicket->boarding_point_details, true);
-            $droppingDetails = $ticketApiDetails['Result']['DroppingPointdetails'];
-
-            // Construct readable details for WhatsApp
-            $boardingDetailsString = 'Not Available';
-            if ($boardingDetails) {
-                $boardingDetailsString = ($boardingDetails['CityPointName'] ?? '') . ', ' . ($boardingDetails['CityPointLocation'] ?? '') . '. Time: ' . Carbon::parse($boardingDetails['CityPointTime'])->format('h:i A') . 'Contact Number: ' . ($boardingDetails['CityPointContactNumber'] ?? '');
-            }
-
-            $droppingDetailsString = 'Not Available';
-            if ($droppingDetails) {
-                $droppingDetailsString = ($droppingDetails['CityPointName'] ?? '') . ', ' . ($droppingDetails['CityPointLocation'] ?? '');
-            }
-
-            // Fetch ticket details
-            $ticketDetails = [
-                'pnr' => $bookedTicket->pnr_number,
-                'source_name' => $originCity,
-                'destination_name' => $destinationCity,
-                'date_of_journey' => $bookedTicket->date_of_journey,
-                'seats' => is_array($bookedTicket->seats) ? implode(', ', $bookedTicket->seats) : $bookedTicket->seats,
-                'passenger_name' => $bookedTicket->passenger_name ?? 'Guest',
-                'boarding_details' => $boardingDetailsString,
-                'drop_off_details' => $droppingDetailsString,
-            ];
-            Log::info('Now Sending ticket details:');
-
-            // Send ticket details via WhatsApp
-            sendTicketDetailsWhatsApp($ticketDetails, $bookedTicket->user->mobile);
-            sendTicketDetailsWhatsApp($ticketDetails, "8269566034");
 
             return response()->json([
-                'success' => true,
-                'message' => 'Payment successful. Ticket details sent via WhatsApp.',
-                'details' => $ticketApiDetails['Result'],
-                'mobile_number' => $bookedTicket->passenger_phone,
-                'status' => 201,
-            ]);
+                'success' => false,
+                'message' => $result['message'],
+                'cancelled' => $result['cancelled'] ?? false
+            ], $result['cancelled'] ?? false ? 500 : 400);
+
         } catch (\Razorpay\Api\Errors\SignatureVerificationError $e) {
             return response()->json([
                 'error' => 'Payment verification failed',

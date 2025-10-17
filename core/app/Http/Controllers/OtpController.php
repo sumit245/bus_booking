@@ -46,7 +46,7 @@ class OtpController extends Controller
 
             // Send OTP via WhatsApp
             $userName = $request->name ?: 'Guest';
-            sendOtp($phone, $userName, $otp);
+            sendOtp($phone, $otp, $userName);
             Log::info('Received OTP');
             // Return success response
             return response()->json([

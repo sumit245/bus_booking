@@ -10,28 +10,32 @@
                             <div class="col-md-3">
                                 <div class="form-group ">
                                     <label class="form-control-label font-weight-bold"> @lang('Site Title') </label>
-                                    <input class="form-control form-control-lg" type="text" name="sitename" value="{{$general->sitename}}">
+                                    <input class="form-control form-control-lg" type="text" name="sitename"
+                                        value="{{ $general->sitename }}">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group ">
                                     <label class="form-control-label font-weight-bold">@lang('Currency')</label>
-                                    <input class="form-control form-control-lg" type="text" name="cur_text" value="{{$general->cur_text}}">
+                                    <input class="form-control form-control-lg" type="text" name="cur_text"
+                                        value="{{ $general->cur_text }}">
                                 </div>
                             </div>
 
                             <div class="col-md-3">
                                 <div class="form-group ">
                                     <label class="form-control-label font-weight-bold">@lang('Currency Symbol') </label>
-                                    <input class="form-control form-control-lg" type="text" name="cur_sym" value="{{$general->cur_sym}}">
+                                    <input class="form-control form-control-lg" type="text" name="cur_sym"
+                                        value="{{ $general->cur_sym }}">
                                 </div>
                             </div>
 
                             <div class="form-group col-md-3">
                                 <label class="form-control-label font-weight-bold"> @lang('Timezone')</label>
                                 <select class="select2-basic" name="timezone">
-                                    @foreach($timezones as $timezone)
-                                    <option value="'{{ @$timezone}}'" @if(config('app.timezone') == $timezone) selected @endif>{{ __($timezone) }}</option>
+                                    @foreach ($timezones as $timezone)
+                                        <option value="'{{ @$timezone }}'"
+                                            @if (config('app.timezone') == $timezone) selected @endif>{{ __($timezone) }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -41,46 +45,159 @@
                             <div class="form-group col-md-4">
                                 <label class="form-control-label font-weight-bold"> @lang('Site Base Color')</label>
                                 <div class="input-group">
-                                <span class="input-group-addon ">
-                                    <input type='text' class="form-control form-control-lg colorPicker" value="{{$general->base_color}}"/>
-                                </span>
-                                    <input type="text" class="form-control form-control-lg colorCode" name="base_color" value="{{ $general->base_color }}"/>
+                                    <span class="input-group-addon ">
+                                        <input type='text' class="form-control form-control-lg colorPicker"
+                                            value="{{ $general->base_color }}" />
+                                    </span>
+                                    <input type="text" class="form-control form-control-lg colorCode" name="base_color"
+                                        value="{{ $general->base_color }}" />
                                 </div>
                             </div>
                             <div class="form-group col-md-4">
                                 <label class="form-control-label font-weight-bold">@lang('Force Secure Password')</label>
-                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')" data-off="@lang('Disabled')" name="secure_password" @if($general->secure_password) checked @endif>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success"
+                                    data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')"
+                                    data-off="@lang('Disabled')" name="secure_password"
+                                    @if ($general->secure_password) checked @endif>
                             </div>
                             <div class="form-group col-md-4">
                                 <label class="form-control-label font-weight-bold">@lang('Agree policy')</label>
-                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')" data-off="@lang('Disabled')" name="agree" @if($general->agree) checked @endif>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success"
+                                    data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')"
+                                    data-off="@lang('Disabled')" name="agree"
+                                    @if ($general->agree) checked @endif>
                             </div>
                         </div>
                         <div class="row">
                             <div class="form-group col-md-2">
                                 <label class="form-control-label font-weight-bold">@lang('User Registration')</label>
-                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')" data-off="@lang('Disabled')" name="registration" @if($general->registration) checked @endif>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success"
+                                    data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')"
+                                    data-off="@lang('Disabled')" name="registration"
+                                    @if ($general->registration) checked @endif>
                             </div>
 
                             <div class="form-group col-md-2">
                                 <label class="form-control-label font-weight-bold">@lang('Force SSL')</label>
-                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')" data-off="@lang('Disabled')" name="force_ssl" @if($general->force_ssl) checked @endif>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success"
+                                    data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')"
+                                    data-off="@lang('Disabled')" name="force_ssl"
+                                    @if ($general->force_ssl) checked @endif>
                             </div>
                             <div class="form-group col-lg-2 col-sm-6 col-md-4">
                                 <label class="form-control-label font-weight-bold"> @lang('Email Verification')</label>
-                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')" data-off="@lang('Disable')" name="ev" @if($general->ev) checked @endif>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success"
+                                    data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')"
+                                    data-off="@lang('Disable')" name="ev"
+                                    @if ($general->ev) checked @endif>
                             </div>
                             <div class="form-group col-lg-2 col-sm-6 col-md-4">
                                 <label class="form-control-label font-weight-bold">@lang('Email Notification')</label>
-                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')" data-off="@lang('Disable')" name="en" @if($general->en) checked @endif>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success"
+                                    data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')"
+                                    data-off="@lang('Disable')" name="en"
+                                    @if ($general->en) checked @endif>
                             </div>
                             <div class="form-group col-lg-2 col-sm-6 col-md-4">
                                 <label class="form-control-label font-weight-bold"> @lang('SMS Verification')</label>
-                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')" data-off="@lang('Disable')" name="sv" @if($general->sv) checked @endif>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success"
+                                    data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')"
+                                    data-off="@lang('Disable')" name="sv"
+                                    @if ($general->sv) checked @endif>
                             </div>
                             <div class="form-group col-lg-2 col-sm-6 col-md-4">
                                 <label class="form-control-label font-weight-bold">@lang('SMS Notification')</label>
-                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success" data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')" data-off="@lang('Disable')" name="sn" @if($general->sn) checked @endif>
+                                <input type="checkbox" data-width="100%" data-size="large" data-onstyle="-success"
+                                    data-offstyle="-danger" data-toggle="toggle" data-on="@lang('Enable')"
+                                    data-off="@lang('Disable')" name="sn"
+                                    @if ($general->sn) checked @endif>
+                            </div>
+                        </div>
+
+                        <!-- Fee Settings Section -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="mb-3 mt-4">@lang('Fee Settings')</h5>
+                                <hr>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="form-control-label font-weight-bold">@lang('GST Percentage')</label>
+                                    <div class="input-group">
+                                        <input class="form-control form-control-lg" type="number" name="gst_percentage"
+                                            value="{{ $general->gst_percentage ?? 0 }}" min="0" max="100"
+                                            step="0.01" placeholder="0.00">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">@lang('GST percentage applied on total amount (including service charge and platform fee)')</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="form-control-label font-weight-bold">@lang('Service Charge Percentage')</label>
+                                    <div class="input-group">
+                                        <input class="form-control form-control-lg" type="number"
+                                            name="service_charge_percentage"
+                                            value="{{ $general->service_charge_percentage ?? 0 }}" min="0"
+                                            max="100" step="0.01" placeholder="0.00">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">@lang('Service charge percentage applied on base fare')</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="form-control-label font-weight-bold">@lang('Platform Fee Percentage')</label>
+                                    <div class="input-group">
+                                        <input class="form-control form-control-lg" type="number"
+                                            name="platform_fee_percentage"
+                                            value="{{ $general->platform_fee_percentage ?? 0 }}" min="0"
+                                            max="100" step="0.01" placeholder="0.00">
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">@lang('Platform fee percentage applied on base fare')</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="form-control-label font-weight-bold">@lang('Fixed Platform Fee')</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">{{ $general->cur_sym ?? '₹' }}</span>
+                                        </div>
+                                        <input class="form-control form-control-lg" type="number"
+                                            name="platform_fee_fixed" value="{{ $general->platform_fee_fixed ?? 0 }}"
+                                            min="0" step="0.01" placeholder="0.00">
+                                    </div>
+                                    <small class="text-muted">@lang('Fixed platform fee amount added to each booking')</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h6><i class="las la-info-circle"></i> @lang('Fee Calculation Order')</h6>
+                                    <ol class="mb-0">
+                                        <li>@lang('Base fare from seat selection')</li>
+                                        <li>@lang('Add Service Charge (percentage of base fare)')</li>
+                                        <li>@lang('Add Platform Fee (percentage of base fare + fixed amount)')</li>
+                                        <li>@lang('Apply GST (percentage of total amount before GST)')</li>
+                                        <li>@lang('Apply coupon discount (if applicable)')</li>
+                                    </ol>
+                                </div>
                             </div>
                         </div>
 
@@ -125,12 +242,15 @@
         .sp-dd {
             display: none;
         }
+
         .select2-container .select2-selection--single {
             height: 44px;
         }
+
         .select2-container--default .select2-selection--single .select2-selection__rendered {
             line-height: 43px;
         }
+
         .select2-container--default .select2-selection--single .select2-selection__arrow {
             height: 43px;
         }
@@ -139,16 +259,16 @@
 
 @push('script')
     <script>
-        (function ($) {
+        (function($) {
             "use strict";
             $('.colorPicker').spectrum({
                 color: $(this).data('color'),
-                change: function (color) {
+                change: function(color) {
                     $(this).parent().siblings('.colorCode').val(color.toHexString().replace(/^#?/, ''));
                 }
             });
 
-            $('.colorCode').on('input', function () {
+            $('.colorCode').on('input', function() {
                 var clr = $(this).val();
                 $(this).parents('.input-group').find('.colorPicker').spectrum({
                     color: clr,
@@ -161,7 +281,5 @@
 
             $('select[name=timezone]').val();
         })(jQuery);
-        
     </script>
 @endpush
-

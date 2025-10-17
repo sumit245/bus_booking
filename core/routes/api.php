@@ -19,17 +19,18 @@ Route::get('/autocomplete-city', [ApiTicketController::class, 'autocompleteCity'
 // Bus-related
 Route::prefix('bus')->group(function () {
     Route::get('search', [ApiTicketController::class, 'ticketSearch']);
-    Route::get('show-seats', [ApiTicketController::class, 'showSeat']);
+    Route::get('show-seats', action: [ApiTicketController::class, 'showSeat']);
     Route::get('/get-counters', [ApiTicketController::class, 'getCounters']);
     // Route::get('block-ticket/{id}', [ApiTicketController::class, 'bookTicket']); Obsolete Code
     Route::post('/block-seat', [ApiTicketController::class, 'blockSeatApi']);
+    // Seat blocking & payment
+    Route::post('/confirm-payment', [ApiTicketController::class, 'confirmPayment']);
     Route::post('/cancellation-policy', [ApiTicketController::class,'getCancellationPolicy']);
 });
 
 // Boarding/drop points
 
-// Seat blocking & payment
-Route::post('/confirm-payment', [ApiTicketController::class, 'confirmPayment']);
+
 
 // Coupon routes
 Route::get('/coupons', [CouponController::class, 'getActiveCouponsApi']);

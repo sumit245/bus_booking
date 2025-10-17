@@ -1,0 +1,92 @@
+{
+    "success": true,
+    "message": "Seats blocked successfully! Proceed to payment.",
+    "ticket_id": 188,
+    "order_details": {},
+    "order_id": "order_RUH82TZpxWUiBr",
+    "amount": 88.2000000000000028421709430404007434844970703125,
+    "currency": "INR",
+    "block_details": {
+        "IsPriceChanged": false,
+        "ArrivalTime": "11/06/2025 08:35:00",
+        "BusType": "NON A/C Seater (2+2)",
+        "DepartureTime": "11/06/2025 06:55:00",
+        "TravelName": "Gautam Travels Satna",
+        "BoardingPointdetails": {
+            "CityPointAddress": "Bus Stand Rewa, Ban Sagar Rd, Rewa, Madhya Pradesh 486001",
+            "CityPointContactNumber": "9300501498",
+            "CityPointIndex": 1,
+            "CityPointLandmark": "Bus Stand Rewa, Ban Sagar Rd, Rewa, Madhya Pradesh 486001",
+            "CityPointLocation": "Bus Stand",
+            "CityPointName": "Bus Stand",
+            "CityPointTime": "2025-11-06T06:55:00"
+        },
+        "CancelPolicy": [
+            {
+                "CancellationChargeType": 2,
+                "PolicyString": "Till 06:55 on 06 Nov 2025",
+                "TimeBeforeDept": "0$-1",
+                "FromDate": "2025-10-17T01:47:14",
+                "ToDate": "2025-11-06T06:55:00"
+            }
+        ],
+        "Passenger": [
+            {
+                "LeadPassenger": true,
+                "Title": "Mr",
+                "Address": "Ramganj",
+                "Age": 20,
+                "City": null,
+                "Email": "abcd@xyz.com",
+                "FirstName": "Anoop",
+                "Gender": 1,
+                "IdNumber": null,
+                "IdType": null,
+                "LastName": "Jain",
+                "Phoneno": "9649240944",
+                "Seat": {
+                    "ColumnNo": "007",
+                    "Height": 1,
+                    "IsLadiesSeat": false,
+                    "IsMalesSeat": false,
+                    "IsUpper": false,
+                    "RowNo": "005",
+                    "SeatFare": 88.2000000000000028421709430404007434844970703125,
+                    "SeatIndex": 28,
+                    "SeatName": "28",
+                    "SeatStatus": true,
+                    "SeatType": 1,
+                    "Width": 1,
+                    "Price": {
+                        "BasePrice": 88.2000000000000028421709430404007434844970703125,
+                        "Tax": 0,
+                        "OtherCharges": 0,
+                        "Discount": 0,
+                        "PublishedPrice": 88.2000000000000028421709430404007434844970703125,
+                        "OfferedPrice": 82.909999999999996589394868351519107818603515625,
+                        "AgentCommission": 5.29000000000000003552713678800500929355621337890625,
+                        "ServiceCharges": 0,
+                        "TDS": 0.2600000000000000088817841970012523233890533447265625,
+                        "GST": {
+                            "CGSTAmount": 0,
+                            "CGSTRate": 0,
+                            "IGSTAmount": 0,
+                            "IGSTRate": 18,
+                            "SGSTAmount": 0,
+                            "SGSTRate": 0,
+                            "TaxableAmount": 0
+                        }
+                    }
+                },
+                "State": null
+            }
+        ]
+    },
+    "cancellationPolicy": [
+        "Between 1:47 AM, 17 Oct 2025 to 6:55 AM, 06 Nov 2025 – 0% charge"
+    ],
+    "whatsapp_notifications": {
+        "sent": true,
+        "results": []
+    }
+}

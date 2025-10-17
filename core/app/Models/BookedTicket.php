@@ -55,6 +55,9 @@ class BookedTicket extends Model
         'origin_city',
         'destination_city',
         'cancellation_policy',
+        'cancellation_remarks',
+        'cancelled_at',
+        'bus_details',
     ];
 
     // Add date mutator to fix invalid dates

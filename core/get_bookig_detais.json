@@ -1,0 +1,117 @@
+{
+    "UserIp": "192.168.1.5",
+    "SearchTokenId": "1919585912b09c9440f485d5e6f8c7f09f0a1cf2",
+    "Error": {
+        "ErrorCode": 0,
+        "ErrorMessage": ""
+    },
+    "Result": {
+        "BookingId": 143,
+        "TicketNo": "AAUG7BD8",
+        "TravelOperatorPNR": "AAUG7BD8",
+        "Origin": "Satna",
+        "OriginID": 249,
+        "Destination": "Rewa",
+        "DestinationId": 6664,
+        "DateOfJourney": "2025-09-27",
+        "NoOfSeats": 1,
+        "DepartureTime": "2025-09-27T05:25:00",
+        "ArrivalTime": "2025-09-27T07:00:00",
+        "Duration": 95,
+        "BusType": "Non AC Seater (2+3)",
+        "TravelName": "DN Singh Parihar Bus Service Satna",
+        "Passenger": [
+            {
+                "LeadPassenger": true,
+                "Title": "Mr",
+                "FirstName": "Test",
+                "LastName": "User",
+                "Age": "26",
+                "Gender": "Mr",
+                "Phoneno": "9649240944",
+                "Email": "guest@vindhyashrisolutions.com",
+                "IdNumber": null,
+                "IdType": null,
+                "Address": "Satna Rail",
+                "SeatName": "1",
+                "SeatId": "654253",
+                "Seat": {
+                    "IsLadiesSeat": false,
+                    "IsMalesSeat": false,
+                    "IsUpper": false,
+                    "SeatFare": 88.2,
+                    "SeatName": "1",
+                    "SeatStatus": true,
+                    "SeatType": 1,
+                    "Price": {
+                        "BasePrice": 88.2,
+                        "Tax": 0,
+                        "OtherCharges": 0,
+                        "Discount": 0,
+                        "PublishedPrice": 88.2,
+                        "OfferedPrice": 82.91,
+                        "AgentCommission": 5.29,
+                        "ServiceCharges": 0,
+                        "TDS": 0.26,
+                        "GST": {
+                            "CGSTAmount": 0,
+                            "CGSTRate": 0,
+                            "IGSTAmount": 0,
+                            "IGSTRate": 18,
+                            "SGSTAmount": 0,
+                            "SGSTRate": 0,
+                            "TaxableAmount": 0
+                        }
+                    }
+                }
+            }
+        ],
+        "BoardingPointdetails": {
+            "CityPointAddress": "Satna Bus Stand",
+            "CityPointContactNumber": "8770573250",
+            "CityPointIndex": 1,
+            "CityPointLandmark": "Satna Bus Stand",
+            "CityPointLocation": "Bus Stand",
+            "CityPointName": "Satna Bus Stand",
+            "CityPointTime": "2025-09-27T05:25:00"
+        },
+        "DroppingPointdetails": {
+            "CityPointIndex": 1,
+            "CityPointLocation": "Bus Stand",
+            "CityPointName": "Rewa Bus Stand",
+            "CityPointTime": "2025-09-27T07:00:00"
+        },
+        "CancelPolicy": [
+            {
+                "CancellationChargeType": 2,
+                "PolicyString": "Till 05:25 on 27 Sep 2025",
+                "TimeBeforeDept": "0$-1",
+                "FromDate": "2025-09-26T11:21:21",
+                "ToDate": "2025-09-27T05:25:00"
+            }
+        ],
+        "Price": {
+            "BasePrice": 88.2,
+            "Tax": 0,
+            "OtherCharges": 0,
+            "Discount": 0,
+            "PublishedPrice": 88.2,
+            "OfferedPrice": 82.91,
+            "AgentCommission": 5.29,
+            "ServiceCharges": 0,
+            "TDS": 0.26,
+            "GST": {
+                "CGSTAmount": 0,
+                "CGSTRate": 0,
+                "IGSTAmount": 0,
+                "IGSTRate": 18,
+                "SGSTAmount": 0,
+                "SGSTRate": 0,
+                "TaxableAmount": 0
+            }
+        },
+        "InvoiceNumber": "TW/2526/483",
+        "InvoiceAmount": 83.17,
+        "InvoiceCreatedOn": "2025-09-26T11:22:40"
+    }
+}

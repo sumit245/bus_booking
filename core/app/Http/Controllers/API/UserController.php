@@ -38,7 +38,7 @@ class UserController extends Controller
 
 
             // Send OTP via WhatsApp API
-            sendOtp($request->mobile_number, $otp);
+            sendOtp($request->mobile_number, $otp, 'Guest');
 
             return response()->json([
                 'message' => 'OTP sent successfully to ' . $request->mobile_number,

@@ -917,7 +917,6 @@ function urlPath($routeName, $routeParam = null)
 
 
 
-
 function sendOtp($mobile, $otp, $userName = "Guest")
 {
     try {
@@ -930,7 +929,7 @@ function sendOtp($mobile, $otp, $userName = "Guest")
             "campaignName" => "whatsapp_otp",
             "destination" => "91{$mobile}",
             "userName" => $userName,
-            "templateParams" => [$otp],
+            "templateParams" => [(string) $otp],
             "source" => "new-landing-page form",
             "media" => [],
             "buttons" => [
@@ -961,9 +960,6 @@ function sendOtp($mobile, $otp, $userName = "Guest")
         Log::error("Failed to send OTP: " . $e->getMessage());
     }
 }
-
-
-
 
 
 function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
@@ -1017,14 +1013,41 @@ function searchAPIBuses($source, $destination, $date, $userIp = "::1")
             'DestinationId' => $destination,
             'DateOfJourney' => Carbon::parse($date)->format('Y-m-d'),
         ];
+
+        Log::info('Making API request to third-party bus service', [
+            'url' => $busUrl,
+            'data' => $data
+        ]);
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Username' => $busUser,
             'Password' => $busPass,
         ])->post($busUrl, $data);
-        return $response->json();
+
+        $responseData = $response->json();
+
+        Log::info('Third-party API response received', [
+            'status' => $response->status(),
+            'response_data' => $responseData
+        ]);
+
+        return $responseData;
     } catch (\Exception $e) {
-        return $e->getMessage();
+        Log::error('Third-party API request failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        // Return proper error structure instead of just the error message
+        return [
+            'Result' => [],
+            'SearchTokenId' => null,
+            'Error' => [
+                'ErrorCode' => -1,
+                'ErrorMessage' => $e->getMessage()
+            ]
+        ];
     }
 }
 
@@ -1126,6 +1149,7 @@ function blockSeatHelper($SearchTokenID, $ResultIndex, $boardingPointId, $droppi
             'error' => $response->body()
         ];
     } catch (\Exception $e) {
+        Log::error('Block seat API exception: ' . $e->getMessage());
         return [
             'success' => false,
             'message' => 'Exception occurred while blocking seats',

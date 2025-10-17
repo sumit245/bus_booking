@@ -7,6 +7,7 @@ use App\Models\MarkupTable;
 use App\Models\CouponTable;
 use App\Models\OperatorRoute;
 use App\Models\OperatorBus;
+use App\Models\BusSchedule;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -38,8 +39,27 @@ class BusService
         // Merge operator buses with third-party results
         $trips = array_merge($trips, $operatorBuses);
 
+        // Log::info("BusService::searchBuses - After merging", [
+        //     'third_party_count' => count($apiResponse['Result'] ?? []),
+        //     'operator_count' => count($operatorBuses),
+        //     'total_count' => count($trips),
+        //     'operator_buses' => array_map(function ($bus) {
+        //         return [
+        //             'ResultIndex' => $bus['ResultIndex'] ?? 'N/A',
+        //             'TravelName' => $bus['TravelName'] ?? 'N/A'
+        //         ];
+        //     }, $operatorBuses)
+        // ]);
+
+        // If no trips found, check if we have operator buses or third-party API error
         if (empty($trips)) {
-            throw new \Exception('No buses found for this route and date', 404);
+            if (!empty($operatorBuses)) {
+                // We have operator buses, so use them
+                $trips = $operatorBuses;
+            } else {
+                // No buses at all
+                throw new \Exception('No buses found for this route and date', 404);
+            }
         }
 
         $trips = $this->applyMarkup($trips);
@@ -72,9 +92,25 @@ class BusService
         return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney) {
             Log::info("CACHE MISS: Fetching fresh data from API for {$originId}-{$destinationId} on {$dateOfJourney}");
             $resp = searchAPIBuses($originId, $destinationId, $dateOfJourney, request()->ip());
+
+            // Handle case where API returns an error
             if (isset($resp['Error']['ErrorCode']) && $resp['Error']['ErrorCode'] !== 0) {
+                Log::warning("Third-party API returned error", [
+                    'error_code' => $resp['Error']['ErrorCode'],
+                    'error_message' => $resp['Error']['ErrorMessage'] ?? 'Unknown error'
+                ]);
                 return ['Result' => [], 'SearchTokenId' => null, 'Error' => $resp['Error']];
             }
+
+            // Handle case where response is not an array (shouldn't happen with our fix, but just in case)
+            if (!is_array($resp)) {
+                Log::error("Third-party API returned non-array response", [
+                    'response_type' => gettype($resp),
+                    'response_value' => $resp
+                ]);
+                return ['Result' => [], 'SearchTokenId' => null, 'Error' => ['ErrorCode' => -1, 'ErrorMessage' => 'Invalid API response']];
+            }
+
             return $resp;
         });
     }
@@ -84,56 +120,200 @@ class BusService
      */
     private function fetchOperatorBuses(int $originId, int $destinationId, string $dateOfJourney): array
     {
-        $cacheKey = "operator_bus_search:{$originId}_{$destinationId}_{$dateOfJourney}";
-        return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney) {
-            Log::info("CACHE MISS: Fetching operator buses for {$originId}-{$destinationId} on {$dateOfJourney}");
+        $cacheKey = "operator_bus_search_v3:{$originId}_{$destinationId}_{$dateOfJourney}";
+        // Temporarily bypass cache for testing
+        // return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney) {
+        // Log::info("CACHE MISS: Fetching operator schedules for {$originId}-{$destinationId} on {$dateOfJourney}");
 
-            // Find routes that match the origin and destination
-            // Note: origin_city_id and destination_city_id in operator_routes table reference cities.id
-            // But the search API uses cities.city_id, so we need to map them correctly
-            $routes = OperatorRoute::active()
-                ->whereHas('originCity', function ($query) use ($originId) {
+        try {
+            // Find schedules that match the origin, destination, and date
+            // Log::info("Querying operator schedules for origin: {$originId}, destination: {$destinationId}, date: {$dateOfJourney}");
+
+            $schedules = BusSchedule::active()
+                ->whereHas('operatorRoute.originCity', function ($query) use ($originId) {
                     $query->where('city_id', $originId);
                 })
-                ->whereHas('destinationCity', function ($query) use ($destinationId) {
+                ->whereHas('operatorRoute.destinationCity', function ($query) use ($destinationId) {
                     $query->where('city_id', $destinationId);
                 })
+                ->forDate($dateOfJourney)
                 ->with([
-                    'originCity',
-                    'destinationCity',
-                    'assignedBuses.activeSeatLayout',
-                    'assignedBuses' => function ($query) {
-                        $query->where('status', 1);
-                    }
+                    'operatorRoute.originCity',
+                    'operatorRoute.destinationCity',
+                    'operatorBus.activeSeatLayout'
                 ])
+                ->ordered()
                 ->get();
 
-            if ($routes->isEmpty()) {
-                Log::info("No operator routes found for {$originId}-{$destinationId}");
+            // Log::info("Found " . $schedules->count() . " operator schedules");
+
+            if ($schedules->isEmpty()) {
+                // Log::info("No operator schedules found for {$originId}-{$destinationId} on {$dateOfJourney}");
                 return [];
             }
 
-            $operatorBuses = [];
-            $resultIndex = 1;
+            // Log::info("Processing " . $schedules->count() . " operator schedules", [
+            //     'schedule_ids' => $schedules->pluck('id')->toArray()
+            // ]);
+        } catch (\Exception $e) {
+            // Log::error("Error querying operator schedules", [
+            //     'error' => $e->getMessage(),
+            //     'trace' => $e->getTraceAsString(),
+            //     'origin_id' => $originId,
+            //     'destination_id' => $destinationId,
+            //     'date' => $dateOfJourney
+            // ]);
+            return [];
+        }
 
-            foreach ($routes as $route) {
-                // Use already eager-loaded active buses
-                $buses = $route->assignedBuses->filter(function ($bus) {
-                    return $bus->status == 1;
-                });
+        $operatorBuses = [];
+        $resultIndex = 1;
 
-                foreach ($buses as $bus) {
-                    $operatorBuses[] = $this->transformOperatorBusToApiFormat($bus, $route, $dateOfJourney, $resultIndex++);
+        try {
+            foreach ($schedules as $schedule) {
+                // Log::info("Processing schedule ID: {$schedule->id}");
+
+                try {
+                    // Log::info("Transforming schedule ID: {$schedule->id} with result index: {$resultIndex}");
+                    $operatorBuses[] = $this->transformScheduleToApiFormat($schedule, $dateOfJourney, $resultIndex++);
+                } catch (\Exception $e) {
+                    // Log::error("Error transforming schedule {$schedule->id}", [
+                    //     'error' => $e->getMessage(),
+                    //     'trace' => $e->getTraceAsString(),
+                    //     'schedule_id' => $schedule->id
+                    // ]);
+                    // Continue with other schedules
                 }
             }
+        } catch (\Exception $e) {
+            // Log::error("Error processing operator schedules", [
+            //     'error' => $e->getMessage(),
+            //     'trace' => $e->getTraceAsString(),
+            //     'origin_id' => $originId,
+            //     'destination_id' => $destinationId,
+            //     'date' => $dateOfJourney
+            // ]);
+            return [];
+        }
 
-            Log::info("Found " . count($operatorBuses) . " operator buses for route {$originId}-{$destinationId}");
-            return $operatorBuses;
-        });
+        // Log::info("Found " . count($operatorBuses) . " operator schedules for route {$originId}-{$destinationId} on {$dateOfJourney}");
+        return $operatorBuses;
+        // });
     }
 
     /**
-     * Transforms operator bus data to match third-party API format.
+     * Transforms schedule data to match third-party API format.
+     */
+    private function transformScheduleToApiFormat(BusSchedule $schedule, string $dateOfJourney, int $resultIndex): array
+    {
+        $bus = $schedule->operatorBus;
+        $route = $schedule->operatorRoute;
+
+        // Use schedule's departure and arrival times
+        $departureTime = Carbon::parse($dateOfJourney . ' ' . $schedule->departure_time->format('H:i:s'))->format('Y-m-d\TH:i:s');
+        $arrivalTime = Carbon::parse($dateOfJourney . ' ' . $schedule->arrival_time->format('H:i:s'));
+
+        // Handle next day arrival
+        if ($arrivalTime->lt(Carbon::parse($departureTime))) {
+            $arrivalTime->addDay();
+        }
+        $arrivalTime = $arrivalTime->format('Y-m-d\TH:i:s');
+
+        // Calculate duration
+        $duration = $schedule->estimated_duration_minutes ?
+            floor($schedule->estimated_duration_minutes / 60) . 'h ' . ($schedule->estimated_duration_minutes % 60) . 'm' :
+            '24h';
+
+        // Generate unique result index for this schedule
+        $resultIndexStr = "OP_{$bus->id}_{$schedule->id}";
+
+        return [
+            'ResultIndex' => $resultIndexStr,
+            'BusType' => $bus->bus_type,
+            'TravelName' => $bus->travel_name,
+            'ServiceName' => 'Seat Seller',
+            'DepartureTime' => $departureTime,
+            'ArrivalTime' => $arrivalTime,
+            'Duration' => $duration,
+            'Origin' => $route->originCity->city_name,
+            'Destination' => $route->destinationCity->city_name,
+            'TotalSeats' => $bus->total_seats,
+            'AvailableSeats' => $bus->total_seats, // TODO: Calculate actual available seats
+            'LiveTrackingAvailable' => $bus->live_tracking_available ?? true,
+            'MTicketEnabled' => $bus->m_ticket_enabled ?? true,
+            'PartialCancellationAllowed' => $bus->partial_cancellation_allowed ?? true,
+            'Description' => $bus->bus_type,
+            'BusPrice' => [
+                'BasePrice' => (float) ($bus->base_price ?? $bus->published_price ?? 0),
+                'Tax' => (float) ($bus->tax ?? 0),
+                'OtherCharges' => (float) ($bus->other_charges ?? 0),
+                'Discount' => (float) ($bus->discount ?? 0),
+                'PublishedPrice' => (float) ($bus->published_price ?? $bus->base_price ?? 0),
+                'OfferedPrice' => (float) ($bus->offered_price ?? $bus->base_price ?? 0),
+                'AgentCommission' => (float) ($bus->agent_commission ?? 0),
+                'ServiceCharges' => (float) ($bus->service_charges ?? 0),
+                'TDS' => (float) ($bus->tds ?? 0),
+                'GST' => [
+                    'CGSTAmount' => (float) ($bus->cgst_amount ?? 0),
+                    'CGSTRate' => (float) ($bus->cgst_rate ?? 0),
+                    'IGSTAmount' => (float) ($bus->igst_amount ?? 0),
+                    'IGSTRate' => (float) ($bus->igst_rate ?? 0),
+                    'SGSTAmount' => (float) ($bus->sgst_amount ?? 0),
+                    'SGSTRate' => (float) ($bus->sgst_rate ?? 0),
+                    'TaxableAmount' => (float) ($bus->taxable_amount ?? 0),
+                ]
+            ],
+            'BoardingPointsDetails' => $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
+                $journeyDate = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->format('Y-m-d');
+                $departureTime = $point->point_time ?: '00:00:00';
+                if (strpos($departureTime, ' ') !== false) {
+                    $departureTime = Carbon::parse($departureTime)->format('H:i:s');
+                }
+                return [
+                    'CityPointIndex' => $point->id,
+                    'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
+                    'CityPointName' => $point->point_name,
+                    'CityPointTime' => Carbon::parse($journeyDate . ' ' . $departureTime)->format('Y-m-d\TH:i:s'),
+                    'CityPointLandmark' => $point->point_landmark,
+                    'CityPointContactNumber' => $point->contact_number,
+                ];
+            })->toArray(),
+            'DroppingPointsDetails' => $route->droppingPoints->map(function ($point) use ($dateOfJourney, $route) {
+                $journeyDate = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->format('Y-m-d');
+                $pointArrivalTime = $point->point_time;
+                if (!$pointArrivalTime) {
+                    $arrivalTime = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->setTime(0, 0, 0);
+                    if ($route->estimated_duration) {
+                        $arrivalTime->addHours((int) $route->estimated_duration);
+                    } else {
+                        $arrivalTime->addHours(8);
+                    }
+                    $pointArrivalTime = $arrivalTime->format('H:i:s');
+                } else {
+                    if (strpos($pointArrivalTime, ' ') !== false) {
+                        $pointArrivalTime = Carbon::parse($pointArrivalTime)->format('H:i:s');
+                    }
+                }
+                return [
+                    'CityPointIndex' => $point->id,
+                    'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
+                    'CityPointName' => $point->point_name,
+                    'CityPointTime' => Carbon::parse($journeyDate . ' ' . $pointArrivalTime)->format('Y-m-d\TH:i:s'),
+                    'CityPointLandmark' => $point->point_landmark,
+                    'CityPointContactNumber' => $point->contact_number,
+                ];
+            })->toArray(),
+            'SeatLayout' => $bus->activeSeatLayout ? $bus->activeSeatLayout->html_layout : null,
+            'OperatorBusId' => $bus->id,
+            'OperatorRouteId' => $route->id,
+            'IsOperatorBus' => true,
+            'ScheduleId' => $schedule->id,
+            'ScheduleName' => $schedule->schedule_name
+        ];
+    }
+
+    /**
+     * Transforms operator bus data to match third-party API format (legacy method).
      */
     private function transformOperatorBusToApiFormat(OperatorBus $bus, OperatorRoute $route, string $dateOfJourney, int $resultIndex): array
     {
@@ -174,7 +354,7 @@ class BusService
             'PartialCancellationAllowed' => $bus->partial_cancellation_allowed ?? true,
             'BoardingPointsDetails' => $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
                 // Parse the date of journey to get the correct date
-                $journeyDate = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+                $journeyDate = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->format('Y-m-d');
 
                 // Use point_time from database, or default to 00:00:00
                 $departureTime = $point->point_time ?: '00:00:00';
@@ -195,13 +375,13 @@ class BusService
             })->toArray(),
             'DroppingPointsDetails' => $route->droppingPoints->map(function ($point) use ($dateOfJourney, $route) {
                 // Parse the date of journey to get the correct date
-                $journeyDate = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+                $journeyDate = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->format('Y-m-d');
 
                 // Use point_time from database, or calculate based on route duration
                 $pointArrivalTime = $point->point_time;
                 if (!$pointArrivalTime) {
                     // Calculate arrival time based on route duration
-                    $arrivalTime = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->setTime(0, 0, 0);
+                    $arrivalTime = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->setTime(0, 0, 0);
                     if ($route->estimated_duration) {
                         $arrivalTime->addHours((int) $route->estimated_duration);
                     } else {
@@ -351,7 +531,7 @@ class BusService
 
     private function applyFilters(array $trips, array $filters): array
     {
-        Log::info('Applying filters: ' . json_encode($filters));
+        // Log::info('Applying filters: ' . json_encode($filters));
         $filteredTrips = array_filter($trips, function ($trip) use ($filters) {
             // Live tracking filter
             if (!empty($filters['live_tracking']) && $filters['live_tracking']) {

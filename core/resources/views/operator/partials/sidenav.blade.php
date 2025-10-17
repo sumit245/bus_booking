@@ -68,22 +68,94 @@
                     </div>
                 </li>
 
+                <!-- Staff Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.staff*', 3) }}">
+                        <i class="menu-icon las la-users"></i>
+                        <span class="menu-title">@lang('Staff Management')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.staff*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.staff.index') }} ">
+                                <a href="{{ route('operator.staff.index') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Staff')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.staff.create') }} ">
+                                <a href="{{ route('operator.staff.create') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Add Staff')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Crew Assignment -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.crew*', 3) }}">
+                        <i class="menu-icon las la-user-tie"></i>
+                        <span class="menu-title">@lang('Crew Assignment')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.crew*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.crew.index') }} ">
+                                <a href="{{ route('operator.crew.index') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Assignments')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.crew.create') }} ">
+                                <a href="{{ route('operator.crew.create') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Assign Crew')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <!-- Attendance Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.attendance*', 3) }}">
+                        <i class="menu-icon las la-calendar-check"></i>
+                        <span class="menu-title">@lang('Attendance')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.attendance*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.attendance.index') }} ">
+                                <a href="{{ route('operator.attendance.index') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Attendance')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.attendance.create') }} ">
+                                <a href="{{ route('operator.attendance.create') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Mark Attendance')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 <!-- Schedule Management -->
                 <li class="sidebar-menu-item sidebar-dropdown">
-                    <a href="javascript:void(0)" class="{{ menuActive('operator.schedule*', 3) }}">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.schedules*', 3) }}">
                         <i class="menu-icon las la-calendar"></i>
                         <span class="menu-title">@lang('Schedule')</span>
                     </a>
-                    <div class="sidebar-submenu {{ menuActive('operator.schedule*', 2) }} ">
+                    <div class="sidebar-submenu {{ menuActive('operator.schedules*', 2) }} ">
                         <ul>
-                            <li class="sidebar-menu-item {{ menuActive('operator.schedule.index') }} ">
-                                <a href="#" class="nav-link">
+                            <li class="sidebar-menu-item {{ menuActive('operator.schedules.index') }} ">
+                                <a href="{{ route('operator.schedules.index') }}" class="nav-link">
                                     <i class="menu-icon las la-dot-circle"></i>
                                     <span class="menu-title">@lang('All Schedules')</span>
                                 </a>
                             </li>
-                            <li class="sidebar-menu-item {{ menuActive('operator.schedule.create') }} ">
-                                <a href="#" class="nav-link">
+                            <li class="sidebar-menu-item {{ menuActive('operator.schedules.create') }} ">
+                                <a href="{{ route('operator.schedules.create') }}" class="nav-link">
                                     <i class="menu-icon las la-dot-circle"></i>
                                     <span class="menu-title">@lang('Add Schedule')</span>
                                 </a>

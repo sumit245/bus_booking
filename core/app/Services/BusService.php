@@ -90,24 +90,24 @@ class BusService
     {
         $cacheKey = "bus_search:{$originId}_{$destinationId}_{$dateOfJourney}";
         return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney) {
-            Log::info("CACHE MISS: Fetching fresh data from API for {$originId}-{$destinationId} on {$dateOfJourney}");
+            // Log::info("CACHE MISS: Fetching fresh data from API for {$originId}-{$destinationId} on {$dateOfJourney}");
             $resp = searchAPIBuses($originId, $destinationId, $dateOfJourney, request()->ip());
 
             // Handle case where API returns an error
             if (isset($resp['Error']['ErrorCode']) && $resp['Error']['ErrorCode'] !== 0) {
-                Log::warning("Third-party API returned error", [
-                    'error_code' => $resp['Error']['ErrorCode'],
-                    'error_message' => $resp['Error']['ErrorMessage'] ?? 'Unknown error'
-                ]);
+                // Log::warning("Third-party API returned error", [
+                //     'error_code' => $resp['Error']['ErrorCode'],
+                //     'error_message' => $resp['Error']['ErrorMessage'] ?? 'Unknown error'
+                // ]);
                 return ['Result' => [], 'SearchTokenId' => null, 'Error' => $resp['Error']];
             }
 
             // Handle case where response is not an array (shouldn't happen with our fix, but just in case)
             if (!is_array($resp)) {
-                Log::error("Third-party API returned non-array response", [
-                    'response_type' => gettype($resp),
-                    'response_value' => $resp
-                ]);
+                // Log::error("Third-party API returned non-array response", [
+                //     'response_type' => gettype($resp),
+                //     'response_value' => $resp
+                // ]);
                 return ['Result' => [], 'SearchTokenId' => null, 'Error' => ['ErrorCode' => -1, 'ErrorMessage' => 'Invalid API response']];
             }
 
@@ -228,15 +228,15 @@ class BusService
         $resultIndexStr = "OP_{$bus->id}_{$schedule->id}";
 
         return [
-            'ResultIndex' => $resultIndexStr,
-            'BusType' => $bus->bus_type,
-            'TravelName' => $bus->travel_name,
-            'ServiceName' => 'Seat Seller',
-            'DepartureTime' => $departureTime,
-            'ArrivalTime' => $arrivalTime,
-            'Duration' => $duration,
-            'Origin' => $route->originCity->city_name,
-            'Destination' => $route->destinationCity->city_name,
+                'ResultIndex' => $resultIndexStr,
+                'BusType' => $bus->bus_type,
+                'TravelName' => $bus->travel_name,
+                'ServiceName' => 'Seat Seller',
+                'DepartureTime' => $departureTime,
+                'ArrivalTime' => $arrivalTime,
+                'Duration' => $duration,
+                'Origin' => $route->originCity->city_name,
+                'Destination' => $route->destinationCity->city_name,
             'TotalSeats' => $bus->total_seats,
             'AvailableSeats' => $bus->total_seats, // TODO: Calculate actual available seats
             'LiveTrackingAvailable' => $bus->live_tracking_available ?? true,
@@ -264,7 +264,7 @@ class BusService
                 ]
             ],
             'BoardingPointsDetails' => $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
-                $journeyDate = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->format('Y-m-d');
+                $journeyDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
                 $departureTime = $point->point_time ?: '00:00:00';
                 if (strpos($departureTime, ' ') !== false) {
                     $departureTime = Carbon::parse($departureTime)->format('H:i:s');
@@ -279,10 +279,10 @@ class BusService
                 ];
             })->toArray(),
             'DroppingPointsDetails' => $route->droppingPoints->map(function ($point) use ($dateOfJourney, $route) {
-                $journeyDate = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->format('Y-m-d');
+                $journeyDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
                 $pointArrivalTime = $point->point_time;
                 if (!$pointArrivalTime) {
-                    $arrivalTime = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->setTime(0, 0, 0);
+                    $arrivalTime = Carbon::parse($dateOfJourney)->setTime(0, 0, 0);
                     if ($route->estimated_duration) {
                         $arrivalTime->addHours((int) $route->estimated_duration);
                     } else {
@@ -354,7 +354,7 @@ class BusService
             'PartialCancellationAllowed' => $bus->partial_cancellation_allowed ?? true,
             'BoardingPointsDetails' => $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
                 // Parse the date of journey to get the correct date
-                $journeyDate = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->format('Y-m-d');
+                $journeyDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
 
                 // Use point_time from database, or default to 00:00:00
                 $departureTime = $point->point_time ?: '00:00:00';
@@ -375,13 +375,13 @@ class BusService
             })->toArray(),
             'DroppingPointsDetails' => $route->droppingPoints->map(function ($point) use ($dateOfJourney, $route) {
                 // Parse the date of journey to get the correct date
-                $journeyDate = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->format('Y-m-d');
+                $journeyDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
 
                 // Use point_time from database, or calculate based on route duration
                 $pointArrivalTime = $point->point_time;
                 if (!$pointArrivalTime) {
                     // Calculate arrival time based on route duration
-                    $arrivalTime = Carbon::createFromFormat('Y-m-d', $dateOfJourney)->setTime(0, 0, 0);
+                    $arrivalTime = Carbon::parse($dateOfJourney)->setTime(0, 0, 0);
                     if ($route->estimated_duration) {
                         $arrivalTime->addHours((int) $route->estimated_duration);
                     } else {

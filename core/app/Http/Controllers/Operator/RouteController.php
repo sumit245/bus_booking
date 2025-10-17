@@ -63,8 +63,8 @@ class RouteController extends Controller
     {
         $request->validate([
             'route_name' => 'required|string|max:255',
-            'origin_city_id' => 'required|exists:cities,id',
-            'destination_city_id' => 'required|exists:cities,id|different:origin_city_id',
+            'origin_city_id' => 'required|exists:cities,city_id',
+            'destination_city_id' => 'required|exists:cities,city_id|different:origin_city_id',
             'description' => 'nullable|string',
             'distance' => 'nullable|numeric|min:0',
             'estimated_duration' => 'nullable|numeric|min:0.5|max:24',
@@ -180,8 +180,8 @@ class RouteController extends Controller
 
         $request->validate([
             'route_name' => 'required|string|max:255',
-            'origin_city_id' => 'required|exists:cities,id',
-            'destination_city_id' => 'required|exists:cities,id|different:origin_city_id',
+            'origin_city_id' => 'required|exists:cities,city_id',
+            'destination_city_id' => 'required|exists:cities,city_id|different:origin_city_id',
             'description' => 'nullable|string',
             'distance' => 'nullable|numeric|min:0',
             'estimated_duration' => 'nullable|numeric|min:0.5|max:24',

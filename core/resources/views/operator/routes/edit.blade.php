@@ -30,8 +30,8 @@
                                         name="origin_city_id" id="origin_city_id" required>
                                         <option value="">@lang('Select Origin City')</option>
                                         @foreach ($cities as $city)
-                                            <option value="{{ $city->id }}"
-                                                {{ old('origin_city_id', $route->origin_city_id) == $city->id ? 'selected' : '' }}>
+                                            <option value="{{ $city->city_id }}"
+                                                {{ old('origin_city_id', $route->origin_city_id) == $city->city_id ? 'selected' : '' }}>
                                                 {{ $city->city_name }}
                                             </option>
                                         @endforeach
@@ -48,8 +48,8 @@
                                         name="destination_city_id" id="destination_city_id" required>
                                         <option value="">@lang('Select Destination City')</option>
                                         @foreach ($cities as $city)
-                                            <option value="{{ $city->id }}"
-                                                {{ old('destination_city_id', $route->destination_city_id) == $city->id ? 'selected' : '' }}>
+                                            <option value="{{ $city->city_id }}"
+                                                {{ old('destination_city_id', $route->destination_city_id) == $city->city_id ? 'selected' : '' }}>
                                                 {{ $city->city_name }}
                                             </option>
                                         @endforeach

@@ -128,7 +128,11 @@ class ScheduleController extends Controller
      */
     public function show(BusSchedule $schedule)
     {
-        $this->authorize('view', $schedule);
+        // Check if the schedule belongs to the authenticated operator
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
 
         $schedule->load(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity']);
 
@@ -140,9 +144,11 @@ class ScheduleController extends Controller
      */
     public function edit(BusSchedule $schedule)
     {
-        $this->authorize('update', $schedule);
-
+        // Check if the schedule belongs to the authenticated operator
         $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
 
         $buses = OperatorBus::where('operator_id', $operator->id)->get();
         $routes = OperatorRoute::with(['originCity', 'destinationCity'])
@@ -156,7 +162,11 @@ class ScheduleController extends Controller
      */
     public function update(Request $request, BusSchedule $schedule)
     {
-        $this->authorize('update', $schedule);
+        // Check if the schedule belongs to the authenticated operator
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
 
         $request->validate([
             'operator_bus_id' => 'required|exists:operator_buses,id',
@@ -212,7 +222,11 @@ class ScheduleController extends Controller
      */
     public function destroy(BusSchedule $schedule)
     {
-        $this->authorize('delete', $schedule);
+        // Check if the schedule belongs to the authenticated operator
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
 
         $schedule->delete();
 
@@ -225,7 +239,11 @@ class ScheduleController extends Controller
      */
     public function toggleStatus(BusSchedule $schedule)
     {
-        $this->authorize('update', $schedule);
+        // Check if the schedule belongs to the authenticated operator
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
 
         $schedule->update([
             'is_active' => !$schedule->is_active,

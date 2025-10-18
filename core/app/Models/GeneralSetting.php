@@ -8,7 +8,11 @@ class GeneralSetting extends Model
 {
     protected $guarded = ['id'];
 
-    protected $casts = ['mail_config' => 'object', 'sms_config' => 'object'];
+    protected $casts = [
+        'mail_config' => 'object',
+        'sms_config' => 'object',
+        'agent_commission_config' => 'array'
+    ];
 
     public function scopeSitename($query, $pageTitle)
     {

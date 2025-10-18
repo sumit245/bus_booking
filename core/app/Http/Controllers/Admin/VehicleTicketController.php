@@ -13,35 +13,40 @@ use Illuminate\Support\Facades\Validator;
 
 class VehicleTicketController extends Controller
 {
-    public function booked(){
+    public function booked()
+    {
         $pageTitle = 'Booked Ticket';
         $emptyMessage = 'There is no booked ticket';
-        $tickets = BookedTicket::booked()->with(['trip', 'pickup', 'drop', 'user'])->paginate(getPaginate());
+        $tickets = BookedTicket::booked()->with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop', 'user'])->paginate(getPaginate());
         return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets'));
     }
 
-    public function pending(){
+    public function pending()
+    {
         $pageTitle = 'Pending Ticket';
         $emptyMessage = 'There is no pending ticket';
-        $tickets = BookedTicket::pending()->with(['trip', 'pickup', 'drop', 'user'])->paginate(getPaginate());
+        $tickets = BookedTicket::pending()->with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop', 'user'])->paginate(getPaginate());
         return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets'));
     }
 
-    public function rejected(){
+    public function rejected()
+    {
         $pageTitle = 'Rejected Ticket';
         $emptyMessage = 'There is no rejected ticket';
-        $tickets = BookedTicket::rejected()->with(['trip', 'pickup', 'drop', 'user'])->paginate(getPaginate());
+        $tickets = BookedTicket::rejected()->with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop', 'user'])->paginate(getPaginate());
         return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets'));
     }
 
-    public function list(){
+    public function list()
+    {
         $pageTitle = 'All Ticket';
         $emptyMessage = 'There is no ticket found';
-        $tickets = BookedTicket::with(['trip', 'pickup', 'drop', 'user'])->paginate(getPaginate());
+        $tickets = BookedTicket::with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop', 'user'])->paginate(getPaginate());
         return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets'));
     }
 
-    public function search(Request $request, $scope){
+    public function search(Request $request, $scope)
+    {
         $search = $request->search;
         $pageTitle = '';
         $emptyMessage = 'No search result was found.';
@@ -67,62 +72,67 @@ class VehicleTicketController extends Controller
         return view('admin.ticket.log', compact('pageTitle', 'search', 'scope', 'emptyMessage', 'tickets'));
     }
 
-    public function ticketPriceList(){
+    public function ticketPriceList()
+    {
         $pageTitle = "All Ticket Price";
         $emptyMessage = "No ticket price found";
         $fleetTypes = FleetType::active()->get();
         $routes = VehicleRoute::active()->get();
         $prices = TicketPrice::with(['fleetType', 'route'])->orderBy('id', 'desc')->paginate(getPaginate());
-        return view('admin.trip.ticket.price_list', compact('pageTitle', 'emptyMessage', 'prices' ,'fleetTypes', 'routes'));
+        return view('admin.trip.ticket.price_list', compact('pageTitle', 'emptyMessage', 'prices', 'fleetTypes', 'routes'));
     }
 
-    public function ticketPriceCreate(){
+    public function ticketPriceCreate()
+    {
         $pageTitle = "Add Ticket Price";
         $fleetTypes = FleetType::active()->get();
         $routes = VehicleRoute::active()->get();
         return view('admin.trip.ticket.add_price', compact('pageTitle', 'fleetTypes', 'routes'));
     }
 
-    public function ticketPriceEdit($id){
+    public function ticketPriceEdit($id)
+    {
         $pageTitle = "Update Ticket Price";
-        $ticketPrice = TicketPrice::with(['prices', 'route.startFrom' , 'route.endTo'])->findOrfail($id);
+        $ticketPrice = TicketPrice::with(['prices', 'route.startFrom', 'route.endTo'])->findOrfail($id);
         $stoppageArr = $ticketPrice->route->stoppages;
         $stoppages = stoppageCombination($stoppageArr, 2);
-        return view('admin.trip.ticket.edit_price', compact('pageTitle', 'ticketPrice' , 'stoppages'));
+        return view('admin.trip.ticket.edit_price', compact('pageTitle', 'ticketPrice', 'stoppages'));
     }
 
-    public function getRouteData(Request $request){
-        $route      = VehicleRoute::where('id', $request->vehicle_route_id)->where('status', 1)->first();
-        $check      = TicketPrice::where('vehicle_route_id', $request->vehicle_route_id)->where('fleet_type_id', $request->fleet_type_id)->first();
-        if($check) {
-            return response()->json(['error'=> trans('You have added prices for this fleet type on this route')]);
+    public function getRouteData(Request $request)
+    {
+        $route = VehicleRoute::where('id', $request->vehicle_route_id)->where('status', 1)->first();
+        $check = TicketPrice::where('vehicle_route_id', $request->vehicle_route_id)->where('fleet_type_id', $request->fleet_type_id)->first();
+        if ($check) {
+            return response()->json(['error' => trans('You have added prices for this fleet type on this route')]);
         }
-        $stoppages  = array_values($route->stoppages);
-        $stoppages  = stoppageCombination($stoppages, 2);
+        $stoppages = array_values($route->stoppages);
+        $stoppages = stoppageCombination($stoppages, 2);
         return view('admin.trip.ticket.route_data', compact('stoppages', 'route'));
     }
 
 
 
-    public function ticketPriceStore(Request $request){
+    public function ticketPriceStore(Request $request)
+    {
         $validation_rule = [
-            'fleet_type'    => 'required|integer|gt:0',
-            'route'         => 'required|integer|gt:0',
-            'main_price'    => 'required|numeric',
-            'price'         => 'sometimes|required|array|min:1',
-            'price.*'       => 'sometimes|required|numeric',
+            'fleet_type' => 'required|integer|gt:0',
+            'route' => 'required|integer|gt:0',
+            'main_price' => 'required|numeric',
+            'price' => 'sometimes|required|array|min:1',
+            'price.*' => 'sometimes|required|numeric',
         ];
         $messages = [
-            'main_price'            => 'Price for Source to Destination',
-            'price.*.required'      => 'All Price Fields are Required',
-            'price.*.numeric'       => 'All Price Fields Should Be a Number',
+            'main_price' => 'Price for Source to Destination',
+            'price.*.required' => 'All Price Fields are Required',
+            'price.*.numeric' => 'All Price Fields Should Be a Number',
         ];
 
         $validator = Validator::make($request->except('_token'), $validation_rule, $messages);
         $validator->validate();
 
         $check = TicketPrice::where('fleet_type_id', $request->fleet_type)->where('vehicle_route_id', $request->route)->first();
-        if($check){
+        if ($check) {
             $notify[] = ['error', 'Duplicate fleet type and route can\'t be allowed'];
             return back()->withNotify($notify);
         }
@@ -133,7 +143,7 @@ class VehicleTicketController extends Controller
         $create->price = $request->main_price;
         $create->save();
 
-        foreach($request->price as $key=>$val){
+        foreach ($request->price as $key => $val) {
             $idArray = explode('-', $key);
             $priceByStoppage = new TicketPriceByStoppage();
             $priceByStoppage->ticket_price_id = $create->id;
@@ -145,37 +155,39 @@ class VehicleTicketController extends Controller
         return back()->withNotify($notify);
     }
 
-    public function ticketPriceUpdate(Request $request, $id){
+    public function ticketPriceUpdate(Request $request, $id)
+    {
 
         $request->validate([
-            'price'   => 'required|numeric',
+            'price' => 'required|numeric',
         ]);
 
-        if($id == 0){
+        if ($id == 0) {
             $source_destination[0] = $request->source;
             $source_destination[1] = $request->destination;
-            $ticketPrice = TicketPriceByStoppage::whereJsonContains('source_destination' , $source_destination)->first();
-            if($ticketPrice){
+            $ticketPrice = TicketPriceByStoppage::whereJsonContains('source_destination', $source_destination)->first();
+            if ($ticketPrice) {
                 $ticketPrice->price = $request->price;
                 $ticketPrice->save();
-            }else{
+            } else {
                 $ticketPrice = new TicketPriceByStoppage();
                 $ticketPrice->ticket_price_id = $request->ticket_price;
                 $ticketPrice->source_destination = $source_destination;
                 $ticketPrice->price = $request->price;
                 $ticketPrice->save();
             }
-        }else{
+        } else {
             $prices = TicketPriceByStoppage::findOrFail($id);
             $prices->price = $request->price;
             $prices->save();
         }
 
-        $notify = ['success' => true, 'message'=>'Price Updated Successfully'];
+        $notify = ['success' => true, 'message' => 'Price Updated Successfully'];
         return response()->json($notify);
     }
 
-    public function ticketPriceDelete(Request $request){
+    public function ticketPriceDelete(Request $request)
+    {
         $request->validate(['id' => 'required|integer']);
 
         $data = TicketPrice::where('id', $request->id)->first();
@@ -186,10 +198,11 @@ class VehicleTicketController extends Controller
         return redirect()->back()->withNotify($notify);
     }
 
-    public function checkTicketPrice(Request $request){
+    public function checkTicketPrice(Request $request)
+    {
         $check = TicketPrice::where('vehicle_route_id', $request->vehicle_route_id)->where('fleet_type_id', $request->fleet_type_id)->first();
 
-        if(!$check){
+        if (!$check) {
             return response()->json(['error' => 'Ticket price not added for this fleet-route combination yet. Please add ticket price before creating a trip.']);
         }
     }

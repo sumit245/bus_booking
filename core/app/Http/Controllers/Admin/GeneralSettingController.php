@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Frontend;
 use App\Models\GeneralSetting;
 use App\Rules\FileTypeValidate;
+use App\Services\AgentCommissionCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Image;
@@ -51,6 +52,20 @@ class GeneralSettingController extends Controller
         $general->service_charge_percentage = $request->service_charge_percentage ?? 0;
         $general->platform_fee_percentage = $request->platform_fee_percentage ?? 0;
         $general->platform_fee_fixed = $request->platform_fee_fixed ?? 0;
+
+        // Handle Agent Commission Configuration
+        if ($request->has('agent_commission_config')) {
+            $commissionCalculator = new AgentCommissionCalculator();
+            $errors = $commissionCalculator->validateCommissionConfig($request->agent_commission_config);
+
+            if (!empty($errors)) {
+                $notify[] = ['error', 'Commission configuration validation failed: ' . implode(', ', $errors)];
+                return back()->withNotify($notify);
+            }
+
+            $general->agent_commission_config = $request->agent_commission_config;
+        }
+
         $general->save();
 
         $timezoneFile = config_path('timezone.php');

@@ -1,12 +1,20 @@
 @extends('operator.layouts.app')
 
 @section('panel')
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h4 class="mb-0">@lang('Create New Schedule')</h4>
+        </div>
+        <div class="col-md-4 text-right">
+            <a href="{{ route('operator.schedules.index') }}" class="btn btn--secondary box--shadow1">
+                <i class="fa fa-fw fa-arrow-left"></i>@lang('Back to Schedules')
+            </a>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-lg-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">@lang('Create New Schedule')</h4>
-                </div>
+            <div class="card b-radius--10">
                 <div class="card-body">
                     <form action="{{ route('operator.schedules.store') }}" method="POST">
                         @csrf
@@ -217,11 +225,12 @@
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save"></i> @lang('Create Schedule')
+                                    <button type="submit" class="btn btn--primary box--shadow1">
+                                        <i class="fa fa-fw fa-save"></i>@lang('Create Schedule')
                                     </button>
-                                    <a href="{{ route('operator.schedules.index') }}" class="btn btn-secondary">
-                                        <i class="fas fa-times"></i> @lang('Cancel')
+                                    <a href="{{ route('operator.schedules.index') }}"
+                                        class="btn btn--secondary box--shadow1">
+                                        <i class="fa fa-fw fa-times"></i>@lang('Cancel')
                                     </a>
                                 </div>
                             </div>

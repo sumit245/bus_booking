@@ -346,6 +346,30 @@
                     </div>
                 </li>
 
+                <!-- Payout Management Dropdown -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('admin.payouts*', 3) }}">
+                        <i class="menu-icon las la-money-bill-wave"></i>
+                        <span class="menu-title">@lang('Payout Management')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('admin.payouts*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('admin.payouts.index') }} ">
+                                <a href="{{ route('admin.payouts.index') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Payouts')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('admin.payouts.create') }} ">
+                                <a href="{{ route('admin.payouts.create') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Generate Payout')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 <!-- Manage Trips Dropdown -->
                 <li class="sidebar-menu-item sidebar-dropdown">
                     <a href="javascript:void(0)" class="{{ menuActive('admin.trip*', 3) }}">

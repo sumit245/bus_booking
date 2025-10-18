@@ -94,7 +94,7 @@ Route::
                 Route::post('user/update/{id}', 'ManageUsersController@update')->name('users.update');
                 Route::post('user/add-sub-balance/{id}', 'ManageUsersController@addSubBalance')->name('users.add.sub.balance');
                 Route::get('user/send-email/{id}', 'ManageUsersController@showEmailSingleForm')->name('users.email.single');
-                Route::post('user/send-email/{id}', 'ManageUsersController@sendEmailSingle')->name('users.email.single');
+                Route::post('user/send-email/{id}', 'ManageUsersController@sendEmailSingle')->name('users.email.send');
                 Route::get('user/login/{id}', 'ManageUsersController@login')->name('users.login');
                 Route::get('user/transactions/{id}', 'ManageUsersController@transactions')->name('users.transactions');
                 Route::get('user/deposits/{id}', 'ManageUsersController@deposits')->name('users.deposits');
@@ -373,6 +373,21 @@ Route::
                     Route::get('manage-section/{id}', 'PageBuilderController@manageSection')->name('manage.section');
                     Route::post('manage-section/{id}', 'PageBuilderController@manageSectionUpdate')->name('manage.section.update');
                 });
+
+                // Payout Management
+                Route::prefix('payouts')->name('payouts.')->group(function () {
+                    Route::get('/', 'PayoutController@index')->name('index');
+                    Route::get('create', 'PayoutController@create')->name('create');
+                    Route::post('generate', 'PayoutController@generate')->name('generate');
+                    Route::get('{payout}', 'PayoutController@show')->name('show');
+                    Route::get('{payout}/payment', 'PayoutController@paymentForm')->name('payment');
+                    Route::post('{payout}/payment', 'PayoutController@recordPayment')->name('record-payment');
+                    Route::patch('{payout}/cancel', 'PayoutController@cancel')->name('cancel');
+                    Route::patch('{payout}/notes', 'PayoutController@updateNotes')->name('update-notes');
+                    Route::get('statistics', 'PayoutController@statistics')->name('statistics');
+                    Route::get('export', 'PayoutController@export')->name('export');
+                    Route::post('bulk-generate', 'PayoutController@bulkGenerate')->name('bulk-generate');
+                });
             });
         });
 
@@ -428,6 +443,7 @@ Route::name('operator.')->prefix('operator')->group(function () {
             'destroy' => 'buses.destroy'
         ]);
         Route::patch('buses/{bus}/toggle-status', 'Operator\BusController@toggleStatus')->name('buses.toggle-status');
+        Route::get('buses/{bus}/routes', 'Operator\BusController@getRoutes')->name('buses.routes');
 
         // Seat Layout Management
         Route::prefix('buses/{bus}')->name('buses.')->group(function () {
@@ -500,8 +516,102 @@ Route::name('operator.')->prefix('operator')->group(function () {
             'destroy' => 'schedules.destroy'
         ]);
         Route::patch('schedules/{schedule}/toggle-status', 'Operator\ScheduleController@toggleStatus')->name('schedules.toggle-status');
-        Route::get('schedules/get-for-date', 'Operator\ScheduleController@getSchedulesForDate')->name('schedules.get-for-date');
+        // Route::get('schedules/get-for-date', 'Operator\ScheduleController@getSchedulesForDate')->name('schedules.get-for-date');
+
+        // Operator Booking Management
+        Route::resource('bookings', 'Operator\OperatorBookingController')->names([
+            'index' => 'bookings.index',
+            'create' => 'bookings.create',
+            'store' => 'bookings.store',
+            'show' => 'bookings.show',
+            'edit' => 'bookings.edit',
+            'update' => 'bookings.update',
+            'destroy' => 'bookings.destroy'
+        ]);
+        Route::patch('bookings/{booking}/toggle-status', 'Operator\OperatorBookingController@toggleStatus')->name('bookings.toggle-status');
+        Route::get('bookings/get-available-seats', 'Operator\OperatorBookingController@getAvailableSeats')->name('bookings.get-available-seats');
+        Route::get('bookings/get-seat-layout', 'Operator\OperatorBookingController@getSeatLayout')->name('bookings.get-seat-layout');
+        Route::get('bookings/get-schedules', 'Operator\OperatorBookingController@getSchedules')->name('bookings.get-schedules');
+
+        // Revenue Management
+        Route::prefix('revenue')->name('revenue.')->group(function () {
+            Route::get('dashboard', 'Operator\RevenueController@dashboard')->name('dashboard');
+            Route::get('reports', 'Operator\RevenueController@reports')->name('reports');
+            Route::get('reports/{report}', 'Operator\RevenueController@showReport')->name('reports.show');
+            Route::post('reports/generate', 'Operator\RevenueController@generateReport')->name('reports.generate');
+            Route::get('payouts', 'Operator\RevenueController@payouts')->name('payouts');
+            Route::get('payouts/{payout}', 'Operator\RevenueController@showPayout')->name('payouts.show');
+            Route::get('export', 'Operator\RevenueController@export')->name('export');
+            Route::get('chart-data', 'Operator\RevenueController@chartData')->name('chart-data');
+            Route::get('summary', 'Operator\RevenueController@summary')->name('summary');
+        });
     });
+});
+
+// Temporary routes without authentication for testing
+
+Route::get('test-seat-layout', function (\Illuminate\Http\Request $request) {
+    $busId = $request->get('bus_id', 1);
+    $bus = App\Models\OperatorBus::find($busId);
+
+    if (!$bus) {
+        return response()->json(['error' => 'Bus not found'], 404);
+    }
+
+    $seatLayout = $bus->activeSeatLayout;
+    if (!$seatLayout) {
+        return response()->json(['error' => 'No seat layout found for this bus'], 400);
+    }
+
+    // Get blocked seats (empty for now)
+    $blockedSeats = [];
+
+    // Convert seat layout array to HTML
+    $html = '<div class="bus-layout">';
+
+    foreach ($seatLayout->processed_layout as $deckName => $deck) {
+        $html .= '<div class="deck ' . $deckName . '">';
+        $html .= '<h5>' . ucfirst(str_replace('_', ' ', $deckName)) . '</h5>';
+        $html .= '<div class="seats-container">';
+
+        foreach ($deck['seats'] as $seat) {
+            $seatId = $seat['seat_id'];
+            $isBlocked = in_array($seatId, $blockedSeats);
+            $seatClass = $seat['type'] . ' ' . $seat['category'];
+            $blockedClass = $isBlocked ? ' blocked' : '';
+
+            $html .= '<div class="seat ' . $seatClass . $blockedClass . '" id="' . $seatId . '" ';
+            $html .= 'style="left: ' . $seat['left'] . 'px; top: ' . $seat['position'] . 'px; ';
+            $html .= 'width: ' . ($seat['width'] * 40) . 'px; height: ' . ($seat['height'] * 40) . 'px;" ';
+            $html .= 'data-price="' . $seat['price'] . '" ';
+            $html .= 'data-type="' . $seat['type'] . '">';
+            $html .= $seatId;
+            $html .= '</div>';
+        }
+
+        $html .= '</div></div>';
+    }
+
+    $html .= '</div>';
+
+    return response()->json([
+        'seat_layout_html' => $html,
+        'blocked_seats' => $blockedSeats,
+        'total_seats' => $bus->total_seats
+    ]);
+});
+
+Route::get('operator/schedules/get-for-date', 'Operator\ScheduleController@getSchedulesForDate')->name('operator.schedules.get-for-date');
+Route::get('operator/buses/{bus}/routes', 'Operator\BusController@getRoutes')->name('operator.buses.routes');
+Route::get('operator/bookings/get-seat-layout', 'Operator\OperatorBookingController@getSeatLayout')->name('operator.bookings.get-seat-layout');
+
+// Temporary routes without authentication for testing
+Route::get('test-schedules', function () {
+    $schedules = App\Models\BusSchedule::where('operator_id', 41)
+        ->where('operator_bus_id', 1)
+        ->where('is_daily', true)
+        ->get();
+    return response()->json($schedules);
 });
 
 /*
@@ -605,6 +715,7 @@ Route::get('placeholder-image/{size}', 'SiteController@placeholderImage')->name(
 Route::get('ticket/search', 'SiteController@ticketSearch')->name('search');
 Route::get('/{slug}', 'SiteController@pages')->name('pages');
 Route::get('/', 'SiteController@index')->name('home');
+
 // Add this route for AJAX filtering
 Route::get('/filter-trips', 'SiteController@filterTrips')->name('filter.trips');
 
@@ -627,4 +738,190 @@ Route::middleware('auth')->prefix('user')->name('user.')->group(function () {
     Route::get('/profile/setting', 'MobileAuthController@dashboard')->name('profile.setting'); // Alias for dashboard
     Route::get('/change/password', 'MobileAuthController@dashboard')->name('change.password'); // Alias for dashboard
     Route::post('/logout', 'MobileAuthController@logout')->name('logout');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Agent Panel Routes (PWA)
+|--------------------------------------------------------------------------
+*/
+
+// Agent Authentication Routes (Public)
+Route::prefix('agent')->name('agent.')->group(function () {
+    Route::namespace('Agent')->group(function () {
+        // Authentication
+        Route::get('/register', 'AuthController@showRegistration')->name('register');
+        Route::post('/register', 'AuthController@register')->name('register.submit');
+        Route::get('/login', 'AuthController@showLogin')->name('login');
+        Route::post('/login', 'AuthController@login')->name('login.submit');
+        Route::post('/logout', 'AuthController@logout')->name('logout');
+
+        // PWA Manifest and Service Worker
+        Route::get('/manifest.json', function () {
+            return response()->file(public_path('agent-manifest.json'));
+        })->name('manifest');
+
+        Route::get('/sw.js', function () {
+            $content = file_get_contents(public_path('agent-sw.js'));
+            return response($content, 200, [
+                'Content-Type' => 'application/javascript',
+                'Service-Worker-Allowed' => '/'
+            ]);
+        })->name('sw');
+    });
+});
+
+// Agent Panel Routes (Protected)
+Route::middleware(['auth:agent'])->prefix('agent')->name('agent.')->group(function () {
+    Route::namespace('Agent')->group(function () {
+        // Dashboard
+        Route::get('/dashboard', 'DashboardController@index')->name('dashboard');
+
+        // Bus Search & Booking - Using existing API endpoints
+        Route::get('/search', function () {
+            $pageTitle = 'Search Buses';
+            $cities = \App\Models\City::orderBy('city_name')->get();
+            return view('agent.search.index', compact('pageTitle', 'cities'));
+        })->name('search');
+
+        Route::get('/search/results', function (\Illuminate\Http\Request $request) {
+            $pageTitle = 'Search Results';
+
+            // Get search parameters from request
+            $searchData = $request->all();
+            if (empty($searchData['OriginId']) || empty($searchData['DestinationId'])) {
+                return redirect()->route('agent.search')->with('error', 'Please complete the search form.');
+            }
+
+            // Use existing BusService to get results
+            $busService = new \App\Services\BusService();
+            $result = $busService->searchBuses($searchData);
+
+            // Store session data required for seat selection
+            session()->put('search_token_id', $result['SearchTokenId'] ?? null);
+            session()->put('user_ip', $request->ip());
+            session()->put('origin_id', $searchData['OriginId']);
+            session()->put('destination_id', $searchData['DestinationId']);
+            session()->put('date_of_journey', $searchData['DateOfJourney']);
+            session()->put('passengers', $searchData['passengers'] ?? 1);
+
+            // Debug logging
+            \Log::info('Agent search session stored', [
+                'search_token_id' => $result['SearchTokenId'] ?? null,
+                'origin_id' => $searchData['OriginId'],
+                'destination_id' => $searchData['DestinationId'],
+                'date_of_journey' => $searchData['DateOfJourney'],
+                'user_ip' => $request->ip()
+            ]);
+
+            $fromCityData = \App\Models\City::where('city_id', $searchData['OriginId'])->first();
+            $toCityData = \App\Models\City::where('city_id', $searchData['DestinationId'])->first();
+            $dateOfJourney = $searchData['DateOfJourney'];
+            $passengers = $searchData['passengers'] ?? 1;
+
+            // Get trips from BusService results
+            $availableBuses = $result['trips'] ?? [];
+
+            return view('agent.search.results', compact(
+                'pageTitle',
+                'fromCityData',
+                'toCityData',
+                'dateOfJourney',
+                'passengers',
+                'availableBuses'
+            ));
+        })->name('search.results');
+
+        // Get schedules for a bus
+        Route::get('/search/bus/{bus}/schedules', function ($busId, \Illuminate\Http\Request $request) {
+            $request->validate(['date' => 'required|date']);
+
+            // For operator buses, get schedules from BusSchedule model
+            if (str_starts_with($busId, 'OP_')) {
+                $operatorBusId = (int) str_replace('OP_', '', $busId);
+                $schedules = \App\Models\BusSchedule::where('operator_bus_id', $operatorBusId)
+                    ->whereDate('departure_time', $request->date)
+                    ->where('is_active', 1)
+                    ->orderBy('departure_time')
+                    ->get();
+
+                // Get bus price to include in schedule data
+                $bus = \App\Models\OperatorBus::find($operatorBusId);
+                $busPrice = $bus ? ($bus->published_price ?? $bus->base_price) : 0;
+
+                // Add bus price to each schedule
+                $schedules->each(function ($schedule) use ($busPrice) {
+                    $schedule->bus_price = $busPrice;
+                });
+            } else {
+                // For third-party buses, return empty schedules
+                $schedules = collect([]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'schedules' => $schedules
+            ]);
+        })->name('search.schedules');
+
+        // Agent Booking Flow - Reusing existing SiteController methods
+        Route::get('/booking/seats/{id}/{slug}', '\App\Http\Controllers\SiteController@selectSeat')->name('booking.seats');
+        Route::post('/booking/block-seat', '\App\Http\Controllers\SiteController@blockSeat')->name('booking.block');
+        Route::post('/booking/confirm', '\App\Http\Controllers\SiteController@bookTicketApi')->name('booking.confirm');
+        Route::post('/booking/boarding-points', '\App\Http\Controllers\SiteController@getBoardingPoints')->name('booking.boarding-points');
+
+        // My Bookings
+        Route::get('/bookings', 'BookingController@index')->name('bookings');
+        Route::get('/bookings/{booking}', 'BookingController@show')->name('bookings.show');
+        Route::post('/bookings/{booking}/cancel', 'BookingController@cancel')->name('bookings.cancel');
+        Route::get('/bookings/{booking}/print', 'BookingController@print')->name('bookings.print');
+
+        // Earnings
+        Route::get('/earnings', 'EarningsController@index')->name('earnings');
+        Route::get('/earnings/monthly', 'EarningsController@monthly')->name('earnings.monthly');
+        Route::get('/earnings/export', 'EarningsController@export')->name('earnings.export');
+
+        // Profile
+        Route::get('/profile', 'ProfileController@index')->name('profile');
+        Route::post('/profile/update', 'ProfileController@update')->name('profile.update');
+        Route::post('/profile/documents', 'ProfileController@uploadDocuments')->name('profile.documents');
+
+        // API Routes for PWA
+        Route::prefix('api')->name('api.')->group(function () {
+            Route::get('/bus-search', 'ApiController@busSearch')->name('bus.search');
+            Route::get('/schedules/{bus}', 'ApiController@getSchedules')->name('schedules');
+            Route::get('/seat-layout/{bus}/{schedule}', 'ApiController@getSeatLayout')->name('seat.layout');
+            Route::post('/booking', 'ApiController@createBooking')->name('booking');
+            Route::post('/commission-calculate', function (\Illuminate\Http\Request $request) {
+                $request->validate(['booking_amount' => 'required|numeric|min:0']);
+                $calculator = new \App\Services\AgentCommissionCalculator();
+                $commissionConfig = $calculator->getCommissionConfig();
+                $commissionData = $calculator->calculate($request->booking_amount, $commissionConfig);
+                return response()->json([
+                    'success' => true,
+                    'commission' => $commissionData,
+                    'net_amount_paid' => $request->booking_amount - $commissionData['commission_amount'],
+                    'total_commission_earned' => $commissionData['commission_amount']
+                ]);
+            })->name('commission.calculate');
+        });
+    });
+});
+
+// Admin Agent Management Routes
+Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::namespace('Admin')->group(function () {
+        Route::prefix('agents')->name('agents.')->group(function () {
+            Route::get('/', 'AgentController@index')->name('index');
+            Route::get('/create', 'AgentController@create')->name('create');
+            Route::post('/store', 'AgentController@store')->name('store');
+            Route::get('/{agent}', 'AgentController@show')->name('show');
+            Route::get('/{agent}/edit', 'AgentController@edit')->name('edit');
+            Route::put('/{agent}', 'AgentController@update')->name('update');
+            Route::post('/{agent}/verify', 'AgentController@verify')->name('verify');
+            Route::post('/{agent}/suspend', 'AgentController@suspend')->name('suspend');
+            Route::get('/{agent}/bookings', 'AgentController@bookings')->name('bookings');
+            Route::get('/{agent}/earnings', 'AgentController@earnings')->name('earnings');
+        });
+    });
 });

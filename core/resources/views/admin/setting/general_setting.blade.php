@@ -201,6 +201,148 @@
                             </div>
                         </div>
 
+                        <!-- Agent Commission Configuration Section -->
+                        <div class="row">
+                            <div class="col-12">
+                                <hr>
+                                <h5 class="mb-3"><i class="las la-percentage"></i> @lang('Agent Commission Configuration')</h5>
+                                <p class="text-muted">@lang('Configure commission structure for agents based on booking amounts')</p>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-control-label font-weight-bold">@lang('Threshold Amount')</label>
+                                    <input class="form-control form-control-lg" type="number"
+                                        name="agent_commission_config[threshold_amount]"
+                                        value="{{ $general->agent_commission_config['threshold_amount'] ?? 500 }}"
+                                        min="0" step="0.01" required>
+                                    <small class="form-text text-muted">@lang('Amount below which fixed commission applies')</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Below Threshold Rules -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="mb-3">@lang('Below Threshold Rules (Fixed Commission)')</h6>
+                                <div id="below-threshold-rules">
+                                    @if (isset($general->agent_commission_config['below_threshold']))
+                                        @foreach ($general->agent_commission_config['below_threshold'] as $index => $rule)
+                                            <div class="row below-threshold-rule mb-3" data-index="{{ $index }}">
+                                                <div class="col-md-4">
+                                                    <input class="form-control" type="text"
+                                                        name="agent_commission_config[below_threshold][{{ $index }}][condition]"
+                                                        value="{{ $rule['condition'] ?? '' }}"
+                                                        placeholder="e.g., 0-200, 200-500" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input class="form-control" type="number"
+                                                        name="agent_commission_config[below_threshold][{{ $index }}][amount]"
+                                                        value="{{ $rule['amount'] ?? '' }}" min="0"
+                                                        step="0.01" placeholder="Fixed Amount" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <button type="button" class="btn btn-danger remove-below-rule">
+                                                        <i class="las la-trash"></i> @lang('Remove')
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <div class="row below-threshold-rule mb-3" data-index="0">
+                                            <div class="col-md-4">
+                                                <input class="form-control" type="text"
+                                                    name="agent_commission_config[below_threshold][0][condition]"
+                                                    value="0-200" placeholder="e.g., 0-200, 200-500" required>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <input class="form-control" type="number"
+                                                    name="agent_commission_config[below_threshold][0][amount]"
+                                                    value="50" min="0" step="0.01"
+                                                    placeholder="Fixed Amount" required>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <button type="button" class="btn btn-danger remove-below-rule">
+                                                    <i class="las la-trash"></i> @lang('Remove')
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                                <button type="button" class="btn btn-info add-below-rule">
+                                    <i class="las la-plus"></i> @lang('Add Below Threshold Rule')
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Above Threshold Rules -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6 class="mb-3">@lang('Above Threshold Rules (Percentage Commission)')</h6>
+                                <div id="above-threshold-rules">
+                                    @if (isset($general->agent_commission_config['above_threshold']))
+                                        @foreach ($general->agent_commission_config['above_threshold'] as $index => $rule)
+                                            <div class="row above-threshold-rule mb-3" data-index="{{ $index }}">
+                                                <div class="col-md-4">
+                                                    <input class="form-control" type="text"
+                                                        name="agent_commission_config[above_threshold][{{ $index }}][condition]"
+                                                        value="{{ $rule['condition'] ?? '' }}"
+                                                        placeholder="e.g., 500-1000, 1000+" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input class="form-control" type="number"
+                                                        name="agent_commission_config[above_threshold][{{ $index }}][percentage]"
+                                                        value="{{ $rule['percentage'] ?? '' }}" min="0"
+                                                        max="100" step="0.01" placeholder="Percentage" required>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <button type="button" class="btn btn-danger remove-above-rule">
+                                                        <i class="las la-trash"></i> @lang('Remove')
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <div class="row above-threshold-rule mb-3" data-index="0">
+                                            <div class="col-md-4">
+                                                <input class="form-control" type="text"
+                                                    name="agent_commission_config[above_threshold][0][condition]"
+                                                    value="500+" placeholder="e.g., 500-1000, 1000+" required>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <input class="form-control" type="number"
+                                                    name="agent_commission_config[above_threshold][0][percentage]"
+                                                    value="5" min="0" max="100" step="0.01"
+                                                    placeholder="Percentage" required>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <button type="button" class="btn btn-danger remove-above-rule">
+                                                    <i class="las la-trash"></i> @lang('Remove')
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                                <button type="button" class="btn btn-info add-above-rule">
+                                    <i class="las la-plus"></i> @lang('Add Above Threshold Rule')
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Commission Preview -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h6><i class="las la-info-circle"></i> @lang('Commission Calculation Example')</h6>
+                                    <div id="commission-preview">
+                                        <p class="mb-0">@lang('Enter amounts above to see commission calculations')</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <button type="submit" class="btn btn--primary btn-block btn-lg">@lang('Update')</button>
                         </div>
@@ -210,6 +352,177 @@
         </div>
     </div>
 @endsection
+
+@push('script')
+    <script>
+        $(document).ready(function() {
+            let belowRuleIndex =
+                {{ isset($general->agent_commission_config['below_threshold']) ? count($general->agent_commission_config['below_threshold']) : 1 }};
+            let aboveRuleIndex =
+                {{ isset($general->agent_commission_config['above_threshold']) ? count($general->agent_commission_config['above_threshold']) : 1 }};
+
+            // Add Below Threshold Rule
+            $('.add-below-rule').click(function() {
+                let html = `
+            <div class="row below-threshold-rule mb-3" data-index="${belowRuleIndex}">
+                <div class="col-md-4">
+                    <input class="form-control" type="text" 
+                        name="agent_commission_config[below_threshold][${belowRuleIndex}][condition]"
+                        placeholder="e.g., 0-200, 200-500" required>
+                </div>
+                <div class="col-md-4">
+                    <input class="form-control" type="number" 
+                        name="agent_commission_config[below_threshold][${belowRuleIndex}][amount]"
+                        min="0" step="0.01" placeholder="Fixed Amount" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-danger remove-below-rule">
+                        <i class="las la-trash"></i> @lang('Remove')
+                    </button>
+                </div>
+            </div>
+        `;
+                $('#below-threshold-rules').append(html);
+                belowRuleIndex++;
+            });
+
+            // Add Above Threshold Rule
+            $('.add-above-rule').click(function() {
+                let html = `
+            <div class="row above-threshold-rule mb-3" data-index="${aboveRuleIndex}">
+                <div class="col-md-4">
+                    <input class="form-control" type="text" 
+                        name="agent_commission_config[above_threshold][${aboveRuleIndex}][condition]"
+                        placeholder="e.g., 500-1000, 1000+" required>
+                </div>
+                <div class="col-md-4">
+                    <input class="form-control" type="number" 
+                        name="agent_commission_config[above_threshold][${aboveRuleIndex}][percentage]"
+                        min="0" max="100" step="0.01" placeholder="Percentage" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-danger remove-above-rule">
+                        <i class="las la-trash"></i> @lang('Remove')
+                    </button>
+                </div>
+            </div>
+        `;
+                $('#above-threshold-rules').append(html);
+                aboveRuleIndex++;
+            });
+
+            // Remove Below Threshold Rule
+            $(document).on('click', '.remove-below-rule', function() {
+                if ($('.below-threshold-rule').length > 1) {
+                    $(this).closest('.below-threshold-rule').remove();
+                } else {
+                    alert('@lang('At least one below threshold rule is required')');
+                }
+            });
+
+            // Remove Above Threshold Rule
+            $(document).on('click', '.remove-above-rule', function() {
+                if ($('.above-threshold-rule').length > 1) {
+                    $(this).closest('.above-threshold-rule').remove();
+                } else {
+                    alert('@lang('At least one above threshold rule is required')');
+                }
+            });
+
+            // Commission Preview
+            function updateCommissionPreview() {
+                const threshold = parseFloat($('input[name="agent_commission_config[threshold_amount]"]').val()) ||
+                    500;
+                const belowRules = [];
+                const aboveRules = [];
+
+                $('.below-threshold-rule').each(function() {
+                    const condition = $(this).find('input[name*="[condition]"]').val();
+                    const amount = parseFloat($(this).find('input[name*="[amount]"]').val()) || 0;
+                    if (condition && amount > 0) {
+                        belowRules.push({
+                            condition,
+                            amount
+                        });
+                    }
+                });
+
+                $('.above-threshold-rule').each(function() {
+                    const condition = $(this).find('input[name*="[condition]"]').val();
+                    const percentage = parseFloat($(this).find('input[name*="[percentage]"]').val()) || 0;
+                    if (condition && percentage > 0) {
+                        aboveRules.push({
+                            condition,
+                            percentage
+                        });
+                    }
+                });
+
+                let previewHtml = '<div class="row">';
+
+                // Test examples
+                const testAmounts = [150, 350, 750, 1200];
+                testAmounts.forEach(amount => {
+                    let commission = 0;
+                    let type = '';
+
+                    if (amount <= threshold) {
+                        // Below threshold - find matching rule
+                        for (let rule of belowRules) {
+                            if (matchesCondition(amount, rule.condition)) {
+                                commission = rule.amount;
+                                type = 'Fixed';
+                                break;
+                            }
+                        }
+                    } else {
+                        // Above threshold - find matching rule
+                        for (let rule of aboveRules) {
+                            if (matchesCondition(amount, rule.condition)) {
+                                commission = (amount * rule.percentage) / 100;
+                                type = rule.percentage + '%';
+                                break;
+                            }
+                        }
+                    }
+
+                    previewHtml += `
+                <div class="col-md-3 mb-2">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6>₹${amount}</h6>
+                            <small class="text-muted">Commission: ₹${commission.toFixed(2)} (${type})</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+                });
+
+                previewHtml += '</div>';
+                $('#commission-preview').html(previewHtml);
+            }
+
+            function matchesCondition(amount, condition) {
+                if (condition.includes('+')) {
+                    const minAmount = parseInt(condition.replace('+', ''));
+                    return amount >= minAmount;
+                } else if (condition.includes('-')) {
+                    const [min, max] = condition.split('-').map(x => parseInt(x));
+                    return amount >= min && amount <= max;
+                }
+                return false;
+            }
+
+            // Update preview on input change
+            $(document).on('input', 'input[name*="agent_commission_config"]', function() {
+                setTimeout(updateCommissionPreview, 100);
+            });
+
+            // Initial preview
+            updateCommissionPreview();
+        });
+    </script>
+@endpush
 
 @push('script-lib')
     <script src="{{ asset('assets/admin/js/spectrum.js') }}"></script>

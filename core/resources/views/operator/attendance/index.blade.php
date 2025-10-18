@@ -1,44 +1,42 @@
 @extends('operator.layouts.app')
 
 @section('panel')
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h4 class="mb-0">@lang('Attendance Calendar')</h4>
+        </div>
+        <div class="col-md-4 text-right">
+            <div class="btn-group" role="group">
+                <a href="{{ route('operator.attendance.index', ['month' => \Carbon\Carbon::parse($currentMonth)->subMonth()->format('Y-m')]) }}"
+                    class="btn btn-sm btn--outline-primary">
+                    <i class="fa fa-chevron-left"></i> Previous
+                </a>
+                <span class="btn btn-sm btn--primary">
+                    {{ \Carbon\Carbon::parse($currentMonth)->format('F Y') }}
+                </span>
+                <a href="{{ route('operator.attendance.index', ['month' => \Carbon\Carbon::parse($currentMonth)->addMonth()->format('Y-m')]) }}"
+                    class="btn btn-sm btn--outline-primary">
+                    Next <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+            <button type="button" class="btn btn-sm btn--success ml-2" data-toggle="modal" data-target="#exportModal">
+                <i class="fa fa-download"></i> Export
+            </button>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-lg-12">
-            <div class="card">
-                <div class="card-header">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h4 class="card-title mb-0">@lang('Attendance Calendar')</h4>
-                        </div>
-                        <div class="col-md-6 text-right">
-                            <div class="btn-group" role="group">
-                                <a href="{{ route('operator.attendance.index', ['month' => \Carbon\Carbon::parse($currentMonth)->subMonth()->format('Y-m')]) }}"
-                                    class="btn btn-sm btn-outline-primary">
-                                    <i class="las la-chevron-left"></i> Previous
-                                </a>
-                                <span class="btn btn-sm btn-primary">
-                                    {{ \Carbon\Carbon::parse($currentMonth)->format('F Y') }}
-                                </span>
-                                <a href="{{ route('operator.attendance.index', ['month' => \Carbon\Carbon::parse($currentMonth)->addMonth()->format('Y-m')]) }}"
-                                    class="btn btn-sm btn-outline-primary">
-                                    Next <i class="las la-chevron-right"></i>
-                                </a>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-success ml-2" data-toggle="modal"
-                                data-target="#exportModal">
-                                <i class="las la-download"></i> Export
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div class="card b-radius--10">
                 <div class="card-body">
                     @if ($staff->count() > 0)
                         <div class="table-responsive">
-                            <table class="table table-bordered attendance-calendar">
-                                <thead class="thead-light">
+                            <table class="table table--light style--two attendance-calendar">
+                                <thead>
                                     <tr>
-                                        <th style="min-width: 120px;">Employee ID</th>
-                                        <th style="min-width: 150px;">Name</th>
-                                        <th style="min-width: 100px;">Role</th>
+                                        <th style="min-width: 120px;">@lang('Employee ID')</th>
+                                        <th style="min-width: 150px;">@lang('Name')</th>
+                                        <th style="min-width: 100px;">@lang('Role')</th>
                                         @foreach ($calendarDays as $day)
                                             <th class="text-center {{ $day['isWeekend'] ? 'weekend' : '' }}"
                                                 style="min-width: 40px;">
@@ -52,7 +50,7 @@
                                         <tr>
                                             <td><strong>{{ $member->employee_id }}</strong></td>
                                             <td>{{ $member->first_name }} {{ $member->last_name }}</td>
-                                            <td><span class="badge badge-info">{{ ucfirst($member->role) }}</span></td>
+                                            <td><span class="badge badge--info">{{ ucfirst($member->role) }}</span></td>
                                             @foreach ($calendarDays as $day)
                                                 @php
                                                     $key = $member->id . '_' . $day['date'];
@@ -63,11 +61,11 @@
                                                     data-staff-id="{{ $member->id }}" data-date="{{ $day['date'] }}"
                                                     data-status="{{ $status }}">
                                                     @if ($status === 'absent')
-                                                        <span class="badge badge-danger">A</span>
+                                                        <span class="badge badge--danger">A</span>
                                                     @elseif($status === 'present')
-                                                        <span class="badge badge-success">P</span>
+                                                        <span class="badge badge--success">P</span>
                                                     @elseif($status === 'half_day')
-                                                        <span class="badge badge-warning">H</span>
+                                                        <span class="badge badge--warning">H</span>
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif

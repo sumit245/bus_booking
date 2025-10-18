@@ -138,7 +138,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="bus-layout-preview">
-                                    {!! $seatLayout->generateHtmlLayout() !!}
+                                    {!! $seatLayout->html_layout !!}
                                 </div>
                             </div>
                         </div>

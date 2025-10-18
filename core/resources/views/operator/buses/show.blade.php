@@ -421,9 +421,9 @@
                     <!-- Seat Layout Management Section -->
                     <div class="row mt-4">
                         <div class="col-12">
+                            <h5 class="mb-3">@lang('Seat Layout')</h5>
                             <div class="card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">@lang('Seat Layout')</h5>
+                                <div class="card-header d-flex justify-content-between align-items-end">
                                     @php
                                         $activeLayout = $bus->activeSeatLayout;
                                     @endphp
@@ -436,27 +436,26 @@
                                 </div>
                                 <div class="card-body">
                                     @if ($activeLayout)
-                                        <div class="alert alert-success">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>{{ $activeLayout->layout_name }}</strong>
-                                                    <br>
-                                                    <small class="text-muted">
-                                                        @lang('Total Seats'): {{ $activeLayout->total_seats }} |
-                                                        @lang('Upper Deck'): {{ $activeLayout->upper_deck_seats }} |
-                                                        @lang('Lower Deck'): {{ $activeLayout->lower_deck_seats }}
-                                                    </small>
-                                                </div>
-                                                <div class="d-flex gap-2">
-                                                    <a href="{{ route('operator.buses.seat-layouts.show', [$bus, $activeLayout]) }}"
-                                                        class="btn btn-sm btn--info">
-                                                        <i class="las la-eye"></i> @lang('View')
-                                                    </a>
-                                                    <a href="{{ route('operator.buses.seat-layouts.edit', [$bus, $activeLayout]) }}"
-                                                        class="btn btn-sm btn--primary">
-                                                        <i class="las la-edit"></i> @lang('Edit')
-                                                    </a>
-                                                </div>
+                                        <div
+                                            class="d-flex justify-content-between align-items-center p-2 alert alert-success">
+                                            <div class="d-flex flex-column">
+                                                <strong>{{ $activeLayout->layout_name }}</strong>
+                                                {{-- <br> --}}
+                                                <small class="text-muted">
+                                                    @lang('Total Seats'): {{ $activeLayout->total_seats }} |
+                                                    @lang('Upper Deck'): {{ $activeLayout->upper_deck_seats }} |
+                                                    @lang('Lower Deck'): {{ $activeLayout->lower_deck_seats }}
+                                                </small>
+                                            </div>
+                                            <div class="align-self-end ml-2">
+                                                <a href="{{ route('operator.buses.seat-layouts.show', [$bus, $activeLayout]) }}"
+                                                    class="btn btn-sm btn--info btn-mx-2">
+                                                    <i class="las la-eye"></i> @lang('View')
+                                                </a>
+                                                <a href="{{ route('operator.buses.seat-layouts.edit', [$bus, $activeLayout]) }}"
+                                                    class="btn btn-sm btn--primary">
+                                                    <i class="las la-edit"></i> @lang('Edit')
+                                                </a>
                                             </div>
                                         </div>
                                     @else

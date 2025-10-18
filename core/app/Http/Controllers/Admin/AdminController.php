@@ -27,15 +27,17 @@ class AdminController extends Controller
         $widget['verified_users'] = User::where('status', 1)->count();
         $widget['email_unverified_users'] = User::where('ev', 0)->count();
         $widget['sms_unverified_users'] = User::where('sv', 0)->count();
-        $widget['successful_payment'] = Deposit::where('status' , 1)->sum('amount');
-        $widget['pending_payment'] = Deposit::where('status' , 2)->sum('amount');
-        $widget['rejected_payment'] = Deposit::where('status' , 3)->sum('amount');
+        $widget['successful_payment'] = Deposit::where('status', 1)->sum('amount');
+        $widget['pending_payment'] = Deposit::where('status', 2)->sum('amount');
+        $widget['rejected_payment'] = Deposit::where('status', 3)->sum('amount');
         $widget['total_counter'] = Counter::count();
-        $widget['vehicle_with_ac'] = Vehicle::whereHas('fleetType', function($q){$q->where('has_ac', 1);})->count();
-        $widget['vehicle_without_ac'] = Vehicle::whereHas('fleetType', function($q){$q->where('has_ac', 0);})->count();
+        $widget['vehicle_with_ac'] = Vehicle::whereHas('fleetType', function ($q) {
+            $q->where('has_ac', 1); })->count();
+        $widget['vehicle_without_ac'] = Vehicle::whereHas('fleetType', function ($q) {
+            $q->where('has_ac', 0); })->count();
 
         //latest booking history
-        $soldTickets = BookedTicket::with('user')->where('status', 1)->latest()->take(5)->get();
+        $soldTickets = BookedTicket::with(['user', 'trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop'])->where('status', 1)->latest()->take(5)->get();
 
         // Deposit Graph
         $deposit = Deposit::where('created_at', '>=', \Carbon\Carbon::now()->subDays(30))->where('status', 1)
@@ -77,7 +79,7 @@ class AdminController extends Controller
         $this->validate($request, [
             'name' => 'required',
             'email' => 'required|email',
-            'image' => ['nullable','image',new FileTypeValidate(['jpg','jpeg','png'])]
+            'image' => ['nullable', 'image', new FileTypeValidate(['jpg', 'jpeg', 'png'])]
         ]);
         $user = Auth::guard('admin')->user();
 
@@ -124,14 +126,16 @@ class AdminController extends Controller
         return redirect()->route('admin.password')->withNotify($notify);
     }
 
-    public function notifications(){
-        $notifications = AdminNotification::orderBy('id','desc')->with('user')->paginate(getPaginate());
+    public function notifications()
+    {
+        $notifications = AdminNotification::orderBy('id', 'desc')->with('user')->paginate(getPaginate());
         $pageTitle = 'Notifications';
-        return view('admin.notifications',compact('pageTitle','notifications'));
+        return view('admin.notifications', compact('pageTitle', 'notifications'));
     }
 
 
-    public function notificationRead($id){
+    public function notificationRead($id)
+    {
         $notification = AdminNotification::findOrFail($id);
         $notification->read_status = 1;
         $notification->save();
@@ -144,20 +148,20 @@ class AdminController extends Controller
         $arr['app_name'] = systemDetails()['name'];
         $arr['app_url'] = env('APP_URL');
         $arr['purchase_code'] = env('PURCHASE_CODE');
-        $url = "https://license.viserlab.com/issue/get?".http_build_query($arr);
+        $url = "https://license.viserlab.com/issue/get?" . http_build_query($arr);
         $response = json_decode(curlContent($url));
         if ($response->status == 'error') {
             return redirect()->route('admin.dashboard')->withErrors($response->message);
         }
         $reports = $response->message[0];
-        return view('admin.reports',compact('reports','pageTitle'));
+        return view('admin.reports', compact('reports', 'pageTitle'));
     }
 
     public function reportSubmit(Request $request)
     {
         $request->validate([
-            'type'=>'required|in:bug,feature',
-            'message'=>'required',
+            'type' => 'required|in:bug,feature',
+            'message' => 'required',
         ]);
         $url = 'https://license.viserlab.com/issue/add';
 
@@ -166,28 +170,30 @@ class AdminController extends Controller
         $arr['purchase_code'] = env('PURCHASE_CODE');
         $arr['req_type'] = $request->type;
         $arr['message'] = $request->message;
-        $response = json_decode(curlPostContent($url,$arr));
+        $response = json_decode(curlPostContent($url, $arr));
         if ($response->status == 'error') {
             return back()->withErrors($response->message);
         }
-        $notify[] = ['success',$response->message];
+        $notify[] = ['success', $response->message];
         return back()->withNotify($notify);
     }
 
-    public function systemInfo(){
+    public function systemInfo()
+    {
         $laravelVersion = app()->version();
         $serverDetails = $_SERVER;
         $currentPHP = phpversion();
         $timeZone = config('app.timezone');
         $pageTitle = 'System Information';
-        return view('admin.info',compact('pageTitle', 'currentPHP', 'laravelVersion', 'serverDetails','timeZone'));
+        return view('admin.info', compact('pageTitle', 'currentPHP', 'laravelVersion', 'serverDetails', 'timeZone'));
     }
 
-    public function readAll(){
-        AdminNotification::where('read_status',0)->update([
-            'read_status'=>1
+    public function readAll()
+    {
+        AdminNotification::where('read_status', 0)->update([
+            'read_status' => 1
         ]);
-        $notify[] = ['success','Notifications read successfully'];
+        $notify[] = ['success', 'Notifications read successfully'];
         return back()->withNotify($notify);
     }
 

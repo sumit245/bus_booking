@@ -158,7 +158,7 @@ function activeTemplate($asset = false)
     $general = GeneralSetting::first(['active_template']);
     $template = $general->active_template;
     $sess = session()->get('template');
-    if (trim($sess)) {
+    if ($sess && trim($sess)) {
         $template = $sess;
     }
     if ($asset)

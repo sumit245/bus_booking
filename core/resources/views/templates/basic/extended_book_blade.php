@@ -23,8 +23,8 @@ $destinationCity = DB::table("cities")
                             <div class="form-group">
                                 <label for="date_of_journey" class="form-label">@lang("Journey Date")</label>
                                 <input type="text" id="date_of_journey" class="form--control datepicker"
-                                    value="{{ Session::get("date_of_journey") ? Session::get("date_of_journey") : date("m/d/Y") }}"
-                                    name="date_of_journey">
+                                    value="{{ Session::get(" date_of_journey") ? Session::get("date_of_journey") :
+                                    date("m/d/Y") }}" name="date_of_journey">
                             </div>
                         </div>
                         <div class="col-12">
@@ -39,8 +39,8 @@ $destinationCity = DB::table("cities")
                             <label for="dropping_point" class="form-label">@lang("Dropping Point")</label>
                             <div class="form--group">
                                 <i class="las la-map-marker"></i>
-                                <input type="text" disabled id="destination-id" class="form--control" name="DestinationId"
-                                    value="{{ $destinationCity->city_name }}">
+                                <input type="text" disabled id="destination-id" class="form--control"
+                                    name="DestinationId" value="{{ $destinationCity->city_name }}">
                             </div>
                         </div>
                         {{-- Select Gender --}}
@@ -74,7 +74,8 @@ $destinationCity = DB::table("cities")
                             <label>@lang("Selected Seats")</label>
                             <div class="list-group seat-details-animate">
                                 <span
-                                    class="list-group-item d-flex bg--base justify-content-between text-white">@lang("Seat Details")<span>@lang("Price")</span></span>
+                                    class="list-group-item d-flex bg--base justify-content-between text-white">@lang("Seat
+                                    Details")<span>@lang("Price")</span></span>
                                 <div class="selected-seat-details">
                                 </div>
                             </div>
@@ -89,15 +90,10 @@ $destinationCity = DB::table("cities")
             <!-- Right column with seat layout -->
             <div class="col-lg-4 col-md-6">
                 <h6 class="title">@lang("Click on Seat to select or deselect")</h6>
-                {{-- TODO: Add seat layout here --}}
-                @php
-                $busLayout = new App\Http\Helpers\GenerateSeatLayout($seatLayout);
-                echo $busLayout->generateLayout();
-                @endphp
-
-                {{-- <div class="seat-layout-container">
-            {!! $seatHtml !!}
-          </div> --}}
+                {{-- Seat layout --}}
+                <div class="seat-layout-container">
+                    {!! $seatHtml !!}
+                </div>
                 <div class="seat-for-reserved">
                     <div class="seat-condition available-seat">
                         <span class="seat"><span></span></span>

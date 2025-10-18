@@ -1,1 +1,1 @@
-<?php $timezone = 'Asia/Kolkata' ?>
+<?php $timezone = 'UTC' ?>

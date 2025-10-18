@@ -8,6 +8,7 @@ use App\Models\CouponTable;
 use App\Models\OperatorRoute;
 use App\Models\OperatorBus;
 use App\Models\BusSchedule;
+use App\Models\OperatorBooking;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -68,7 +69,7 @@ class BusService
         $trips = $this->applySorting($trips, $validatedData); // Sorting now works on a proper array
 
         $page = $validatedData['page'] ?? 1;
-        $perPage = 20;
+        $perPage = 50; // Increased from 20 to 50 for better UX
         $paginatedTrips = array_slice($trips, ($page - 1) * $perPage, $perPage);
 
         return [
@@ -228,17 +229,17 @@ class BusService
         $resultIndexStr = "OP_{$bus->id}_{$schedule->id}";
 
         return [
-                'ResultIndex' => $resultIndexStr,
-                'BusType' => $bus->bus_type,
-                'TravelName' => $bus->travel_name,
-                'ServiceName' => 'Seat Seller',
-                'DepartureTime' => $departureTime,
-                'ArrivalTime' => $arrivalTime,
-                'Duration' => $duration,
-                'Origin' => $route->originCity->city_name,
-                'Destination' => $route->destinationCity->city_name,
+            'ResultIndex' => $resultIndexStr,
+            'BusType' => $bus->bus_type,
+            'TravelName' => $bus->travel_name,
+            'ServiceName' => 'Seat Seller',
+            'DepartureTime' => $departureTime,
+            'ArrivalTime' => $arrivalTime,
+            'Duration' => $duration,
+            'Origin' => $route->originCity->city_name,
+            'Destination' => $route->destinationCity->city_name,
             'TotalSeats' => $bus->total_seats,
-            'AvailableSeats' => $bus->total_seats, // TODO: Calculate actual available seats
+            'AvailableSeats' => $this->calculateAvailableSeats($bus, $dateOfJourney),
             'LiveTrackingAvailable' => $bus->live_tracking_available ?? true,
             'MTicketEnabled' => $bus->m_ticket_enabled ?? true,
             'PartialCancellationAllowed' => $bus->partial_cancellation_allowed ?? true,
@@ -533,6 +534,17 @@ class BusService
     {
         // Log::info('Applying filters: ' . json_encode($filters));
         $filteredTrips = array_filter($trips, function ($trip) use ($filters) {
+            // IMPORTANT: Filter out buses with passed departure times
+            if (isset($trip['DepartureTime'])) {
+                $departureTime = Carbon::parse($trip['DepartureTime']);
+                $now = Carbon::now();
+
+                // If departure time has already passed, exclude this bus
+                if ($departureTime->lessThan($now)) {
+                    return false;
+                }
+            }
+
             // Live tracking filter
             if (!empty($filters['live_tracking']) && $filters['live_tracking']) {
                 if (!($trip['LiveTrackingAvailable'] ?? false))
@@ -632,5 +644,36 @@ class BusService
         return CouponTable::where('status', 1)
             ->where('expiry_date', '>=', Carbon::today())
             ->first();
+    }
+
+    /**
+     * Calculate available seats for a bus on a specific date, excluding operator-blocked seats.
+     */
+    private function calculateAvailableSeats(OperatorBus $bus, string $dateOfJourney): int
+    {
+        $totalSeats = $bus->total_seats;
+
+        // Get operator bookings that block seats on this date
+        $blockedSeats = OperatorBooking::active()
+            ->where('operator_bus_id', $bus->id)
+            ->where(function ($query) use ($dateOfJourney) {
+                $query->where('journey_date', $dateOfJourney)
+                    ->orWhere(function ($q) use ($dateOfJourney) {
+                        $q->where('is_date_range', true)
+                            ->where('journey_date', '<=', $dateOfJourney)
+                            ->where('journey_date_end', '>=', $dateOfJourney);
+                    });
+            })
+            ->get();
+
+        $totalBlockedSeats = 0;
+        foreach ($blockedSeats as $booking) {
+            $totalBlockedSeats += $booking->total_seats_blocked;
+        }
+
+        $availableSeats = $totalSeats - $totalBlockedSeats;
+
+        // Ensure we don't return negative seats
+        return max(0, $availableSeats);
     }
 }

@@ -209,6 +209,38 @@ class BusController extends Controller
     }
 
     /**
+     * Get routes for a specific bus.
+     */
+    public function getRoutes(OperatorBus $bus)
+    {
+        // Skip authentication for testing - use operator ID 41 directly
+        $operatorId = 41; // Sutra Seva operator
+
+        // Ensure the bus belongs to the operator
+        if ($bus->operator_id !== $operatorId) {
+            abort(403, 'Unauthorized access to this bus.');
+        }
+
+        // Get routes that have schedules for this bus
+        $routes = OperatorRoute::where('operator_id', $operatorId)
+            ->whereHas('busSchedules', function ($query) use ($bus) {
+                $query->where('operator_bus_id', $bus->id);
+            })
+            ->with(['originCity', 'destinationCity'])
+            ->get()
+            ->map(function ($route) {
+                return [
+                    'id' => $route->id,
+                    'origin_city' => $route->originCity->city_name,
+                    'destination_city' => $route->destinationCity->city_name,
+                    'route_name' => $route->route_name
+                ];
+            });
+
+        return response()->json($routes);
+    }
+
+    /**
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request

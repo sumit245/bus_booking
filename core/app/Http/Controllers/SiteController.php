@@ -290,6 +290,24 @@ class SiteController extends Controller
         $token = session()->get('search_token_id');
         $userIp = session()->get('user_ip');
 
+        // Debug logging
+        Log::info('SelectSeat called', [
+            'result_index' => $resultIndex,
+            'token' => $token,
+            'user_ip' => $userIp,
+            'is_agent' => auth('agent')->check(),
+            'session_data' => [
+                'origin_id' => session()->get('origin_id'),
+                'destination_id' => session()->get('destination_id'),
+                'date_of_journey' => session()->get('date_of_journey')
+            ]
+        ]);
+
+        // Initialize variables
+        $parsedLayout = [];
+        $seatHtml = '';
+        $isOperatorBus = false;
+
         // Check if this is an operator bus (ResultIndex starts with 'OP_')
         if (str_starts_with($resultIndex, 'OP_')) {
             // Handle operator bus seat layout
@@ -319,14 +337,16 @@ class SiteController extends Controller
             $response = getAPIBusSeats($resultIndex, $token, $userIp);
 
             if (!isset($response['Result'])) {
-                // Redirect to homepage if search token has expired or invalid
-                return redirect('/')->with('error', 'Search session expired. Please search again.');
+                // Redirect based on user type
+                $redirectUrl = auth('agent')->check() ? route('agent.search') : '/';
+                return redirect($redirectUrl)->with('error', 'Search session expired. Please search again.');
             }
 
             // Check if HTMLLayout exists in response
             if (!isset($response['Result']['HTMLLayout'])) {
-                // Redirect to homepage if HTMLLayout is missing (search token expired)
-                return redirect('/')->with('error', 'Search session expired. Please search again.');
+                // Redirect based on user type
+                $redirectUrl = auth('agent')->check() ? route('agent.search') : '/';
+                return redirect($redirectUrl)->with('error', 'Search session expired. Please search again.');
             }
 
             $seatHtml = $response['Result']['HTMLLayout'];
@@ -347,13 +367,7 @@ class SiteController extends Controller
 
         $pageTitle = 'Select Seats';
 
-        if (auth()->user()) {
-            $layout = 'layouts.master';
-        } else {
-            $layout = 'layouts.frontend';
-        }
-
-        $cities = DB::table("cities")->get();
+        // Get cities for both agent and regular users
         $originCity = DB::table("cities")->where("city_id", $request->session()->get("origin_id"))->first();
         $destinationCity = DB::table("cities")->where("city_id", $request->session()->get("destination_id"))->first();
 
@@ -364,6 +378,27 @@ class SiteController extends Controller
         if (!$destinationCity) {
             $destinationCity = DB::table("cities")->where("city_name", "Delhi")->first();
         }
+
+        // Check if accessed by agent
+        if (auth('agent')->check()) {
+            Log::info('Agent seat selection - Variables:', [
+                'seatHtml' => $seatHtml ? 'Present' : 'Empty',
+                'parsedLayout' => $parsedLayout ? 'Present' : 'Empty',
+                'isOperatorBus' => $isOperatorBus,
+                'result_index' => $resultIndex
+            ]);
+
+            return view('agent.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
+        }
+
+        // Regular user flow
+        if (auth()->user()) {
+            $layout = 'layouts.master';
+        } else {
+            $layout = 'layouts.frontend';
+        }
+
+        $cities = DB::table("cities")->get();
         return view($this->activeTemplate . 'book_ticket', compact('pageTitle', 'parsedLayout', 'layout', 'cities', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
     }
 
@@ -480,35 +515,103 @@ class SiteController extends Controller
     {
         Log::info('Block Seat Request:', ['request' => $request->all()]);
 
-        $request->validate([
-            'boarding_point_index' => 'required',
-            'dropping_point_index' => 'required',
-            'gender' => 'required',
-            'seats' => 'required',
-            'passenger_phone' => 'required',
-            'passenger_firstname' => 'required',
-            'passenger_lastname' => 'required',
-            'passenger_email' => 'required|email',
-        ]);
+        // Different validation for agent vs regular booking
+        if (auth('agent')->check()) {
+            $request->validate([
+                'boarding_point_index' => 'required',
+                'dropping_point_index' => 'required',
+                'seats' => 'required',
+                'passenger_phone' => 'required',
+                'passenger_email' => 'required|email',
+                'passenger_names' => 'required|array|min:1',
+                'passenger_names.*' => 'required|string|max:255',
+                'passenger_ages' => 'required|array|min:1',
+                'passenger_ages.*' => 'required|integer|min:1|max:120',
+                'passenger_genders' => 'required|array|min:1',
+                'passenger_genders.*' => 'required|in:1,2,3',
+            ]);
+        } else {
+            $request->validate([
+                'boarding_point_index' => 'required',
+                'dropping_point_index' => 'required',
+                'gender' => 'required',
+                'seats' => 'required',
+                'passenger_phone' => 'required',
+                'passenger_firstname' => 'required',
+                'passenger_lastname' => 'required',
+                'passenger_email' => 'required|email',
+            ]);
+        }
 
         // Prepare request data for BookingService
-        $requestData = [
-            'boarding_point_index' => $request->boarding_point_index,
-            'dropping_point_index' => $request->dropping_point_index,
-            'gender' => $request->gender,
-            'seats' => $request->seats,
-            'passenger_phone' => $request->passenger_phone,
-            'passenger_firstname' => $request->passenger_firstname,
-            'passenger_lastname' => $request->passenger_lastname,
-            'passenger_email' => $request->passenger_email,
-            'passenger_address' => $request->passenger_address ?? '',
-            'passenger_age' => $request->passenger_age ?? 0,
-            'result_index' => session()->get('result_index'),
-            'search_token_id' => session()->get('search_token_id'),
-            'origin_city' => session()->get('origin_id'),
-            'destination_city' => session()->get('destination_id'),
-            'user_ip' => $request->ip()
-        ];
+        if (auth('agent')->check()) {
+            // Agent booking - handle multiple passengers
+            $passengerNames = $request->passenger_names;
+            $passengerAges = $request->passenger_ages;
+            $passengerGenders = $request->passenger_genders;
+
+            // Split names into first and last names
+            $passengerFirstNames = [];
+            $passengerLastNames = [];
+
+            foreach ($passengerNames as $fullName) {
+                $nameParts = explode(' ', trim($fullName), 2);
+                $passengerFirstNames[] = $nameParts[0];
+                $passengerLastNames[] = isset($nameParts[1]) ? $nameParts[1] : '';
+            }
+
+            $requestData = [
+                'boarding_point_index' => $request->boarding_point_index,
+                'dropping_point_index' => $request->dropping_point_index,
+                'seats' => $request->seats,
+                'passenger_phone' => $request->passenger_phone,
+                'passenger_email' => $request->passenger_email,
+                'passenger_firstnames' => $passengerFirstNames,
+                'passenger_lastnames' => $passengerLastNames,
+                'passenger_ages' => $passengerAges,
+                'passenger_genders' => $passengerGenders,
+                'passenger_address' => $request->passenger_address ?? '',
+                'result_index' => session()->get('result_index'),
+                'search_token_id' => session()->get('search_token_id'),
+                'origin_city' => session()->get('origin_id'),
+                'destination_city' => session()->get('destination_id'),
+                'user_ip' => $request->ip()
+            ];
+        } else {
+            // Regular booking - single passenger
+            $requestData = [
+                'boarding_point_index' => $request->boarding_point_index,
+                'dropping_point_index' => $request->dropping_point_index,
+                'gender' => $request->gender,
+                'seats' => $request->seats,
+                'passenger_phone' => $request->passenger_phone,
+                'passenger_firstname' => $request->passenger_firstname,
+                'passenger_lastname' => $request->passenger_lastname,
+                'passenger_email' => $request->passenger_email,
+                'passenger_address' => $request->passenger_address ?? '',
+                'passenger_age' => $request->passenger_age ?? 0,
+                'result_index' => session()->get('result_index'),
+                'search_token_id' => session()->get('search_token_id'),
+                'origin_city' => session()->get('origin_id'),
+                'destination_city' => session()->get('destination_id'),
+                'user_ip' => $request->ip()
+            ];
+        }
+
+        // Add agent-specific data if accessed by agent
+        if (auth('agent')->check()) {
+            $requestData['agent_id'] = auth('agent')->id();
+            $requestData['booking_source'] = 'agent';
+
+            // Calculate commission (5% of ticket price - this should come from agent settings)
+            $commissionRate = 0.05; // 5% commission rate
+            $requestData['commission_rate'] = $commissionRate;
+
+            Log::info('Agent booking initiated', [
+                'agent_id' => $requestData['agent_id'],
+                'commission_rate' => $commissionRate
+            ]);
+        }
 
         // Use BookingService to block seats and create payment order
         $result = $this->bookingService->blockSeatsAndCreateOrder($requestData);

@@ -77,6 +77,14 @@ class OperatorRoute extends Model
     }
 
     /**
+     * Get the bus schedules for this route.
+     */
+    public function busSchedules()
+    {
+        return $this->hasMany(BusSchedule::class);
+    }
+
+    /**
      * Get active buses currently assigned to this route.
      */
     public function activeAssignedBuses()

@@ -215,22 +215,49 @@ class BookingService
             ? $requestData['Seats'] ?? $requestData['seats']
             : explode(',', $requestData['Seats'] ?? $requestData['seats']);
 
-        return collect($seats)->map(function ($seatName, $index) use ($requestData) {
-            return [
-                "LeadPassenger" => $index === 0,
-                "Title" => ($requestData['Gender'] ?? $requestData['gender']) == 1 ? "Mr" : "Mrs",
-                "FirstName" => $requestData['FirstName'] ?? $requestData['passenger_firstname'],
-                "LastName" => $requestData['LastName'] ?? $requestData['passenger_lastname'],
-                "Email" => $requestData['Email'] ?? $requestData['passenger_email'],
-                "Phoneno" => $requestData['Phoneno'] ?? $requestData['passenger_phone'],
-                "Gender" => $requestData['Gender'] ?? $requestData['gender'],
-                "IdType" => null,
-                "IdNumber" => null,
-                "Address" => $requestData['Address'] ?? $requestData['passenger_address'] ?? '',
-                "Age" => $requestData['age'] ?? $requestData['passenger_age'] ?? 0,
-                "SeatName" => $seatName
-            ];
-        })->toArray();
+        // Check if this is an agent booking with multiple passengers
+        if (isset($requestData['passenger_firstnames']) && isset($requestData['passenger_lastnames'])) {
+            // Agent booking - multiple passengers
+            return collect($seats)->map(function ($seatName, $index) use ($requestData) {
+                $firstName = $requestData['passenger_firstnames'][$index] ?? '';
+                $lastName = $requestData['passenger_lastnames'][$index] ?? '';
+                $age = $requestData['passenger_ages'][$index] ?? 0;
+                $gender = $requestData['passenger_genders'][$index] ?? 1;
+
+                return [
+                    "LeadPassenger" => $index === 0,
+                    "Title" => $gender == 1 ? "Mr" : ($gender == 2 ? "Mrs" : "Other"),
+                    "FirstName" => $firstName,
+                    "LastName" => $lastName,
+                    "Email" => $requestData['passenger_email'],
+                    "Phoneno" => $requestData['passenger_phone'],
+                    "Gender" => $gender,
+                    "IdType" => null,
+                    "IdNumber" => null,
+                    "Address" => $requestData['passenger_address'] ?? '',
+                    "Age" => $age,
+                    "SeatName" => $seatName
+                ];
+            })->toArray();
+        } else {
+            // Regular booking - single passenger
+            return collect($seats)->map(function ($seatName, $index) use ($requestData) {
+                return [
+                    "LeadPassenger" => $index === 0,
+                    "Title" => ($requestData['Gender'] ?? $requestData['gender']) == 1 ? "Mr" : "Mrs",
+                    "FirstName" => $requestData['FirstName'] ?? $requestData['passenger_firstname'],
+                    "LastName" => $requestData['LastName'] ?? $requestData['passenger_lastname'],
+                    "Email" => $requestData['Email'] ?? $requestData['passenger_email'],
+                    "Phoneno" => $requestData['Phoneno'] ?? $requestData['passenger_phone'],
+                    "Gender" => $requestData['Gender'] ?? $requestData['gender'],
+                    "IdType" => null,
+                    "IdNumber" => null,
+                    "Address" => $requestData['Address'] ?? $requestData['passenger_address'] ?? '',
+                    "Age" => $requestData['age'] ?? $requestData['passenger_age'] ?? 0,
+                    "SeatName" => $seatName
+                ];
+            })->toArray();
+        }
     }
 
     /**
@@ -417,10 +444,40 @@ class BookingService
 
         // Save all passenger names
         $passengerNames = [];
-        foreach ($blockResponse['Result']['Passenger'] as $passenger) {
-            $passengerNames[] = trim(($passenger['FirstName'] ?? '') . ' ' . ($passenger['LastName'] ?? ''));
+        if (isset($requestData['passenger_firstnames']) && isset($requestData['passenger_lastnames'])) {
+            // Agent booking - use provided passenger data
+            for ($i = 0; $i < count($requestData['passenger_firstnames']); $i++) {
+                $firstName = $requestData['passenger_firstnames'][$i] ?? '';
+                $lastName = $requestData['passenger_lastnames'][$i] ?? '';
+                $passengerNames[] = trim($firstName . ' ' . $lastName);
+            }
+        } else {
+            // Regular booking - use API response data
+            foreach ($blockResponse['Result']['Passenger'] as $passenger) {
+                $passengerNames[] = trim(($passenger['FirstName'] ?? '') . ' ' . ($passenger['LastName'] ?? ''));
+            }
         }
         $bookedTicket->passenger_names = $passengerNames;
+
+        // Handle agent-specific data
+        if (isset($requestData['agent_id'])) {
+            $bookedTicket->agent_id = $requestData['agent_id'];
+            $bookedTicket->booking_source = $requestData['booking_source'] ?? 'agent';
+
+            // Calculate and store commission
+            if (isset($requestData['commission_rate'])) {
+                $commissionAmount = round($totalFare * $requestData['commission_rate'], 2);
+                $bookedTicket->agent_commission = $requestData['commission_rate'];
+                $bookedTicket->agent_commission_amount = $commissionAmount;
+
+                Log::info('Agent commission calculated', [
+                    'agent_id' => $requestData['agent_id'],
+                    'total_fare' => $totalFare,
+                    'commission_rate' => $requestData['commission_rate'],
+                    'commission_amount' => $commissionAmount
+                ]);
+            }
+        }
 
         $bookedTicket->api_response = json_encode($blockResponse);
 

@@ -164,30 +164,24 @@
                     </div>
                 </li>
 
-                <!-- Bookings Management -->
+                <!-- Operator Bookings Management -->
                 <li class="sidebar-menu-item sidebar-dropdown">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.bookings*', 3) }}">
                         <i class="menu-icon las la-ticket-alt"></i>
-                        <span class="menu-title">@lang('Bookings')</span>
+                        <span class="menu-title">@lang('My Bookings')</span>
                     </a>
                     <div class="sidebar-submenu {{ menuActive('operator.bookings*', 2) }} ">
                         <ul>
-                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.all') }} ">
-                                <a href="#" class="nav-link">
+                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.index') }} ">
+                                <a href="{{ route('operator.bookings.index') }}" class="nav-link">
                                     <i class="menu-icon las la-dot-circle"></i>
                                     <span class="menu-title">@lang('All Bookings')</span>
                                 </a>
                             </li>
-                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.pending') }} ">
-                                <a href="#" class="nav-link">
+                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.create') }} ">
+                                <a href="{{ route('operator.bookings.create') }}" class="nav-link">
                                     <i class="menu-icon las la-dot-circle"></i>
-                                    <span class="menu-title">@lang('Pending')</span>
-                                </a>
-                            </li>
-                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.confirmed') }} ">
-                                <a href="#" class="nav-link">
-                                    <i class="menu-icon las la-dot-circle"></i>
-                                    <span class="menu-title">@lang('Confirmed')</span>
+                                    <span class="menu-title">@lang('Block Seats')</span>
                                 </a>
                             </li>
                         </ul>
@@ -202,16 +196,22 @@
                     </a>
                     <div class="sidebar-submenu {{ menuActive('operator.revenue*', 2) }} ">
                         <ul>
-                            <li class="sidebar-menu-item {{ menuActive('operator.revenue.overview') }} ">
-                                <a href="#" class="nav-link">
+                            <li class="sidebar-menu-item {{ menuActive('operator.revenue.dashboard') }} ">
+                                <a href="{{ route('operator.revenue.dashboard') }}" class="nav-link">
                                     <i class="menu-icon las la-dot-circle"></i>
-                                    <span class="menu-title">@lang('Overview')</span>
+                                    <span class="menu-title">@lang('Dashboard')</span>
                                 </a>
                             </li>
                             <li class="sidebar-menu-item {{ menuActive('operator.revenue.reports') }} ">
-                                <a href="#" class="nav-link">
+                                <a href="{{ route('operator.revenue.reports') }}" class="nav-link">
                                     <i class="menu-icon las la-dot-circle"></i>
                                     <span class="menu-title">@lang('Reports')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.revenue.payouts') }} ">
+                                <a href="{{ route('operator.revenue.payouts') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Payouts')</span>
                                 </a>
                             </li>
                         </ul>

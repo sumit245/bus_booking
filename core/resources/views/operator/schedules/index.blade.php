@@ -1,12 +1,20 @@
 @extends('operator.layouts.app')
 
 @section('panel')
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <h4 class="mb-0">@lang('Bus Schedules')</h4>
+        </div>
+        <div class="col-md-4 text-right">
+            <a href="{{ route('operator.schedules.create') }}" class="btn btn--primary box--shadow1">
+                <i class="fa fa-fw fa-plus"></i>@lang('Add New Schedule')
+            </a>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-lg-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">@lang('Bus Schedules')</h4>
-                </div>
+            <div class="card b-radius--10">
                 <div class="card-body">
                     <!-- Filters -->
                     <div class="row mb-4">
@@ -51,15 +59,13 @@
                             </label>
                         </div>
                         <div class="col-md-2">
-                            <a href="{{ route('operator.schedules.create') }}" class="btn btn-primary btn-sm">
-                                <i class="fas fa-plus"></i> @lang('Add Schedule')
-                            </a>
+                            <button class="btn btn--primary" onclick="applyFilters()">@lang('Filter')</button>
                         </div>
                     </div>
 
                     <!-- Schedules Table -->
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table--light style--two" id="schedulesTable">
                             <thead>
                                 <tr>
                                     <th>@lang('Schedule')</th>
@@ -76,61 +82,61 @@
                             <tbody>
                                 @forelse($schedules as $schedule)
                                     <tr>
-                                        <td>
+                                        <td data-label="@lang('Schedule')">
                                             <strong>{{ $schedule->schedule_name ?: 'Schedule #' . $schedule->id }}</strong>
                                             @if ($schedule->notes)
                                                 <br><small
                                                     class="text-muted">{{ Str::limit($schedule->notes, 50) }}</small>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td data-label="@lang('Bus')">
                                             {{ $schedule->operatorBus->travel_name }}<br>
                                             <small class="text-muted">{{ $schedule->operatorBus->bus_type }}</small>
                                         </td>
-                                        <td>
+                                        <td data-label="@lang('Route')">
                                             {{ $schedule->operatorRoute->originCity->city_name }} →
                                             {{ $schedule->operatorRoute->destinationCity->city_name }}
                                         </td>
-                                        <td>
+                                        <td data-label="@lang('Departure')">
                                             <strong>{{ $schedule->formatted_departure_time }}</strong>
                                         </td>
-                                        <td>
+                                        <td data-label="@lang('Arrival')">
                                             <strong>{{ $schedule->formatted_arrival_time }}</strong>
                                         </td>
-                                        <td>
+                                        <td data-label="@lang('Duration')">
                                             {{ $schedule->duration }}
                                         </td>
-                                        <td>
+                                        <td data-label="@lang('Days')">
                                             {{ $schedule->days_of_operation_text }}
                                         </td>
-                                        <td>
+                                        <td data-label="@lang('Status')">
                                             @if ($schedule->is_active)
-                                                <span class="badge badge-success">@lang('Active')</span>
+                                                <span class="badge badge--success">@lang('Active')</span>
                                             @else
-                                                <span class="badge badge-danger">@lang('Inactive')</span>
+                                                <span class="badge badge--danger">@lang('Inactive')</span>
                                             @endif
                                             <br>
                                             <small class="text-muted">{{ ucfirst($schedule->status) }}</small>
                                         </td>
-                                        <td>
+                                        <td data-label="@lang('Action')">
                                             <div class="btn-group" role="group">
                                                 <a href="{{ route('operator.schedules.show', $schedule) }}"
-                                                    class="btn btn-info btn-sm" title="@lang('View')">
-                                                    <i class="fas fa-eye"></i>
+                                                    class="btn btn--info btn-sm" title="@lang('View')">
+                                                    <i class="fa fa-eye"></i>
                                                 </a>
                                                 <a href="{{ route('operator.schedules.edit', $schedule) }}"
-                                                    class="btn btn-warning btn-sm" title="@lang('Edit')">
-                                                    <i class="fas fa-edit"></i>
+                                                    class="btn btn--warning btn-sm" title="@lang('Edit')">
+                                                    <i class="fa fa-edit"></i>
                                                 </a>
                                                 <button type="button"
-                                                    class="btn btn-{{ $schedule->is_active ? 'secondary' : 'success' }} btn-sm"
+                                                    class="btn btn-{{ $schedule->is_active ? 'btn--secondary' : 'btn--success' }} btn-sm"
                                                     onclick="toggleStatus({{ $schedule->id }})" title="@lang('Toggle Status')">
-                                                    <i class="fas fa-{{ $schedule->is_active ? 'pause' : 'play' }}"></i>
+                                                    <i class="fa fa-{{ $schedule->is_active ? 'pause' : 'play' }}"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-danger btn-sm"
+                                                <button type="button" class="btn btn--danger btn-sm"
                                                     onclick="deleteSchedule({{ $schedule->id }})"
                                                     title="@lang('Delete')">
-                                                    <i class="fas fa-trash"></i>
+                                                    <i class="fa fa-trash"></i>
                                                 </button>
                                             </div>
                                         </td>

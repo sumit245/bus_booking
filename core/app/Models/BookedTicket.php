@@ -20,24 +20,41 @@ class BookedTicket extends Model
 
     protected $fillable = [
         'user_id',
+        'operator_id',
+        'operator_booking_id',
+        'agent_id',
+        'booking_id',
+        'ticket_no',
         'gender',
         'trip_id',
         'source_destination',
         'pickup_point',
+        'boarding_point',
         'dropping_point',
         'seats',
+        'seat_numbers',
         'ticket_count',
         'unit_price',
         'sub_total',
+        'total_amount',
+        'paid_amount',
         'date_of_journey',
+        'departure_time',
+        'arrival_time',
         'pnr_number',
         'status',
+        'payment_status',
+        'booking_type',
+        'booking_reason',
+        'notes',
         'passenger_names',
         'passenger_name',
         'passenger_phone',
         'passenger_email',
         'passenger_address',
         'passenger_age',
+        'passenger_phones',
+        'passenger_emails',
         'api_response',
         'boarding_point_details',
         'dropping_point_details',
@@ -45,12 +62,18 @@ class BookedTicket extends Model
         'operator_pnr',
         'bus_type',
         'travel_name',
+        'bus_id',
+        'route_id',
+        'schedule_id',
         'api_invoice',
         'api_invoice_amount',
         'api_invoice_date',
         'api_booking_id',
         'api_ticket_no',
         'agent_commission',
+        'agent_commission_amount',
+        'booking_source',
+        'total_commission_charged',
         'tds_from_api',
         'origin_city',
         'destination_city',
@@ -92,6 +115,16 @@ class BookedTicket extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function agent()
+    {
+        return $this->belongsTo(Agent::class);
+    }
+
+    public function agentBooking()
+    {
+        return $this->hasOne(AgentBooking::class);
     }
 
     //scope

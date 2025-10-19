@@ -1,30 +1,25 @@
 @extends('agent.layouts.app')
 
 @section('panel')
-    <div class="container-fluid">
+    <div class="container-fluid px-0">
         <!-- Compact Search Header (Mobile-First Design) -->
         <div class="card mb-2">
             <div class="card-body py-2">
-                <div class="row align-items-center">
-                    <div class="col-8">
-                        <div class="d-flex align-items-center">
-                            <i class="las la-route text-primary me-2" style="font-size: 1rem;"></i>
-                            <div>
-                                <h6 class="mb-0 text-dark" style="font-size: 0.9rem; font-weight: 600;">
-                                    {{ $fromCityData->city_name }} → {{ $toCityData->city_name }}
-                                </h6>
-                                <small class="text-muted">
-                                    <i class="las la-calendar me-1"></i>
-                                    {{ \Carbon\Carbon::parse($dateOfJourney)->format('M j') }}
-                                    <i class="las la-users ms-2 me-1"></i>
-                                    {{ $passengers }}p
-                                </small>
-                            </div>
-                        </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0 text-dark" style="font-size: 0.9rem; font-weight: 600;">
+                            {{ $fromCityData->city_name }} → {{ $toCityData->city_name }}
+                        </h6>
+                        <small class="text-muted">
+                            <i class="las la-calendar me-1"></i>
+                            {{ \Carbon\Carbon::parse($dateOfJourney)->format('M j') }}
+                            <i class="las la-users ms-2 me-1"></i>
+                            {{ $passengers }}p
+                        </small>
                     </div>
-                    <div class="col-4 text-end">
-                        <a href="{{ route('agent.search') }}" class="btn btn-primary btn-sm">
-                            <i class="las la-search"></i>
+                    <div>
+                        <a href="{{ route('agent.search') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="las la-search"></i> @lang('New Search')
                         </a>
                     </div>
                 </div>
@@ -277,23 +272,12 @@
                                     <!-- Bus Icon & Travel Name in Single Line -->
                                     <div class="col-md-4">
                                         <div class="d-flex align-items-center">
-                                            <div class="bus-icon me-3">
-                                                @if (isset($bus['FleetType']) && strpos(strtolower($bus['FleetType']), 'sleeper') !== false)
-                                                    <i class="las la-bed text-primary" style="font-size: 1.2rem;"
-                                                        title="Sleeper Bus"></i>
-                                                @elseif(isset($bus['FleetType']) && strpos(strtolower($bus['FleetType']), 'ac') !== false)
-                                                    <i class="las la-snowflake text-primary" style="font-size: 1.2rem;"
-                                                        title="AC Bus"></i>
-                                                @else
-                                                    <i class="las la-chair text-primary" style="font-size: 1.2rem;"
-                                                        title="Seater Bus"></i>
-                                                @endif
-                                            </div>
+
                                             <div class="bus-info">
-                                                <h6 class="mb-1 text-dark">
+                                                <h6 class="mb-0 text-dark">
                                                     {{ $bus['TravelName'] ?? ($bus['ServiceName'] ?? 'Bus Service') }}</h6>
-                                                <small
-                                                    class="text-muted">{{ $bus['ServiceName'] ?? 'Bus Operator' }}</small>
+                                                <small class="text-muted">{{ $bus['BusType'] ?? 'Bus' }} -
+                                                    {{ $bus['ServiceName'] ?? 'Bus Operator' }}</small>
                                             </div>
                                         </div>
                                     </div>
@@ -301,10 +285,6 @@
                                     <!-- Departure & Duration -->
                                     <div class="col-md-3">
                                         <div class="schedule-info">
-                                            <div class="departure-time mb-1">
-                                                <strong
-                                                    class="text-dark">{{ \Carbon\Carbon::parse($bus['DepartureTime'])->format('h:i A') }}</strong>
-                                            </div>
                                             @php
                                                 $departure = \Carbon\Carbon::parse($bus['DepartureTime']);
                                                 $arrival = isset($bus['ArrivalTime'])
@@ -312,8 +292,11 @@
                                                     : $departure->copy()->addHours(4);
                                                 $duration = $departure->diffInHours($arrival);
                                             @endphp
-                                            <small class="text-muted">Duration: {{ $duration }}h</small>
-                                            <br>
+                                            <div class="d-flex justify-content-between align-items-center my-2">
+                                                <strong class="text-dark">{{ $departure->format('h:i A') }}</strong>
+                                                <span class="mx-2 text-muted">o—{{ $duration }}h—o</span>
+                                                <strong class="text-dark">{{ $arrival->format('h:i A') }}</strong>
+                                            </div>
                                             <small class="text-muted">{{ $bus['AvailableSeats'] ?? 'N/A' }} seats</small>
                                         </div>
                                     </div>
@@ -332,27 +315,30 @@
                                             @endif
                                         </div>
                                     </div>
-
-                                    <!-- Price & Select Button -->
-                                    <div class="col-md-2 text-right">
-                                        <div class="price-section">
-                                            <h5 class="text-primary mb-1">
-                                                ₹{{ number_format($bus['BusPrice']['PublishedPrice'] ?? ($bus['BusPrice']['BasePrice'] ?? 0), 0) }}
-                                            </h5>
-                                            <small class="text-muted"
-                                                style="font-size: 0.75rem; color: #6c757d;">@lang('starting from')</small>
-                                            <br>
-                                            <button class="btn btn-primary btn-sm mt-2 select-bus-btn"
-                                                data-bus-id="{{ $bus['ResultIndex'] }}"
-                                                data-bus-name="{{ $bus['TravelName'] ?? ($bus['ServiceName'] ?? 'Bus Service') }}"
-                                                data-operator="{{ $bus['ServiceName'] ?? 'Bus Operator' }}"
-                                                data-price="{{ $bus['BusPrice']['PublishedPrice'] ?? ($bus['BusPrice']['BasePrice'] ?? 0) }}">
-                                                @lang('Select Bus')
-                                            </button>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
+
+                            <!-- Price & Select Button -->
+                            <div class="d-flex justify-content-between align-items-center p-2">
+                                <div class="px-2">
+                                    <small class="text-muted"
+                                        style="font-size: 0.65rem; color: #6c757d;">@lang('starting from')</small>
+                                    <h5 class="text-primary mb-1">
+                                        ₹{{ number_format($bus['BusPrice']['PublishedPrice'] ?? ($bus['BusPrice']['BasePrice'] ?? 0), 0) }}
+                                    </h5>
+                                    <br>
+                                </div>
+                                <div>
+                                    <button class="btn btn-primary btn-sm select-bus-btn"
+                                        data-bus-id="{{ $bus['ResultIndex'] }}"
+                                        data-bus-name="{{ $bus['TravelName'] ?? ($bus['ServiceName'] ?? 'Bus Service') }}"
+                                        data-operator="{{ $bus['ServiceName'] ?? 'Bus Operator' }}"
+                                        data-price="{{ $bus['BusPrice']['PublishedPrice'] ?? ($bus['BusPrice']['BasePrice'] ?? 0) }}">
+                                        @lang('Select Bus')
+                                    </button>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 @endforeach

@@ -270,44 +270,52 @@
 
 @push('script')
     <script>
-        $(document).ready(function() {
-            // Auto-refresh stats every 30 seconds
-            setInterval(function() {
-                $.get('{{ route('agent.dashboard') }}/data')
-                    .done(function(data) {
-                        if (data.success) {
-                            updateStats(data.data);
-                        }
-                    })
-                    .fail(function() {
-                        console.log('Failed to refresh stats');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if jQuery is available
+            if (typeof jQuery === 'undefined') {
+                console.error('jQuery not loaded on dashboard');
+                return;
+            }
+
+            jQuery(document).ready(function($) {
+                // Auto-refresh stats every 30 seconds
+                setInterval(function() {
+                    $.get('{{ route('agent.dashboard') }}/data')
+                        .done(function(data) {
+                            if (data.success) {
+                                updateStats(data.data);
+                            }
+                        })
+                        .fail(function() {
+                            console.log('Failed to refresh stats');
+                        });
+                }, 30000);
+
+                // Update stats display
+                function updateStats(stats) {
+                    $('.stat-card').eq(0).find('.stat-number').text(stats.total_bookings);
+                    $('.stat-card').eq(1).find('.stat-number').text(stats.today_bookings);
+                    $('.stat-card').eq(2).find('.stat-number').text('₹' + stats.total_earnings);
+                    $('.stat-card').eq(3).find('.stat-number').text('₹' + stats.monthly_earnings);
+                }
+
+                // Show offline indicator if needed
+                if (!navigator.onLine) {
+                    iziToast.warning({
+                        title: 'Offline Mode',
+                        message: 'You are currently offline. Some features may be limited.'
                     });
-            }, 30000);
+                }
 
-            // Update stats display
-            function updateStats(stats) {
-                $('.stat-card').eq(0).find('.stat-number').text(stats.total_bookings);
-                $('.stat-card').eq(1).find('.stat-number').text(stats.today_bookings);
-                $('.stat-card').eq(2).find('.stat-number').text('₹' + stats.total_earnings);
-                $('.stat-card').eq(3).find('.stat-number').text('₹' + stats.monthly_earnings);
-            }
-
-            // Show offline indicator if needed
-            if (!navigator.onLine) {
-                iziToast.warning({
-                    title: 'Offline Mode',
-                    message: 'You are currently offline. Some features may be limited.'
-                });
-            }
-
-            // Check for pending verification
-            @if ($agent->status === 'pending')
-                iziToast.info({
-                    title: 'Account Verification',
-                    message: 'Your account is pending admin verification. Some features may be limited.',
-                    timeout: 10000
-                });
-            @endif
+                // Check for pending verification
+                @if ($agent->status === 'pending')
+                    iziToast.info({
+                        title: 'Account Verification',
+                        message: 'Your account is pending admin verification. Some features may be limited.',
+                        timeout: 10000
+                    });
+                @endif
+            });
         });
     </script>
 @endpush

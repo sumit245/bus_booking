@@ -1,23 +1,23 @@
 @extends('agent.layouts.app')
 
 @section('panel')
-    <div class="container-fluid">
+    <div class="container-fluid px-0">
         <!-- Booking Header -->
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h5 class="mb-1">
-                            <i class="las la-route text-primary"></i>
+        <div class="card mb-2">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="mb-0 text-dark" style="font-size: 0.9rem; font-weight: 600;">
+                            {{-- <i class="las la-route text-primary"></i> --}}
                             {{ $originCity->city_name }} → {{ $destinationCity->city_name }}
-                        </h5>
-                        <p class="text-muted mb-0">
-                            <i class="las la-calendar"></i>
-                            {{ \Carbon\Carbon::parse(session('date_of_journey'))->format('l, F j, Y') }}
-                        </p>
+                        </h6>
+                        <small class="text-muted">
+                            <i class="las la-calendar me-1"></i>
+                            {{ \Carbon\Carbon::parse(session('date_of_journey'))->format('M j') }}
+                        </small>
                     </div>
-                    <div class="col-md-4 text-right">
-                        <a href="{{ route('agent.search') }}" class="btn btn-outline-primary">
+                    <div>
+                        <a href="{{ route('agent.search') }}" class="btn btn-sm btn-outline-primary">
                             <i class="las la-search"></i>
                             @lang('New Search')
                         </a>
@@ -26,9 +26,37 @@
             </div>
         </div>
 
+        <!-- Mobile Layout: Boarding/Dropping Points First -->
+        <div class="d-block d-lg-none">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="las la-map-marker"></i>
+                        @lang('Boarding & Dropping Points')
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <label class="form-label">@lang('Boarding Point') *</label>
+                            <select class="form-control" id="boarding_point_select_mobile" required>
+                                <option value="">@lang('Select Boarding Point')</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">@lang('Dropping Point') *</label>
+                            <select class="form-control" id="dropping_point_select_mobile" required>
+                                <option value="">@lang('Select Dropping Point')</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <!-- Left Column - Customer Details -->
-            <div class="col-lg-4 col-md-4">
+            <div class="col-lg-4 col-md-4 order-2 order-lg-1">
                 <div class="card">
                     <div class="card-header">
                         <h6 class="mb-0">
@@ -109,21 +137,24 @@
                             <input type="hidden" name="agent_id" value="{{ auth('agent')->id() }}">
                             <input type="hidden" name="booking_source" value="agent">
 
-                            <button type="submit" class="btn btn-primary w-100" id="bookButton" disabled>
-                                <i class="las la-credit-card"></i>
-                                @lang('Continue to Payment')
-                            </button>
+                            <!-- Desktop Button -->
+                            <div class="d-none d-lg-block">
+                                <button type="submit" class="btn btn-primary w-100" id="bookButton" disabled>
+                                    <i class="las la-credit-card"></i>
+                                    @lang('Continue to Payment')
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
             </div>
 
             <!-- Right Column - Seat Selection -->
-            <div class="col-lg-8 col-md-8">
+            <div class="col-lg-8 col-md-8 order-1 order-lg-2">
                 <div class="card">
                     <div class="card-header">
                         <h6 class="mb-0">
-                            <i class="las la-chair"></i>
+                            <i class="las la-bus"></i>
                             @lang('Select Seats')
                         </h6>
                     </div>
@@ -136,13 +167,6 @@
                                     'parsedLayout' => $parsedLayout,
                                     'isOperatorBus' => $isOperatorBus,
                                 ])
-                                <script>
-                                    console.log('Seat layout rendered:', {
-                                        seatHtml: @json($seatHtml ? 'Present' : 'Empty'),
-                                        parsedLayout: @json($parsedLayout ? 'Present' : 'Empty'),
-                                        isOperatorBus: @json($isOperatorBus)
-                                    });
-                                </script>
                             @else
                                 <div class="alert alert-warning">
                                     <i class="las la-exclamation-triangle"></i>
@@ -172,27 +196,47 @@
                             </div>
                         </div>
 
-                        <!-- Boarding & Dropping Points -->
-                        <div class="row mt-4">
-                            <div class="col-md-6">
-                                <label class="form-label">@lang('Boarding Point') *</label>
-                                <select class="form-control" id="boarding_point_select" required>
-                                    <option value="">@lang('Select Boarding Point')</option>
-                                    <!-- Boarding points will be loaded dynamically -->
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">@lang('Dropping Point') *</label>
-                                <select class="form-control" id="dropping_point_select" required>
-                                    <option value="">@lang('Select Dropping Point')</option>
-                                    <!-- Dropping points will be loaded dynamically -->
-                                </select>
+                        <!-- Desktop Boarding & Dropping Points -->
+                        <div class="d-none d-lg-block">
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">@lang('Boarding Point') *</label>
+                                    <select class="form-control" id="boarding_point_select" required>
+                                        <option value="">@lang('Select Boarding Point')</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@lang('Dropping Point') *</label>
+                                    <select class="form-control" id="dropping_point_select" required>
+                                        <option value="">@lang('Select Dropping Point')</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Mobile Sticky Bottom Bar -->
+        <div class="d-block d-lg-none">
+            <div class="mobile-sticky-bar">
+                <div class="container-fluid px-0">
+                    <div class="d-flex"></div>
+                    <button type="button" class="btn btn-outline-secondary w-48" id="resetButton">
+                        <i class="las la-undo"></i>
+                        @lang('Reset')
+                    </button>
+                    <button type="submit" form="agentBookingForm" class="btn btn-primary w-48 mx-1"
+                        id="bookButtonMobile" disabled>
+                        <i class="las la-credit-card"></i>
+                        @lang('Proceed to Pay')
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     </div>
 @endsection
 
@@ -213,6 +257,11 @@
             // Handle commission input change
             document.getElementById('commissionInput').addEventListener('input', updateBookingSummary);
 
+            // Handle reset button
+            document.getElementById('resetButton').addEventListener('click', function() {
+                resetForm();
+            });
+
             // Handle form submission
             document.getElementById('agentBookingForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -227,11 +276,19 @@
                     return;
                 }
 
-                // Set hidden field values
-                document.getElementById('boarding_point_index').value = document.getElementById(
-                    'boarding_point_select').value;
-                document.getElementById('dropping_point_index').value = document.getElementById(
-                    'dropping_point_select').value;
+                // Set hidden field values - handle both desktop and mobile
+                const boardingSelect = document.getElementById('boarding_point_select');
+                const droppingSelect = document.getElementById('dropping_point_select');
+                const boardingSelectMobile = document.getElementById('boarding_point_select_mobile');
+                const droppingSelectMobile = document.getElementById('dropping_point_select_mobile');
+
+                if (boardingSelect && droppingSelect) {
+                    document.getElementById('boarding_point_index').value = boardingSelect.value;
+                    document.getElementById('dropping_point_index').value = droppingSelect.value;
+                } else if (boardingSelectMobile && droppingSelectMobile) {
+                    document.getElementById('boarding_point_index').value = boardingSelectMobile.value;
+                    document.getElementById('dropping_point_index').value = droppingSelectMobile.value;
+                }
                 document.getElementById('selected_seats').value = selectedSeats.join(',');
                 document.getElementById('total_price').value = baseFare + commissionAmount;
 
@@ -283,30 +340,39 @@
             selectedSeats.forEach((seatId, index) => {
                 const passengerDiv = document.createElement('div');
                 passengerDiv.className = 'passenger-card mb-2';
+
+                // Get language strings
+                const fullNamePlaceholder = '{{ __('Full Name') }}';
+                const agePlaceholder = '{{ __('Age') }}';
+                const genderText = '{{ __('Gender') }}';
+                const maleText = '{{ __('Male') }}';
+                const femaleText = '{{ __('Female') }}';
+                const otherText = '{{ __('Other') }}';
+
                 passengerDiv.innerHTML = `
-                    <div class="passenger-header">
-                        <span class="passenger-number">P${index + 1}</span>
-                        <span class="seat-badge">Seat ${seatId}</span>
-                    </div>
-                    <div class="passenger-fields">
-                        <div class="field-group">
-                            <input type="text" class="form-control" name="passenger_names[]" required 
-                                placeholder="@lang('Full Name')" data-seat="${seatId}">
-                        </div>
-                        <div class="field-group">
-                            <input type="number" class="form-control" name="passenger_ages[]" required 
-                                min="1" max="120" placeholder="@lang('Age')" data-seat="${seatId}">
-                        </div>
-                        <div class="field-group">
-                            <select class="form-control" name="passenger_genders[]" required data-seat="${seatId}">
-                                <option value="">@lang('Gender')</option>
-                                <option value="1">@lang('Male')</option>
-                                <option value="2">@lang('Female')</option>
-                                <option value="3">@lang('Other')</option>
-                            </select>
-                        </div>
-                    </div>
-                `;
+                                    <div class="passenger-header">
+                                        <span class="passenger-number">P${index + 1}</span>
+                                        <span class="seat-badge">Seat ${seatId}</span>
+                                    </div>
+                                    <div class="passenger-fields">
+                                        <div class="field-group">
+                                            <input type="text" class="form-control" name="passenger_names[]" required 
+                                                placeholder="${fullNamePlaceholder}" data-seat="${seatId}">
+                                        </div>
+                                        <div class="field-group">
+                                            <input type="number" class="form-control" name="passenger_ages[]" required 
+                                                min="1" max="120" placeholder="${agePlaceholder}" data-seat="${seatId}">
+                                        </div>
+                                        <div class="field-group">
+                                            <select class="form-control" name="passenger_genders[]" required data-seat="${seatId}">
+                                                <option value="">${genderText}</option>
+                                                <option value="1">${maleText}</option>
+                                                <option value="2">${femaleText}</option>
+                                                <option value="3">${otherText}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                `;
                 container.appendChild(passengerDiv);
             });
         }
@@ -328,20 +394,45 @@
 
         function updateBookButton() {
             const bookButton = document.getElementById('bookButton');
+            const bookButtonMobile = document.getElementById('bookButtonMobile');
             const hasSeats = selectedSeats.length > 0;
-            const hasBoardingPoint = document.getElementById('boarding_point_select').value;
-            const hasDroppingPoint = document.getElementById('dropping_point_select').value;
 
-            bookButton.disabled = !(hasSeats && hasBoardingPoint && hasDroppingPoint);
+            // Check desktop boarding points
+            const boardingSelect = document.getElementById('boarding_point_select');
+            const droppingSelect = document.getElementById('dropping_point_select');
+
+            // Check mobile boarding points
+            const boardingSelectMobile = document.getElementById('boarding_point_select_mobile');
+            const droppingSelectMobile = document.getElementById('dropping_point_select_mobile');
+
+            let hasBoardingPoint = false;
+            let hasDroppingPoint = false;
+
+            if (boardingSelect && droppingSelect) {
+                hasBoardingPoint = boardingSelect.value;
+                hasDroppingPoint = droppingSelect.value;
+            } else if (boardingSelectMobile && droppingSelectMobile) {
+                hasBoardingPoint = boardingSelectMobile.value;
+                hasDroppingPoint = droppingSelectMobile.value;
+            }
+
+            const isFormValid = hasSeats && hasBoardingPoint && hasDroppingPoint;
+
+            if (bookButton) bookButton.disabled = !isFormValid;
+            if (bookButtonMobile) bookButtonMobile.disabled = !isFormValid;
         }
 
         function loadBoardingPoints() {
             const boardingSelect = document.getElementById('boarding_point_select');
             const droppingSelect = document.getElementById('dropping_point_select');
+            const boardingSelectMobile = document.getElementById('boarding_point_select_mobile');
+            const droppingSelectMobile = document.getElementById('dropping_point_select_mobile');
 
             // Show loading state
-            boardingSelect.innerHTML = '<option value="">@lang('Loading...')</option>';
-            droppingSelect.innerHTML = '<option value="">@lang('Loading...')</option>';
+            if (boardingSelect) boardingSelect.innerHTML = '<option value="">@lang('Loading...')</option>';
+            if (droppingSelect) droppingSelect.innerHTML = '<option value="">@lang('Loading...')</option>';
+            if (boardingSelectMobile) boardingSelectMobile.innerHTML = '<option value="">@lang('Loading...')</option>';
+            if (droppingSelectMobile) droppingSelectMobile.innerHTML = '<option value="">@lang('Loading...')</option>';
 
             // Load boarding points from API
             fetch('{{ route('agent.booking.boarding-points') }}', {
@@ -368,32 +459,60 @@
                 });
 
             // Add event listeners for validation
-            boardingSelect.addEventListener('change', updateBookButton);
-            droppingSelect.addEventListener('change', updateBookButton);
+            if (boardingSelect) boardingSelect.addEventListener('change', updateBookButton);
+            if (droppingSelect) droppingSelect.addEventListener('change', updateBookButton);
+            if (boardingSelectMobile) boardingSelectMobile.addEventListener('change', updateBookButton);
+            if (droppingSelectMobile) droppingSelectMobile.addEventListener('change', updateBookButton);
         }
 
         function populateBoardingPoints(points) {
             const select = document.getElementById('boarding_point_select');
-            select.innerHTML = '<option value="">@lang('Select Boarding Point')</option>';
+            const selectMobile = document.getElementById('boarding_point_select_mobile');
 
-            points.forEach(point => {
-                const option = document.createElement('option');
-                option.value = point.CityPointIndex;
-                option.textContent = point.CityPointName;
-                select.appendChild(option);
-            });
+            if (select) {
+                select.innerHTML = '<option value="">@lang('Select Boarding Point')</option>';
+                points.forEach(point => {
+                    const option = document.createElement('option');
+                    option.value = point.CityPointIndex;
+                    option.textContent = point.CityPointName;
+                    select.appendChild(option);
+                });
+            }
+
+            if (selectMobile) {
+                selectMobile.innerHTML = '<option value="">@lang('Select Boarding Point')</option>';
+                points.forEach(point => {
+                    const option = document.createElement('option');
+                    option.value = point.CityPointIndex;
+                    option.textContent = point.CityPointName;
+                    selectMobile.appendChild(option);
+                });
+            }
         }
 
         function populateDroppingPoints(points) {
             const select = document.getElementById('dropping_point_select');
-            select.innerHTML = '<option value="">@lang('Select Dropping Point')</option>';
+            const selectMobile = document.getElementById('dropping_point_select_mobile');
 
-            points.forEach(point => {
-                const option = document.createElement('option');
-                option.value = point.CityPointIndex;
-                option.textContent = point.CityPointName;
-                select.appendChild(option);
-            });
+            if (select) {
+                select.innerHTML = '<option value="">@lang('Select Dropping Point')</option>';
+                points.forEach(point => {
+                    const option = document.createElement('option');
+                    option.value = point.CityPointIndex;
+                    option.textContent = point.CityPointName;
+                    select.appendChild(option);
+                });
+            }
+
+            if (selectMobile) {
+                selectMobile.innerHTML = '<option value="">@lang('Select Dropping Point')</option>';
+                points.forEach(point => {
+                    const option = document.createElement('option');
+                    option.value = point.CityPointIndex;
+                    option.textContent = point.CityPointName;
+                    selectMobile.appendChild(option);
+                });
+            }
         }
 
         function showError(message) {
@@ -446,6 +565,43 @@
             }
 
             return isValid;
+        }
+
+        function resetForm() {
+            // Clear selected seats
+            selectedSeats = [];
+            baseFare = 0;
+            commissionAmount = 0;
+
+            // Remove selected class from all seats
+            document.querySelectorAll('.seat.selected').forEach(seat => {
+                seat.classList.remove('selected');
+            });
+
+            // Clear passenger details
+            document.getElementById('passengerDetails').innerHTML =
+                '<div class="text-muted text-center py-3"><i class="las la-info-circle"></i> Select seats to add passenger details</div>';
+
+            // Reset commission input
+            document.getElementById('commissionInput').value = 0;
+
+            // Reset boarding/dropping points
+            const boardingSelect = document.getElementById('boarding_point_select');
+            const droppingSelect = document.getElementById('dropping_point_select');
+            const boardingSelectMobile = document.getElementById('boarding_point_select_mobile');
+            const droppingSelectMobile = document.getElementById('dropping_point_select_mobile');
+
+            if (boardingSelect) boardingSelect.value = '';
+            if (droppingSelect) droppingSelect.value = '';
+            if (boardingSelectMobile) boardingSelectMobile.value = '';
+            if (droppingSelectMobile) droppingSelectMobile.value = '';
+
+            // Update UI
+            updateBookingSummary();
+            updateBookButton();
+
+            // Scroll to top
+            window.scrollTo(0, 0);
         }
     </script>
 @endpush
@@ -600,6 +756,22 @@
             font-size: 0.8rem;
         }
 
+        /* Mobile Sticky Bar */
+        .mobile-sticky-bar {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 15px;
+            z-index: 1000;
+        }
+
+        /* Add bottom padding to body on mobile to prevent content from being hidden behind sticky bar */
+        @media (max-width: 991px) {
+            body {
+                padding-bottom: 80px;
+            }
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .passenger-fields {
@@ -609,6 +781,26 @@
 
             .passenger-card {
                 padding: 10px;
+            }
+
+            /* Ensure proper spacing for mobile layout */
+            .order-1 {
+                order: 1;
+            }
+
+            .order-2 {
+                order: 2;
+            }
+        }
+
+        /* Desktop Layout */
+        @media (min-width: 992px) {
+            .order-lg-1 {
+                order: 1;
+            }
+
+            .order-lg-2 {
+                order: 2;
             }
         }
     </style>

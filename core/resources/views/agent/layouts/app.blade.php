@@ -347,12 +347,14 @@
             }
         });
 
-        // CSRF Token for AJAX
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        });
+        // CSRF Token for AJAX - wait for jQuery to be available
+        if (typeof jQuery !== 'undefined') {
+            jQuery.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': jQuery('meta[name="csrf-token"]').attr('content')
+                }
+            });
+        }
     </script>
 
     @stack('script')

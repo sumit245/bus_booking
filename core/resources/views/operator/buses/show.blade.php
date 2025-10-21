@@ -484,6 +484,9 @@
                         <a href="{{ route('operator.buses.edit', $bus->id) }}" class="btn btn--primary">
                             <i class="la la-pen"></i> @lang('Edit Bus')
                         </a>
+                        <a href="{{ route('operator.buses.cancellation-policy.show', $bus->id) }}" class="btn btn--info">
+                            <i class="la la-ban"></i> @lang('Cancellation Policy')
+                        </a>
                         <a href="{{ route('operator.buses.index') }}" class="btn btn--secondary">
                             <i class="la la-angle-double-left"></i> @lang('Back to List')
                         </a>

@@ -458,6 +458,10 @@ Route::name('operator.')->prefix('operator')->group(function () {
             ]);
             Route::patch('seat-layouts/{seatLayout}/toggle-status', 'Operator\SeatLayoutController@toggleStatus')->name('seat-layouts.toggle-status');
             Route::post('seat-layouts/preview', 'Operator\SeatLayoutController@preview')->name('seat-layouts.preview');
+
+            // Cancellation Policy Management
+            Route::get('cancellation-policy', 'Operator\BusController@showCancellationPolicy')->name('cancellation-policy.show');
+            Route::put('cancellation-policy', 'Operator\BusController@updateCancellationPolicy')->name('cancellation-policy.update');
         });
 
         // Staff Management

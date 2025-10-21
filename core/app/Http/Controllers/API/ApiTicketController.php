@@ -151,6 +151,13 @@ class ApiTicketController extends Controller
         $startTime = microtime(true);
 
         try {
+            Log::info('API showSeat called', [
+                'request_data' => $request->all(),
+                'headers' => $request->headers->all(),
+                'method' => $request->method(),
+                'url' => $request->url()
+            ]);
+
             $validated = $request->validate([
                 'SearchTokenId' => 'required|string',
                 'ResultIndex' => 'required|string',
@@ -159,10 +166,24 @@ class ApiTicketController extends Controller
             $searchTokenId = $validated['SearchTokenId'];
             $resultIndex = $validated['ResultIndex'];
 
+            Log::info('API showSeat validated input', [
+                'search_token_id' => $searchTokenId,
+                'result_index' => $resultIndex,
+                'is_operator_bus' => str_starts_with($resultIndex, 'OP_')
+            ]);
+
             // Check if this is an operator bus (ResultIndex starts with 'OP_')
             if (str_starts_with($resultIndex, 'OP_')) {
+                Log::info('API showSeat: Processing operator bus', [
+                    'result_index' => $resultIndex
+                ]);
                 return $this->handleOperatorBusSeatLayout($resultIndex, $searchTokenId);
             }
+
+            Log::info('API showSeat: Processing third-party bus', [
+                'result_index' => $resultIndex,
+                'search_token_id' => $searchTokenId
+            ]);
 
             // Create a unique cache key for this specific seat layout request.
             $cacheKey = "seat_layout_{$searchTokenId}_{$resultIndex}";
@@ -172,46 +193,95 @@ class ApiTicketController extends Controller
             // This is the core of the performance improvement.
             $data = Cache::remember($cacheKey, $cacheDurationInMinutes * 60, function () use ($resultIndex, $searchTokenId, $cacheKey) {
 
-                Log::info("CACHE MISS: Fetching and parsing layout for key: {$cacheKey}");
+                Log::info("API showSeat: Third-party bus CACHE MISS - Fetching from API for key: {$cacheKey}", [
+                    'result_index' => $resultIndex,
+                    'search_token_id' => $searchTokenId
+                ]);
 
                 // This block only runs if the data is NOT in the cache.
                 $response = getAPIBusSeats($resultIndex, $searchTokenId);
 
+                Log::info('API showSeat: Third-party API response received', [
+                    'result_index' => $resultIndex,
+                    'response_keys' => array_keys($response ?? []),
+                    'has_error' => isset($response['Error']),
+                    'error_code' => $response['Error']['ErrorCode'] ?? null,
+                    'error_message' => $response['Error']['ErrorMessage'] ?? null,
+                    'has_result' => isset($response['Result'])
+                ]);
+
                 if (!isset($response['Error']['ErrorCode']) || $response['Error']['ErrorCode'] != 0) {
                     $errorMessage = $response['Error']['ErrorMessage'] ?? 'Failed to retrieve seat layout from the provider.';
+                    Log::error('API showSeat: Third-party API error', [
+                        'error_message' => $errorMessage,
+                        'full_response' => $response
+                    ]);
                     // By returning null, we prevent caching a failed API response.
                     // Throwing an exception is cleaner to handle it outside the cache block.
                     throw new \RuntimeException($errorMessage);
                 }
 
+                if (!isset($response['Result']['HTMLLayout'])) {
+                    Log::error('API showSeat: Third-party API missing HTMLLayout', [
+                        'result_keys' => array_keys($response['Result'] ?? [])
+                    ]);
+                    throw new \RuntimeException('HTMLLayout not found in API response');
+                }
+
                 $htmlLayout = $response['Result']['HTMLLayout'];
+
+                Log::info('API showSeat: Third-party bus HTML layout received', [
+                    'html_length' => strlen($htmlLayout),
+                    'html_preview' => substr($htmlLayout, 0, 100) . '...'
+                ]);
 
                 // --- THIS IS THE SLOW OPERATION ---
                 $parsedLayout = parseSeatHtmlToJson($htmlLayout); // Your existing slow helper is called here.
-                Log::info('Parsed layout: ', $parsedLayout);
+
+                Log::info('API showSeat: Third-party bus layout parsed', [
+                    'parsed_layout_type' => gettype($parsedLayout),
+                    'available_seats' => $response['Result']['AvailableSeats'] ?? 0
+                ]);
+
                 return [
                     'html' => $parsedLayout,
                     'availableSeats' => $response['Result']['AvailableSeats']
                 ];
             });
 
-            Log::info("CACHE HIT: Served layout from cache for key: {$cacheKey}");
+            Log::info("API showSeat: Third-party bus - CACHE HIT: Served layout from cache for key: {$cacheKey}", [
+                'cached_data_keys' => array_keys($data),
+                'available_seats' => $data['availableSeats'] ?? 0
+            ]);
+
             return response()->json($data, 200);
 
         } catch (ValidationException $e) {
-            Log::warning('Validation failed for showSeat:', ['errors' => $e->errors()]);
+            Log::warning('API showSeat: Validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
             return response()->json(['error' => 'Invalid input provided.', 'details' => $e->errors()], 422);
         } catch (\RuntimeException $e) {
             // This catches API errors from inside the cache block.
-            Log::error('API Error in showSeat:', ['error' => $e->getMessage()]);
+            Log::error('API showSeat: Runtime error', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all()
+            ]);
             return response()->json(['error' => $e->getMessage()], 400);
         } catch (\Exception $e) {
-            Log::critical('Critical error in showSeat:', ['message' => $e->getMessage()]);
+            Log::critical('API showSeat: Critical error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'request_data' => $request->all(),
+                'stack_trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['error' => 'An unexpected server error occurred.'], 500);
         } finally {
             $endTime = microtime(true);
             $executionTime = ($endTime - $startTime) * 1000;
-            Log::info(sprintf('showSeat request-response cycle took %.2f ms.', $executionTime));
+            Log::info(sprintf('API showSeat: Request-response cycle completed in %.2f ms.', $executionTime));
         }
     }
 
@@ -464,42 +534,154 @@ class ApiTicketController extends Controller
     private function handleOperatorBusSeatLayout(string $resultIndex, string $searchTokenId)
     {
         try {
+            Log::info('API handleOperatorBusSeatLayout: Starting processing', [
+                'result_index' => $resultIndex,
+                'search_token_id' => $searchTokenId,
+                'is_operator_bus_request' => true
+            ]);
+
             // Extract operator bus ID from ResultIndex (OP_1 -> 1)
             $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
 
-            // Find the operator bus
+            Log::info('API handleOperatorBusSeatLayout: Extracted bus ID', [
+                'operator_bus_id' => $operatorBusId,
+                'original_result_index' => $resultIndex,
+                'extraction_successful' => $operatorBusId > 0
+            ]);
+
+            if ($operatorBusId <= 0) {
+                Log::error('API handleOperatorBusSeatLayout: Invalid bus ID extracted', [
+                    'result_index' => $resultIndex,
+                    'extracted_id' => $operatorBusId
+                ]);
+                return response()->json(['error' => 'Invalid operator bus ID in ResultIndex'], 400);
+            }
+
+            // Find the operator bus with error handling
             $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout'])->find($operatorBusId);
 
+            Log::info('API handleOperatorBusSeatLayout: Database query result', [
+                'operator_bus_found' => $operatorBus ? true : false,
+                'operator_bus_id' => $operatorBusId,
+                'query_executed' => true,
+                'bus_details' => $operatorBus ? [
+                    'id' => $operatorBus->id,
+                    'travel_name' => $operatorBus->travel_name,
+                    'bus_type' => $operatorBus->bus_type,
+                    'status' => $operatorBus->status ?? 'unknown',
+                    'has_active_seat_layout' => $operatorBus->activeSeatLayout ? true : false
+                ] : null
+            ]);
+
             if (!$operatorBus) {
-                return response()->json(['error' => 'Operator bus not found'], 404);
+                Log::error('API handleOperatorBusSeatLayout: Operator bus not found in database', [
+                    'operator_bus_id' => $operatorBusId,
+                    'result_index' => $resultIndex,
+                    'possible_causes' => [
+                        'Bus ID does not exist',
+                        'Bus was deleted',
+                        'Bus is inactive',
+                        'Database connection issue'
+                    ]
+                ]);
+                return response()->json([
+                    'error' => 'Operator bus not found',
+                    'bus_id' => $operatorBusId
+                ], 404);
             }
 
             $seatLayout = $operatorBus->activeSeatLayout;
 
+            Log::info('API handleOperatorBusSeatLayout: Seat layout validation', [
+                'seat_layout_exists' => $seatLayout ? true : false,
+                'has_html_layout' => $seatLayout && $seatLayout->html_layout ? true : false,
+                'seat_layout_id' => $seatLayout ? $seatLayout->id : null,
+                'layout_is_active' => $seatLayout ? $seatLayout->is_active : false,
+                'html_layout_length' => $seatLayout && $seatLayout->html_layout ? strlen($seatLayout->html_layout) : 0,
+                'total_seats' => $seatLayout ? $seatLayout->total_seats : 0
+            ]);
+
             if (!$seatLayout || !$seatLayout->html_layout) {
-                return response()->json(['error' => 'No seat layout available for this bus'], 404);
+                Log::error('API handleOperatorBusSeatLayout: No valid seat layout available', [
+                    'operator_bus_id' => $operatorBusId,
+                    'seat_layout_exists' => $seatLayout ? true : false,
+                    'html_layout_exists' => $seatLayout && $seatLayout->html_layout ? true : false,
+                    'layout_is_active' => $seatLayout ? $seatLayout->is_active : false,
+                    'possible_causes' => [
+                        'No seat layout assigned to bus',
+                        'Seat layout HTML is empty',
+                        'Seat layout is inactive',
+                        'Seat layout was deleted'
+                    ]
+                ]);
+                return response()->json([
+                    'error' => 'No seat layout available for this bus',
+                    'bus_id' => $operatorBusId,
+                    'details' => 'Seat layout not configured or inactive'
+                ], 404);
             }
 
-            // Parse the HTML layout using the existing helper
-            $parsedLayout = parseSeatHtmlToJson($seatLayout->html_layout);
-
-            Log::info('Operator bus seat layout parsed successfully', [
-                'operator_bus_id' => $operatorBusId,
-                'result_index' => $resultIndex
+            Log::info('API handleOperatorBusSeatLayout: Starting HTML layout parsing', [
+                'html_layout_preview' => substr($seatLayout->html_layout, 0, 200) . '...',
+                'parsing_function' => 'parseSeatHtmlToJson'
             ]);
 
-            return response()->json([
+            // Parse the HTML layout using the existing helper with error handling
+            try {
+                $parsedLayout = parseSeatHtmlToJson($seatLayout->html_layout);
+            } catch (\Exception $parseException) {
+                Log::error('API handleOperatorBusSeatLayout: HTML parsing failed', [
+                    'operator_bus_id' => $operatorBusId,
+                    'parse_error' => $parseException->getMessage(),
+                    'html_length' => strlen($seatLayout->html_layout)
+                ]);
+                return response()->json([
+                    'error' => 'Failed to parse seat layout',
+                    'details' => 'Seat layout HTML format is invalid'
+                ], 500);
+            }
+
+            Log::info('API handleOperatorBusSeatLayout: HTML layout parsed successfully', [
+                'operator_bus_id' => $operatorBusId,
+                'result_index' => $resultIndex,
+                'parsed_layout_type' => gettype($parsedLayout),
+                'parsed_layout_keys' => is_array($parsedLayout) ? array_keys($parsedLayout) : [],
+                'available_seats' => $operatorBus->available_seats ?? $seatLayout->total_seats,
+                'total_seats' => $seatLayout->total_seats,
+                'parsing_successful' => true
+            ]);
+
+            $responseData = [
                 'html' => $parsedLayout,
-                'availableSeats' => $operatorBus->available_seats ?? $seatLayout->total_seats
-            ], 200);
+                'availableSeats' => $operatorBus->available_seats ?? $seatLayout->total_seats,
+                'busDetails' => [
+                    'busId' => $operatorBusId,
+                    'travelName' => $operatorBus->travel_name,
+                    'busType' => $operatorBus->bus_type,
+                    'totalSeats' => $seatLayout->total_seats
+                ]
+            ];
+
+            Log::info('API handleOperatorBusSeatLayout: Sending successful response', [
+                'response_data_keys' => array_keys($responseData),
+                'html_is_array' => is_array($responseData['html']),
+                'available_seats' => $responseData['availableSeats'],
+                'response_size_estimate' => strlen(json_encode($responseData)) . ' characters'
+            ]);
+
+            return response()->json($responseData, 200);
 
         } catch (\Exception $e) {
-            Log::error('Error handling operator bus seat layout:', [
+            Log::error('API handleOperatorBusSeatLayout: Exception caught', [
                 'result_index' => $resultIndex,
-                'error' => $e->getMessage()
+                'search_token_id' => $searchTokenId,
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'stack_trace' => $e->getTraceAsString()
             ]);
 
-            return response()->json(['error' => 'Failed to retrieve seat layout'], 500);
+            return response()->json(['error' => 'Failed to retrieve seat layout: ' . $e->getMessage()], 500);
         }
     }
 

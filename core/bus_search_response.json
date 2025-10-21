@@ -1,95 +1,12 @@
 {
-    "SearchTokenId": "0042d088425fd52b8d6b8352becf3bf3bcde4d6e",
+    "SearchTokenId": "675bbab73ba886c6ef19d8d87e19244f157ba60a",
     "trips": [
         {
-            "ResultIndex": "OP_1",
-            "ArrivalTime": "2025-10-23T00:00:00",
-            "AvailableSeats": 36,
-            "DepartureTime": "2025-10-22T00:00:00",
-            "RouteId": "OP_1_1",
-            "BusType": "Non Ac Seater (2+2)",
-            "ServiceName": "Seat Seller",
-            "TravelName": "Sutra Seva",
-            "IdProofRequired": false,
-            "IsDropPointMandatory": false,
-            "LiveTrackingAvailable": true,
-            "MTicketEnabled": true,
-            "MaxSeatsPerTicket": 6,
-            "OperatorId": 41,
-            "PartialCancellationAllowed": true,
-            "BoardingPointsDetails": [
-                {
-                    "CityPointIndex": 1,
-                    "CityPointLocation": "12 A",
-                    "CityPointName": "Kali Pahadi",
-                    "CityPointTime": "2025-10-22T18:02:00",
-                    "CityPointLandmark": null,
-                    "CityPointContactNumber": "09909230912"
-                },
-                {
-                    "CityPointIndex": 2,
-                    "CityPointLocation": "12 A",
-                    "CityPointName": "Main Bus Stand",
-                    "CityPointTime": "2025-10-22T20:02:00",
-                    "CityPointLandmark": null,
-                    "CityPointContactNumber": "09649240944"
-                }
-            ],
-            "DroppingPointsDetails": [
-                {
-                    "CityPointIndex": 1,
-                    "CityPointLocation": "Anand Vihar Petrol Pump",
-                    "CityPointName": "Anand Vihar",
-                    "CityPointTime": "2025-10-22T21:02:00",
-                    "CityPointLandmark": null,
-                    "CityPointContactNumber": "09909230912"
-                }
-            ],
-            "BusPrice": {
-                "BasePrice": 73.5,
-                "Tax": 0,
-                "OtherCharges": 0,
-                "Discount": 0,
-                "PublishedPrice": 83.5,
-                "OfferedPrice": 69.090000000000003410605131648480892181396484375,
-                "AgentCommission": 4.410000000000000142108547152020037174224853515625,
-                "ServiceCharges": 0,
-                "TDS": 0,
-                "GST": {
-                    "CGSTAmount": 0,
-                    "CGSTRate": 0,
-                    "IGSTAmount": 0,
-                    "IGSTRate": 18,
-                    "SGSTAmount": 0,
-                    "SGSTRate": 0,
-                    "TaxableAmount": 0
-                }
-            },
-            "CancellationPolicies": [
-                {
-                    "CancellationCharge": 10,
-                    "CancellationChargeType": 2,
-                    "PolicyString": "Till 2 hours before departure",
-                    "TimeBeforeDept": "2$-1",
-                    "FromDate": "2025-10-16T19:01:52",
-                    "ToDate": "2025-10-21T22:00:00"
-                },
-                {
-                    "CancellationCharge": 50,
-                    "CancellationChargeType": 2,
-                    "PolicyString": "Between 2 hours before departure - departure time",
-                    "TimeBeforeDept": "0$2",
-                    "FromDate": "2025-10-21T22:00:00",
-                    "ToDate": "2025-10-22T00:00:00"
-                }
-            ]
-        },
-        {
-            "ResultIndex": "TB-2",
-            "ArrivalTime": "2025-10-23T07:20:00",
+            "ResultIndex": "TB-21",
+            "ArrivalTime": "2025-11-02T07:20:00",
             "AvailableSeats": 1,
-            "DepartureTime": "2025-10-22T02:00:00",
-            "RouteId": "1000007954084279708",
+            "DepartureTime": "2025-11-01T02:00:00",
+            "RouteId": "1000007954184279708",
             "BusType": "Bharat Benz A/c Seater /sleeper (2+1)",
             "ServiceName": "Seat Seller",
             "TravelName": "Laxmi Holidays",
@@ -105,7 +22,7 @@
                     "CityPointIndex": 1,
                     "CityPointLocation": "Patna Bus Stand",
                     "CityPointName": "Patna Bus Stand",
-                    "CityPointTime": "2025-10-22T02:00:00"
+                    "CityPointTime": "2025-11-01T02:00:00"
                 }
             ],
             "DroppingPointsDetails": [
@@ -113,7 +30,7 @@
                     "CityPointIndex": 1,
                     "CityPointLocation": "ISBT KASHMIRI GATE INSIDE ARRIVAL PLATFORM NEAR 53 AND 54",
                     "CityPointName": "ISBT Kashmiri Gate",
-                    "CityPointTime": "2025-10-23T07:20:00"
+                    "CityPointTime": "2025-11-02T07:20:00"
                 }
             ],
             "BusPrice": {
@@ -140,58 +57,129 @@
                 {
                     "CancellationCharge": 15,
                     "CancellationChargeType": 2,
-                    "PolicyString": "Between 14:00 on 14 Oct 2025 - 14:00 on 18 Oct 2025",
-                    "TimeBeforeDept": "84$180",
-                    "FromDate": "2025-10-14T14:00:00",
-                    "ToDate": "2025-10-18T14:00:00"
-                },
-                {
-                    "CancellationCharge": 15,
-                    "CancellationChargeType": 2,
-                    "PolicyString": "Till 14:00 on 14 Oct 2025",
+                    "PolicyString": "Till 14:00 on 24 Oct 2025",
                     "TimeBeforeDept": "180$-1",
-                    "FromDate": "2025-10-17T00:31:51",
-                    "ToDate": "2025-10-14T14:00:00"
+                    "FromDate": "2025-10-21T02:48:24",
+                    "ToDate": "2025-10-24T14:00:00"
                 },
                 {
                     "CancellationCharge": 15,
                     "CancellationChargeType": 2,
-                    "PolicyString": "Between 14:00 on 18 Oct 2025 - 14:00 on 20 Oct 2025",
+                    "PolicyString": "Between 14:00 on 24 Oct 2025 - 14:00 on 28 Oct 2025",
+                    "TimeBeforeDept": "84$180",
+                    "FromDate": "2025-10-24T14:00:00",
+                    "ToDate": "2025-10-28T14:00:00"
+                },
+                {
+                    "CancellationCharge": 15,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 14:00 on 28 Oct 2025 - 14:00 on 30 Oct 2025",
                     "TimeBeforeDept": "36$84",
-                    "FromDate": "2025-10-18T14:00:00",
-                    "ToDate": "2025-10-20T14:00:00"
+                    "FromDate": "2025-10-28T14:00:00",
+                    "ToDate": "2025-10-30T14:00:00"
                 },
                 {
                     "CancellationCharge": 25,
                     "CancellationChargeType": 2,
-                    "PolicyString": "Between 14:00 on 20 Oct 2025 - 02:00 on 21 Oct 2025",
+                    "PolicyString": "Between 14:00 on 30 Oct 2025 - 02:00 on 31 Oct 2025",
                     "TimeBeforeDept": "24$36",
-                    "FromDate": "2025-10-20T14:00:00",
-                    "ToDate": "2025-10-21T02:00:00"
+                    "FromDate": "2025-10-30T14:00:00",
+                    "ToDate": "2025-10-31T02:00:00"
                 },
                 {
                     "CancellationCharge": 50,
                     "CancellationChargeType": 2,
-                    "PolicyString": "Between 02:00 on 21 Oct 2025 - 10:00 on 21 Oct 2025",
+                    "PolicyString": "Between 02:00 on 31 Oct 2025 - 10:00 on 31 Oct 2025",
                     "TimeBeforeDept": "16$24",
-                    "FromDate": "2025-10-21T02:00:00",
-                    "ToDate": "2025-10-21T10:00:00"
+                    "FromDate": "2025-10-31T02:00:00",
+                    "ToDate": "2025-10-31T10:00:00"
                 },
                 {
                     "CancellationCharge": 100,
                     "CancellationChargeType": 2,
-                    "PolicyString": "After 10:00 on 21 Oct 2025",
+                    "PolicyString": "After 10:00 on 31 Oct 2025",
                     "TimeBeforeDept": "0$16",
-                    "FromDate": "2025-10-21T10:00:00",
-                    "ToDate": "2025-10-23T07:20:00"
+                    "FromDate": "2025-10-31T10:00:00",
+                    "ToDate": "2025-11-02T07:20:00"
                 }
             ]
+        },
+        {
+            "ResultIndex": "OP_1_1",
+            "BusType": "Non Ac Seater (2+2)",
+            "TravelName": "Sutra Seva",
+            "ServiceName": "Seat Seller",
+            "DepartureTime": "2025-11-01T06:00:00",
+            "ArrivalTime": "2025-11-01T18:00:00",
+            "Duration": "12h 0m",
+            "Origin": "Patna",
+            "Destination": "Delhi",
+            "TotalSeats": 36,
+            "AvailableSeats": 36,
+            "LiveTrackingAvailable": true,
+            "MTicketEnabled": true,
+            "PartialCancellationAllowed": true,
+            "Description": "Non Ac Seater (2+2)",
+            "BusPrice": {
+                "BasePrice": 73.5,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 83.5,
+                "OfferedPrice": 69.090000000000003410605131648480892181396484375,
+                "AgentCommission": 4.410000000000000142108547152020037174224853515625,
+                "ServiceCharges": 0,
+                "TDS": 0,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "12 A",
+                    "CityPointName": "Kali Pahadi",
+                    "CityPointTime": "2025-11-01T18:02:00",
+                    "CityPointLandmark": null,
+                    "CityPointContactNumber": "09909230912"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "12 A",
+                    "CityPointName": "Main Bus Stand",
+                    "CityPointTime": "2025-11-01T20:02:00",
+                    "CityPointLandmark": null,
+                    "CityPointContactNumber": "09649240944"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Anand Vihar Petrol Pump",
+                    "CityPointName": "Anand Vihar",
+                    "CityPointTime": "2025-11-01T21:02:00",
+                    "CityPointLandmark": null,
+                    "CityPointContactNumber": "09909230912"
+                }
+            ],
+            "SeatLayout": "<div class=\"deck-section mb-3\"><h6 class=\"deck-label mb-2\">Upper Deck</h6><div class=\"outerseat\"><div class=\"busSeatlft\"><div class=\"upper\"></div></div><div class=\"busSeatrgt\"><div class=\"busSeat\"><div class=\"seatcontainer clearfix\"><div id=\"U1\" style=\"top:0px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U1','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U1</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U1\" style=\"top:0px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U1','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U1</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U3\" style=\"top:0px;left:80px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U3','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U3</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U5\" style=\"top:0px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U5','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U5</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U7\" style=\"top:0px;left:240px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U7','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U7</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U19\" style=\"top:40px;left:320px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U19','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U19</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U9\" style=\"top:0px;left:320px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U9','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U9</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U11\" style=\"top:40px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U11','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U11</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U13\" style=\"top:40px;left:80px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U13','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U13</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U15\" style=\"top:40px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U15','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U15</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U17\" style=\"top:40px;left:240px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U17','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U17</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U21\" style=\"top:130px;left:0px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U21','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U21</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"U23\" style=\"top:130px;left:80px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U23','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U23</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U25\" style=\"top:130px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U25','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U25</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U27\" style=\"top:130px;left:240px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U27','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U27</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"U29\" style=\"top:130px;left:320px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'U29','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>U29</div><div style='font-size:9px;'>₹0</div></div></div></div></div></div><div class=\"clr\"></div></div></div><div class=\"deck-section\"><h6 class=\"deck-label mb-2\">Lower Deck</h6><div class=\"outerlowerseat\"><div class=\"busSeatlft\"><div class=\"lower\"></div></div><div class=\"busSeatrgt\"><div class=\"busSeat\"><div class=\"seatcontainer clearfix\"><div id=\"1\" style=\"top:0px;left:0px;display:block;\" class=\"bhseat\" onclick=\"javascript:AddRemoveSeat(this,'1','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>1</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"21\" style=\"top:130px;left:0px;display:block;\" class=\"bseat\" onclick=\"javascript:AddRemoveSeat(this,'21','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>21</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"22\" style=\"top:130px;left:40px;display:block;\" class=\"bseat\" onclick=\"javascript:AddRemoveSeat(this,'22','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>22</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"23\" style=\"top:130px;left:80px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'23','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>23</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"24\" style=\"top:130px;left:120px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'24','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>24</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"25\" style=\"top:130px;left:160px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'25','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>25</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"26\" style=\"top:130px;left:200px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'26','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>26</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"27\" style=\"top:130px;left:240px;display:block;\" class=\"nseat\" onclick=\"javascript:AddRemoveSeat(this,'27','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>27</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"28\" style=\"top:130px;left:280px;display:block;\" class=\"bseat\" onclick=\"javascript:AddRemoveSeat(this,'28','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>28</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"29\" style=\"top:130px;left:320px;display:block;\" class=\"bseat\" onclick=\"javascript:AddRemoveSeat(this,'29','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>29</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"30\" style=\"top:130px;left:360px;display:block;\" class=\"bseat\" onclick=\"javascript:AddRemoveSeat(this,'30','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>30</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"11\" style=\"top:40px;left:0px;display:block;\" class=\"bhseat\" onclick=\"javascript:AddRemoveSeat(this,'11','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>11</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"3\" style=\"top:0px;left:80px;display:block;\" class=\"bhseat\" onclick=\"javascript:AddRemoveSeat(this,'3','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>3</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"5\" style=\"top:0px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'5','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>5</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"7\" style=\"top:0px;left:240px;display:block;\" class=\"bbbhseat\" onclick=\"javascript:AddRemoveSeat(this,'7','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>7</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"13\" style=\"top:40px;left:80px;display:block;\" class=\"bhseat\" onclick=\"javascript:AddRemoveSeat(this,'13','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>13</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"15\" style=\"top:40px;left:160px;display:block;\" class=\"hseat\" onclick=\"javascript:AddRemoveSeat(this,'15','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>15</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"17\" style=\"top:40px;left:240px;display:block;\" class=\"bbbhseat\" onclick=\"javascript:AddRemoveSeat(this,'17','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>17</div><div style='font-size:9px;'>₹0</div></div></div><div id=\"9\" style=\"top:0px;left:320px;display:block;\" class=\"bbbvseat\" onclick=\"javascript:AddRemoveSeat(this,'9','2000')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>9</div><div style='font-size:9px;'>₹2000</div></div></div><div id=\"10\" style=\"top:0px;left:360px;display:block;\" class=\"bbbvseat\" onclick=\"javascript:AddRemoveSeat(this,'10','0')\"><div style='font-size:10px;line-height:1.1;text-align:center;'><div style='font-weight:bold;'>10</div><div style='font-size:9px;'>₹0</div></div></div></div></div></div><div class=\"clr\"></div></div></div>",
+            "OperatorBusId": 1,
+            "OperatorRouteId": 1,
+            "IsOperatorBus": true,
+            "ScheduleId": 1,
+            "ScheduleName": "Morning Service"
         }
     ],
     "pagination": {
-        "total_results": 2,
-        "per_page": 20,
+        "total_results": 27,
+        "per_page": 50,
         "current_page": 1,
-        "has_more_pages": true
+        "has_more_pages": false
     }
 }

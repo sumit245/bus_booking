@@ -441,4 +441,87 @@ class BusController extends Controller
             return back()->withNotify($notify);
         }
     }
+
+    /**
+     * Show cancellation policy form for a bus.
+     */
+    public function showCancellationPolicy($id)
+    {
+        $pageTitle = "Cancellation Policy";
+        $operator = Auth::guard('operator')->user();
+        $bus = $operator->buses()->findOrFail($id);
+
+        return view('operator.buses.cancellation-policy', compact('pageTitle', 'bus'));
+    }
+
+    /**
+     * Update cancellation policy for a bus.
+     */
+    public function updateCancellationPolicy(Request $request, $id)
+    {
+        try {
+            $operator = Auth::guard('operator')->user();
+            $bus = $operator->buses()->findOrFail($id);
+
+            $useDefaultPolicy = $request->input('use_default_policy') === '1';
+
+            if ($useDefaultPolicy) {
+                // Use default policy
+                $bus->update([
+                    'use_default_cancellation_policy' => true,
+                    'cancellation_policy' => null
+                ]);
+            } else {
+                // Validate and save custom policy
+                $request->validate([
+                    'policies' => 'required|array|min:1',
+                    'policies.*.time_from' => 'required|numeric|min:0',
+                    'policies.*.time_to' => 'required|numeric|min:0',
+                    'policies.*.charge_type' => 'required|in:1,2',
+                    'policies.*.charge' => 'required|numeric|min:0',
+                    'policies.*.description' => 'nullable|string|max:255'
+                ]);
+
+                $policies = [];
+                foreach ($request->policies as $policy) {
+                    // Validate time range
+                    if ($policy['time_from'] >= $policy['time_to']) {
+                        $notify[] = ['error', 'Invalid time range: "From" time must be less than "To" time.'];
+                        return back()->withNotify($notify);
+                    }
+
+                    $policies[] = [
+                        'CancellationCharge' => (float) $policy['charge'],
+                        'CancellationChargeType' => (int) $policy['charge_type'],
+                        'PolicyString' => $policy['description'] ?: "Between {$policy['time_from']} to {$policy['time_to']} hours before departure",
+                        'TimeBeforeDept' => $policy['time_from'] . '$' . $policy['time_to']
+                    ];
+                }
+
+                $bus->update([
+                    'use_default_cancellation_policy' => false,
+                    'cancellation_policy' => $policies
+                ]);
+            }
+
+            Log::info('Cancellation policy updated', [
+                'bus_id' => $bus->id,
+                'operator_id' => $operator->id,
+                'use_default' => $useDefaultPolicy
+            ]);
+
+            $notify[] = ['success', 'Cancellation policy updated successfully!'];
+            return redirect()->route('operator.buses.show', $bus->id)->withNotify($notify);
+
+        } catch (\Exception $e) {
+            Log::error('Error updating cancellation policy', [
+                'error' => $e->getMessage(),
+                'bus_id' => $id,
+                'operator_id' => Auth::guard('operator')->id()
+            ]);
+
+            $notify[] = ['error', 'Failed to update cancellation policy. Please try again.'];
+            return back()->withNotify($notify);
+        }
+    }
 }

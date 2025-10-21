@@ -158,6 +158,59 @@ class OperatorBus extends Model
     }
 
     /**
+     * Get cancellation policies for this bus.
+     * Returns custom policies if available, otherwise default policies.
+     */
+    public function getCancellationPoliciesAttribute()
+    {
+        if (!$this->use_default_cancellation_policy && $this->cancellation_policy) {
+            return $this->cancellation_policy;
+        }
+
+        // Return default static policies
+        return $this->getDefaultCancellationPolicies();
+    }
+
+    /**
+     * Get default cancellation policies.
+     */
+    private function getDefaultCancellationPolicies(): array
+    {
+        return [
+            [
+                'CancellationCharge' => 100,
+                'CancellationChargeType' => 1,
+                'PolicyString' => 'More than 24 hours before departure',
+                'TimeBeforeDept' => '24$999',
+            ],
+            [
+                'CancellationCharge' => 25,
+                'CancellationChargeType' => 2,
+                'PolicyString' => 'Between 24 hours to 12 hours before departure',
+                'TimeBeforeDept' => '12$24',
+            ],
+            [
+                'CancellationCharge' => 50,
+                'CancellationChargeType' => 2,
+                'PolicyString' => 'Between 12 hours to 6 hours before departure',
+                'TimeBeforeDept' => '6$12',
+            ],
+            [
+                'CancellationCharge' => 75,
+                'CancellationChargeType' => 2,
+                'PolicyString' => 'Between 6 hours to 2 hours before departure',
+                'TimeBeforeDept' => '2$6',
+            ],
+            [
+                'CancellationCharge' => 90,
+                'CancellationChargeType' => 2,
+                'PolicyString' => 'Less than 2 hours before departure',
+                'TimeBeforeDept' => '0$2',
+            ]
+        ];
+    }
+
+    /**
      * Get bus display name.
      */
     public function getDisplayNameAttribute()

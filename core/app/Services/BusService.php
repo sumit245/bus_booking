@@ -304,7 +304,8 @@ class BusService
                     'CityPointContactNumber' => $point->contact_number,
                 ];
             })->toArray(),
-            'SeatLayout' => $bus->activeSeatLayout ? $bus->activeSeatLayout->html_layout : null,
+            'CancellationPolicies' => $this->getOperatorCancellationPoliciesWithDates($bus, $dateOfJourney),
+            // Removed SeatLayout from search results - not needed, use show-seats API instead
             'OperatorBusId' => $bus->id,
             'OperatorRouteId' => $route->id,
             'IsOperatorBus' => true,
@@ -675,5 +676,33 @@ class BusService
 
         // Ensure we don't return negative seats
         return max(0, $availableSeats);
+    }
+
+    /**
+     * Get cancellation policies for operator buses with proper date formatting.
+     * Uses custom policies if available, otherwise default policies.
+     */
+    private function getOperatorCancellationPoliciesWithDates(\App\Models\OperatorBus $bus, string $dateOfJourney): array
+    {
+        $journeyDate = Carbon::parse($dateOfJourney);
+
+        // Get policies from bus model (handles both custom and default)
+        $policies = $bus->cancellation_policies;
+
+        // Add proper date formatting to match third-party API format
+        return array_map(function ($policy) use ($journeyDate) {
+            $timeRange = explode('$', $policy['TimeBeforeDept']);
+            $timeFrom = (int) $timeRange[0];
+            $timeTo = isset($timeRange[1]) ? (int) $timeRange[1] : 999;
+
+            return [
+                'CancellationCharge' => $policy['CancellationCharge'],
+                'CancellationChargeType' => $policy['CancellationChargeType'],
+                'PolicyString' => $policy['PolicyString'],
+                'TimeBeforeDept' => $policy['TimeBeforeDept'],
+                'FromDate' => $journeyDate->copy()->subHours($timeTo)->format('Y-m-d\TH:i:s'),
+                'ToDate' => $journeyDate->copy()->subHours($timeFrom)->format('Y-m-d\TH:i:s')
+            ];
+        }, $policies);
     }
 }

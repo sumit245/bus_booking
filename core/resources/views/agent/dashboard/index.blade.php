@@ -3,7 +3,7 @@
 @section('title', 'Dashboard')
 
 @section('panel')
-    <div class="container-fluid">
+    <div class="container-fluid mt-0">
         <!-- Welcome Section -->
         <div class="card mb-3">
             <div class="card-body">

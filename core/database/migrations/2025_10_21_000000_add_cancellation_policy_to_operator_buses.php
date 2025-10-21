@@ -14,7 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::table('operator_buses', function (Blueprint $table) {
-            $table->json('cancellation_policy')->nullable()->after('gst_rate');
+            $table->json('cancellation_policy')->nullable()->after('taxable_amount');
             $table->boolean('use_default_cancellation_policy')->default(true)->after('cancellation_policy');
         });
     }

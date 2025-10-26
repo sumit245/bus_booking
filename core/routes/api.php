@@ -8,8 +8,8 @@ use App\Http\Controllers\API\ManageTripController;
 use App\Http\Controllers\Admin\VehicleTicketController;
 
 // Auth-related
-Route::post('/send-otp', [UserController::class, 'sendOTP'])->name('sendOTP');
-Route::post('/verify-otp', [UserController::class, 'verifyOtp'])->name('verifyOtp');
+Route::post('/send-otp', [UserController::class, 'sendOTP'])->name('user.send-otp');
+Route::post('/verify-otp', [UserController::class, 'verifyOtp'])->name('user.verify-otp');
 Route::post('/users/get-my-tickets', [UserController::class, 'userHistoryByPhone']);
 Route::post('/users/cancel-ticket', action: [UserController::class, 'cancelTicketApi']);
 

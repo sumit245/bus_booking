@@ -19,9 +19,12 @@
                             <button class="btn-profile-edit" onclick="openProfileModal()">
                                 <i class="las la-edit"></i> Edit Profile
                             </button>
-                            <a href="{{ route('user.logout') }}" class="btn-logout">
-                                <i class="las la-sign-out-alt"></i> Logout
-                            </a>
+                            <form method="POST" action="{{ route('user.logout') }}" style="display: inline;">
+                                @csrf
+                                <button type="submit" class="btn-link" style="background: none; border: none; padding: 0; color: inherit; cursor: pointer; text-decoration: none;">
+                                    @lang('Logout')
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

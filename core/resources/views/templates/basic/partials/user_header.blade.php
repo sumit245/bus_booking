@@ -76,7 +76,12 @@
                             <a href="{{ route('user.change.password') }}">@lang('Change Password')</a>
                         </li>
                         <li>
-                            <a href="{{ route('user.logout') }}">@lang('Logout')</a>
+                            <form method="POST" action="{{ route('user.logout') }}" style="display: inline;">
+                                @csrf
+                                <button type="submit" class="btn-link" style="background: none; border: none; padding: 0; color: inherit; cursor: pointer; text-decoration: none;">
+                                    @lang('Logout')
+                                </button>
+                            </form>
                         </li>
                     </ul>
                 </li>

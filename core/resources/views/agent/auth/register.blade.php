@@ -56,21 +56,45 @@
         }
 
         .agent-register-header {
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            color: white;
+            background: linear-gradient(135deg, #1a252f 0%, #2c3e50 100%);
+            color: #ffffff;
             padding: 2rem;
             text-align: center;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+        }
+
+        .agent-register-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .agent-register-header > * {
+            position: relative;
+            z-index: 1;
         }
 
         .agent-register-header h3 {
             margin: 0;
+            font-size: 1.8rem;
             font-weight: 600;
-            font-size: 1.5rem;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         .agent-register-header p {
-            margin: 0.5rem 0 0 0;
-            opacity: 0.9;
+            margin: 0.5rem 0 0;
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 500;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            opacity: 1;
         }
 
         .agent-register-body {
@@ -78,9 +102,10 @@
         }
 
         .form-group label {
-            font-weight: 500;
-            color: #333;
+            font-weight: 600;
+            color: #2c3e50;
             margin-bottom: 0.5rem;
+            font-size: 0.95rem;
         }
 
         .form-control {
@@ -89,6 +114,13 @@
             padding: 0.75rem 1rem;
             font-size: 1rem;
             transition: all 0.3s ease;
+            color: #495057;
+            background-color: #fff;
+        }
+
+        .form-control::placeholder {
+            color: #6c757d;
+            opacity: 1;
         }
 
         .form-control:focus {
@@ -117,12 +149,14 @@
             padding: 1.5rem;
             border-radius: 8px;
             margin-top: 1.5rem;
+            border: 1px solid #e9ecef;
         }
 
         .agent-benefits h6 {
-            color: #007bff;
-            font-weight: 600;
             margin-bottom: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
         }
 
         .benefit-item {
@@ -132,22 +166,32 @@
         }
 
         .benefit-item i {
-            color: #007bff;
+            color: #28a745;
             margin-right: 0.75rem;
-            width: 20px;
+            font-size: 1.2rem;
+        }
+
+        .benefit-item span {
+            color: #495057;
+            font-size: 0.95rem;
+            line-height: 1.4;
         }
 
         .commission-preview {
-            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
-            color: white;
+            background: #f8f9fa;
+            color: #2c3e50;
             padding: 1.5rem;
             border-radius: 8px;
             margin-top: 1.5rem;
+            border: 2px solid #3498db;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .commission-preview h6 {
             margin-bottom: 1rem;
-            font-weight: 600;
+            font-weight: 700;
+            color: #1a252f;
+            font-size: 1.2rem;
         }
 
         .commission-preview ul {
@@ -157,6 +201,44 @@
 
         .commission-preview li {
             margin-bottom: 0.5rem;
+            color: #2c3e50;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        .commission-preview li strong {
+            color: #1a252f;
+            font-weight: 700;
+        }
+
+        .commission-preview p {
+            color: #495057;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .commission-preview small {
+            color: #495057;
+            font-size: 0.85rem;
+            font-weight: 400;
+        }
+
+        .form-check-label {
+            color: #495057;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-left: 0.5rem;
+        }
+
+        .form-check-label a {
+            color: #007bff;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .form-check-label a:hover {
+            color: #0056b3;
+            text-decoration: underline;
         }
 
         .login-link {
@@ -166,14 +248,21 @@
             border-top: 1px solid #e9ecef;
         }
 
+        .login-link p {
+            color: #495057;
+            margin-bottom: 0;
+            font-size: 0.95rem;
+        }
+
         .login-link a {
             color: #007bff;
-            font-weight: 500;
+            font-weight: 600;
             text-decoration: none;
         }
 
         .login-link a:hover {
             text-decoration: underline;
+            color: #0056b3;
         }
 
         .password-strength {
@@ -215,7 +304,7 @@
                                         id="name" name="name" value="{{ old('name') }}" required
                                         autocomplete="name" autofocus placeholder="@lang('Enter your full name')">
                                     @error('name')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -226,7 +315,7 @@
                                         id="email" name="email" value="{{ old('email') }}" required
                                         autocomplete="email" placeholder="@lang('Enter your email')">
                                     @error('email')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -240,7 +329,7 @@
                                         id="phone" name="phone" value="{{ old('phone') }}" required
                                         autocomplete="tel" placeholder="@lang('Enter your phone number')">
                                     @error('phone')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -251,7 +340,7 @@
                                         id="pan_number" name="pan_number" value="{{ old('pan_number') }}"
                                         autocomplete="off" placeholder="@lang('Enter PAN number')">
                                     @error('pan_number')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -262,7 +351,7 @@
                             <textarea class="form-control @error('address') is-invalid @enderror" id="address" name="address" rows="3"
                                 placeholder="@lang('Enter your address')">{{ old('address') }}</textarea>
                             @error('address')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
                             @enderror
                         </div>
 
@@ -284,7 +373,7 @@
                                     </div>
                                     <div class="password-strength" id="passwordStrength"></div>
                                     @error('password')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -307,7 +396,7 @@
                                     @lang('and') <a href="#" class="text-primary">@lang('Privacy Policy')</a>
                                 </label>
                                 @error('terms')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                    <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seat Layout Editor Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .test-controls select, .test-controls input, .test-controls button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .test-controls button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .test-controls button:hover {
+            background: #0056b3;
+        }
+        .layout-editor {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .deck-section {
+            margin-bottom: 30px;
+        }
+        .deck-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .deck-container {
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background: white;
+            min-height: 300px;
+            position: relative;
+        }
+        .deck-grid {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .seat-position {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 1px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(0, 123, 255, 0.1);
+        }
+        .seat-position:hover {
+            background: rgba(0, 123, 255, 0.2);
+        }
+        .seat-item {
+            width: 100%;
+            height: 100%;
+            background: #28a745;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .seat-item.selected {
+            background: #ffc107;
+            color: #212529;
+        }
+        .seat-item.nseat {
+            background: #28a745;
+        }
+        .seat-item.hseat {
+            background: #dc3545;
+        }
+        .seat-item.vseat {
+            background: #6f42c1;
+        }
+        .busSeatlft {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            width: 80px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .busSeatrgt {
+            flex: 1;
+            position: relative;
+        }
+        .outerseat, .outerlowerseat {
+            display: flex;
+            width: 100%;
+            height: 300px;
+        }
+        .test-data {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .test-data pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.info {
+            background: #cce7ff;
+            color: #004085;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Seat Layout Editor Test Suite</h1>
+        <p>This test verifies the seat layout editor initialization and configuration loading.</p>
+
+        <!-- Test Controls -->
+        <div class="test-section">
+            <h3>Test Configuration</h3>
+            <div class="test-controls">
+                <select id="testDeckType">
+                    <option value="single">Single Deck</option>
+                    <option value="double">Double Deck</option>
+                </select>
+                <select id="testSeatLayout">
+                    <option value="2x1">2x1 Layout</option>
+                    <option value="2x2">2x2 Layout</option>
+                    <option value="3x2">3x2 Layout</option>
+                </select>
+                <input type="number" id="testColumnsPerRow" value="10" min="5" max="15" placeholder="Columns">
+                <button onclick="testCreateNew()">Test Create New</button>
+                <button onclick="testLoadExisting()">Test Load Existing</button>
+                <button onclick="runAllTests()">Run All Tests</button>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <div id="testResults"></div>
+        </div>
+
+        <!-- Layout Editor -->
+        <div class="test-section">
+            <h3>Seat Layout Editor</h3>
+            <div class="layout-editor">
+                <!-- Upper Deck -->
+                <div class="deck-section" id="upperDeckSection" style="display: none;">
+                    <div class="deck-label">Upper Deck</div>
+                    <div class="deck-container">
+                        <div class="deck-grid" id="upperDeckGrid"></div>
+                    </div>
+                </div>
+
+                <!-- Lower Deck -->
+                <div class="deck-section">
+                    <div class="deck-label" id="lowerDeckLabel">Bus Layout</div>
+                    <div class="deck-container">
+                        <div class="deck-grid" id="lowerDeckGrid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Data Display -->
+        <div class="test-section">
+            <h3>Current Layout Data</h3>
+            <div class="test-data">
+                <pre id="layoutDataDisplay">{}</pre>
+            </div>
+        </div>
+
+        <!-- Hidden input for layout data -->
+        <input type="hidden" id="layoutData" value='{}'>
+    </div>
+
+    <!-- Include the seat layout editor -->
+    <script src="assets/admin/js/seat-layout-editor.js"></script>
+
+    <script>
+        // Test suite for seat layout editor
+        let editor;
+        let testResults = document.getElementById('testResults');
+
+        function addTestResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            testResults.appendChild(div);
+            testResults.scrollTop = testResults.scrollHeight;
+        }
+
+        function updateLayoutDataDisplay() {
+            const layoutData = editor ? editor.getLayoutData() : {};
+            document.getElementById('layoutDataDisplay').textContent = JSON.stringify(layoutData, null, 2);
+        }
+
+        function initializeEditor() {
+            try {
+                editor = new SeatLayoutEditor({
+                    upperDeckGrid: document.getElementById('upperDeckGrid'),
+                    lowerDeckGrid: document.getElementById('lowerDeckGrid'),
+                    layoutDataInput: document.getElementById('layoutData'),
+                    totalSeatsInput: null,
+                    upperDeckSeatsInput: null,
+                    lowerDeckSeatsInput: null,
+                    seatPropertiesPanel: null,
+                    seatIdInput: null,
+                    seatPriceInput: null,
+                    seatTypeSelect: null,
+                    updateSeatBtn: null,
+                    deleteSeatBtn: null,
+                    previewBtn: null,
+                    clearBtn: null,
+                    previewModal: null,
+                    previewContent: null,
+                    previewUrl: null,
+                    deckTypeSelect: document.getElementById('testDeckType'),
+                    seatLayoutSelect: document.getElementById('testSeatLayout'),
+                    columnsPerRowInput: document.getElementById('testColumnsPerRow'),
+                    upperDeckSection: document.getElementById('upperDeckSection'),
+                    lowerDeckLabel: document.getElementById('lowerDeckLabel')
+                });
+
+                addTestResult('Seat Layout Editor initialized successfully', 'success');
+                updateLayoutDataDisplay();
+                return true;
+            } catch (error) {
+                addTestResult('Failed to initialize editor: ' + error.message, 'error');
+                console.error('Editor initialization error:', error);
+                return false;
+            }
+        }
+
+        function testCreateNew() {
+            addTestResult('Testing create new layout...', 'info');
+
+            // Set test configuration
+            const deckType = document.getElementById('testDeckType').value;
+            const seatLayout = document.getElementById('testSeatLayout').value;
+            const columnsPerRow = parseInt(document.getElementById('testColumnsPerRow').value);
+
+            // Clear existing data
+            document.getElementById('layoutData').value = '{}';
+
+            // Reinitialize editor
+            if (initializeEditor()) {
+                // Verify configuration
+                if (editor.deckType === deckType &&
+                    editor.seatLayout === seatLayout &&
+                    editor.columnsPerRow === columnsPerRow) {
+                    addTestResult(`✓ Configuration applied correctly: ${deckType}, ${seatLayout}, ${columnsPerRow} columns`, 'success');
+                } else {
+                    addTestResult('✗ Configuration mismatch', 'error');
+                }
+
+                // Check grid creation
+                const upperGrid = document.getElementById('upperDeckGrid');
+                const lowerGrid = document.getElementById('lowerDeckGrid');
+
+                if (deckType === 'single') {
+                    if (document.getElementById('upperDeckSection').style.display === 'none') {
+                        addTestResult('✓ Upper deck hidden for single deck', 'success');
+                    } else {
+                        addTestResult('✗ Upper deck should be hidden for single deck', 'error');
+                    }
+                } else {
+                    if (document.getElementById('upperDeckSection').style.display === 'block') {
+                        addTestResult('✓ Upper deck shown for double deck', 'success');
+                    } else {
+                        addTestResult('✗ Upper deck should be shown for double deck', 'error');
+                    }
+                }
+
+                // Check seat positions created
+                const lowerPositions = lowerGrid.querySelectorAll('.seat-position');
+                if (lowerPositions.length > 0) {
+                    addTestResult(`✓ ${lowerPositions.length} seat positions created in lower deck`, 'success');
+                } else {
+                    addTestResult('✗ No seat positions created in lower deck', 'error');
+                }
+
+                if (deckType === 'double') {
+                    const upperPositions = upperGrid.querySelectorAll('.seat-position');
+                    if (upperPositions.length > 0) {
+                        addTestResult(`✓ ${upperPositions.length} seat positions created in upper deck`, 'success');
+                    } else {
+                        addTestResult('✗ No seat positions created in upper deck', 'error');
+                    }
+                }
+            }
+
+            updateLayoutDataDisplay();
+        }
+
+        function testLoadExisting() {
+            addTestResult('Testing load existing layout...', 'info');
+
+            // Create test data
+            const testData = {
+                configuration: {
+                    deckType: 'double',
+                    seatLayout: '2x2',
+                    columnsPerRow: 8
+                },
+                upper_deck: {
+                    seats: [
+                        { id: 'U1', row: 1, col: 1, side: 'left', type: 'nseat', price: 100 },
+                        { id: 'U2', row: 1, col: 2, side: 'left', type: 'nseat', price: 100 },
+                        { id: 'U3', row: 1, col: 5, side: 'right', type: 'nseat', price: 100 }
+                    ]
+                },
+                lower_deck: {
+                    seats: [
+                        { id: 'L1', row: 1, col: 1, side: 'left', type: 'nseat', price: 100 },
+                        { id: 'L2', row: 1, col: 2, side: 'left', type: 'nseat', price: 100 },
+                        { id: 'L3', row: 2, col: 1, side: 'left', type: 'hseat', price: 150 }
+                    ]
+                }
+            };
+
+            // Set test data in hidden input
+            document.getElementById('layoutData').value = JSON.stringify(testData);
+
+            // Update form controls to match test data
+            document.getElementById('testDeckType').value = testData.configuration.deckType;
+            document.getElementById('testSeatLayout').value = testData.configuration.seatLayout;
+            document.getElementById('testColumnsPerRow').value = testData.configuration.columnsPerRow;
+
+            // Reinitialize editor
+            if (initializeEditor()) {
+                // Verify configuration loaded
+                if (editor.deckType === testData.configuration.deckType) {
+                    addTestResult('✓ Deck type loaded correctly', 'success');
+                } else {
+                    addTestResult(`✗ Deck type mismatch: expected ${testData.configuration.deckType}, got ${editor.deckType}`, 'error');
+                }
+
+                if (editor.seatLayout === testData.configuration.seatLayout) {
+                    addTestResult('✓ Seat layout loaded correctly', 'success');
+                } else {
+                    addTestResult(`✗ Seat layout mismatch: expected ${testData.configuration.seatLayout}, got ${editor.seatLayout}`, 'error');
+                }
+
+                if (editor.columnsPerRow === testData.configuration.columnsPerRow) {
+                    addTestResult('✓ Columns per row loaded correctly', 'success');
+                } else {
+                    addTestResult(`✗ Columns per row mismatch: expected ${testData.configuration.columnsPerRow}, got ${editor.columnsPerRow}`, 'error');
+                }
+
+                // Check seats rendered
+                setTimeout(() => {
+                    const upperSeats = document.getElementById('upperDeckGrid').querySelectorAll('.seat-item');
+                    const lowerSeats = document.getElementById('lowerDeckGrid').querySelectorAll('.seat-item');
+
+                    if (upperSeats.length === testData.upper_deck.seats.length) {
+                        addTestResult(`✓ ${upperSeats.length} upper deck seats rendered correctly`, 'success');
+                    } else {
+                        addTestResult(`✗ Upper deck seats mismatch: expected ${testData.upper_deck.seats.length}, got ${upperSeats.length}`, 'error');
+                    }
+
+                    if (lowerSeats.length === testData.lower_deck.seats.length) {
+                        addTestResult(`✓ ${lowerSeats.length} lower deck seats rendered correctly`, 'success');
+                    } else {
+                        addTestResult(`✗ Lower deck seats mismatch: expected ${testData.lower_deck.seats.length}, got ${lowerSeats.length}`, 'error');
+                    }
+
+                    updateLayoutDataDisplay();
+                }, 500);
+            }
+        }
+
+        function runAllTests() {
+            addTestResult('=== Running All Tests ===', 'info');
+            testResults.innerHTML = '';
+
+            // Test 1: Create new single deck
+            document.getElementById('testDeckType').value = 'single';
+            document.getElementById('testSeatLayout').value = '2x1';
+            document.getElementById('testColumnsPerRow').value = '10';
+            testCreateNew();
+
+            setTimeout(() => {
+                // Test 2: Create new double deck
+                document.getElementById('testDeckType').value = 'double';
+                document.getElementById('testSeatLayout').value = '2x2';
+                document.getElementById('testColumnsPerRow').value = '8';
+                testCreateNew();
+
+                setTimeout(() => {
+                    // Test 3: Load existing data
+                    testLoadExisting();
+
+                    addTestResult('=== All Tests Completed ===', 'success');
+                }, 1000);
+            }, 1000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addTestResult('Test suite loaded. Click "Run All Tests" to begin.', 'info');
+            initializeEditor();
+        });
+    </script>
+</body>
+</html>

@@ -277,7 +277,7 @@ class BookingService
 
         // Check if this is an operator bus
         if (str_starts_with($resultIndex, 'OP_')) {
-            return $this->blockOperatorBusSeat($resultIndex, $boardingPointId, $droppingPointId, $passengers, $seats, $userIp);
+            return $this->blockOperatorBusSeat($resultIndex, $boardingPointId, $droppingPointId, $passengers, $seats, $userIp, $searchTokenId);
         } else {
             return blockSeatHelper($searchTokenId, $resultIndex, $boardingPointId, $droppingPointId, $passengers, $seats, $userIp);
         }
@@ -286,97 +286,105 @@ class BookingService
     /**
      * Block operator bus seat
      */
-    private function blockOperatorBusSeat(string $resultIndex, string $boardingPointId, string $droppingPointId, array $passengers, array $seats, string $userIp)
+    private function blockOperatorBusSeat(string $resultIndex, string $boardingPointId, string $droppingPointId, array $passengers, array $seats, string $userIp, string $searchTokenId)
     {
         try {
             $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
-            $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout', 'currentRoute'])->find($operatorBusId);
+            $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout', 'currentRoute.boardingPoints', 'currentRoute.droppingPoints'])->find($operatorBusId);
 
-            if (!$operatorBus) {
-                return [
-                    'success' => false,
-                    'message' => 'Operator bus not found'
-                ];
+            if (!$operatorBus || !$operatorBus->activeSeatLayout || !$operatorBus->currentRoute) {
+                return ['success' => false, 'message' => 'Operator bus details not found or incomplete.'];
             }
+
+            // Get timings from cache
+            $cachedBuses = Cache::get('bus_search_results_' . $searchTokenId);
+            $busData = collect($cachedBuses['CombinedBuses'] ?? [])->firstWhere('ResultIndex', $resultIndex);
+
+            $departureTime = $busData['DepartureTime'] ?? now()->toIso8601String();
+            $arrivalTime = $busData['ArrivalTime'] ?? now()->addHours(8)->toIso8601String();
+
+            // Get boarding and dropping points
+            $boardingPoint = $operatorBus->currentRoute->boardingPoints->find($boardingPointId);
+            $droppingPoint = $operatorBus->currentRoute->droppingPoints->find($droppingPointId);
+
+            $boardingPointDetails = $boardingPoint ? [
+                'CityPointIndex' => $boardingPoint->id,
+                'CityPointLocation' => $boardingPoint->address ?? $boardingPoint->point_name,
+                'CityPointName' => $boardingPoint->point_name,
+                'CityPointTime' => Carbon::parse($departureTime)->format('Y-m-d\TH:i:s'),
+            ] : null;
+
+            $droppingPointDetails = $droppingPoint ? [
+                'CityPointIndex' => $droppingPoint->id,
+                'CityPointLocation' => $droppingPoint->address ?? $droppingPoint->point_name,
+                'CityPointName' => $droppingPoint->point_name,
+                'CityPointTime' => Carbon::parse($arrivalTime)->format('Y-m-d\TH:i:s'),
+            ] : null;
+
+            // Get seat prices
+            $parsedLayout = parseSeatHtmlToJson($operatorBus->activeSeatLayout->html_layout);
+            $seatPrices = [];
+            foreach (['upper_deck', 'lower_deck'] as $deck) {
+                foreach ($parsedLayout['seat'][$deck]['rows'] as $row) {
+                    foreach ($row as $seat) {
+                        $seatPrices[$seat['seat_id']] = $seat['price'];
+                    }
+                }
+            }
+
+            $passengersWithPrice = array_map(function ($passenger) use ($seatPrices) {
+                $price = $seatPrices[$passenger['SeatName']] ?? 1000; // Default price if not found
+                $passenger['Seat'] = [
+                    'Price' => [
+                        'PublishedPrice' => $price,
+                        'OfferedPrice' => $price,
+                        'BasePrice' => $price,
+                        'Tax' => 0,
+                        'OtherCharges' => 0,
+                        'Discount' => 0,
+                        'ServiceCharges' => 0,
+                        'TDS' => 0,
+                        'GST' => [
+                            'CGSTAmount' => 0, 'CGSTRate' => 0, 'IGSTAmount' => 0,
+                            'IGSTRate' => 0, 'SGSTAmount' => 0, 'SGSTRate' => 0,
+                            'TaxableAmount' => 0
+                        ]
+                    ]
+                ];
+                return $passenger;
+            }, $passengers);
+
 
             $bookingId = 'OP_BOOK_' . time() . '_' . $operatorBusId;
 
-            $mockResult = [
+            $result = [
                 'BookingId' => $bookingId,
-                'BookingStatus' => 'Confirmed',
-                'TotalAmount' => 0,
+                'BookingStatus' => 'Blocked',
+                'TotalAmount' => collect($passengersWithPrice)->sum('Seat.Price.PublishedPrice'),
                 'BusType' => $operatorBus->bus_type ?? 'Operator Bus',
                 'TravelName' => $operatorBus->travel_name ?? 'Operator Service',
-                'DepartureTime' => '2025-10-23T17:30:00',
-                'ArrivalTime' => '2025-10-24T11:30:00',
-                'BoardingPointdetails' => [
-                    [
-                        'CityPointIndex' => 1,
-                        'CityPointLocation' => 'Bus Stand Patna',
-                        'CityPointName' => 'Bus Stand Patna',
-                        'CityPointTime' => '2025-10-23T17:30:00'
-                    ]
-                ],
-                'DroppingPointsdetails' => [
-                    [
-                        'CityPointIndex' => 1,
-                        'CityPointLocation' => 'ISBT Kashmiri Gate',
-                        'CityPointName' => 'ISBT Kashmiri Gate',
-                        'CityPointTime' => '2025-10-24T11:30:00'
-                    ]
-                ],
-                'Passenger' => array_map(function ($passenger, $index) use ($seats) {
-                    return [
-                        'LeadPassenger' => $index === 0,
-                        'Title' => $passenger['Title'],
-                        'FirstName' => $passenger['FirstName'],
-                        'LastName' => $passenger['LastName'],
-                        'Email' => $passenger['Email'],
-                        'Phoneno' => $passenger['Phoneno'],
-                        'Gender' => $passenger['Gender'],
-                        'IdType' => $passenger['IdType'],
-                        'IdNumber' => $passenger['IdNumber'],
-                        'Address' => $passenger['Address'],
-                        'Age' => $passenger['Age'],
-                        'SeatName' => $passenger['SeatName'],
-                        'Seat' => [
-                            'Price' => [
-                                'PublishedPrice' => 1000,
-                                'OfferedPrice' => 900,
-                                'BasePrice' => 800,
-                                'Tax' => 100,
-                                'OtherCharges' => 0,
-                                'Discount' => 0,
-                                'ServiceCharges' => 0,
-                                'TDS' => 0,
-                                'GST' => [
-                                    'CGSTAmount' => 0,
-                                    'CGSTRate' => 0,
-                                    'IGSTAmount' => 0,
-                                    'IGSTRate' => 0,
-                                    'SGSTAmount' => 0,
-                                    'SGSTRate' => 0,
-                                    'TaxableAmount' => 0
-                                ]
-                            ]
-                        ]
-                    ];
-                }, $passengers, array_keys($passengers)),
+                'DepartureTime' => $departureTime,
+                'ArrivalTime' => $arrivalTime,
+                'BoardingPointdetails' => [$boardingPointDetails],
+                'DroppingPointsdetails' => [$droppingPointDetails],
+                'Passenger' => $passengersWithPrice,
                 'BoardingPointId' => $boardingPointId,
                 'DroppingPointId' => $droppingPointId,
                 'OperatorBusId' => $operatorBusId,
-                'ResultIndex' => $resultIndex
+                'ResultIndex' => $resultIndex,
+                'CancelPolicy' => $busData['CancelPolicy'] ?? [],
             ];
 
             return [
                 'success' => true,
-                'Result' => $mockResult
+                'Result' => $result
             ];
 
         } catch (\Exception $e) {
             Log::error('BookingService: Error blocking operator bus seat', [
                 'result_index' => $resultIndex,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return [

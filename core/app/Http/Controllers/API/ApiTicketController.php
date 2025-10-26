@@ -74,15 +74,6 @@ class ApiTicketController extends Controller
 
 
             $result = $this->busService->searchBuses($validatedData);
-
-            Log::info("ApiTicketController::ticketSearch - Final result", [
-                'search_token_id' => $result['SearchTokenId'] ?? 'N/A',
-                'total_trips' => count($result['trips'] ?? []),
-                'trip_result_indices' => array_map(function ($trip) {
-                    return $trip['ResultIndex'] ?? 'N/A';
-                }, $result['trips'] ?? [])
-            ]);
-
             return response()->json($result);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -151,13 +142,6 @@ class ApiTicketController extends Controller
         $startTime = microtime(true);
 
         try {
-            Log::info('API showSeat called', [
-                'request_data' => $request->all(),
-                'headers' => $request->headers->all(),
-                'method' => $request->method(),
-                'url' => $request->url()
-            ]);
-
             $validated = $request->validate([
                 'SearchTokenId' => 'required|string',
                 'ResultIndex' => 'required|string',
@@ -166,24 +150,10 @@ class ApiTicketController extends Controller
             $searchTokenId = $validated['SearchTokenId'];
             $resultIndex = $validated['ResultIndex'];
 
-            Log::info('API showSeat validated input', [
-                'search_token_id' => $searchTokenId,
-                'result_index' => $resultIndex,
-                'is_operator_bus' => str_starts_with($resultIndex, 'OP_')
-            ]);
-
             // Check if this is an operator bus (ResultIndex starts with 'OP_')
             if (str_starts_with($resultIndex, 'OP_')) {
-                Log::info('API showSeat: Processing operator bus', [
-                    'result_index' => $resultIndex
-                ]);
                 return $this->handleOperatorBusSeatLayout($resultIndex, $searchTokenId);
             }
-
-            Log::info('API showSeat: Processing third-party bus', [
-                'result_index' => $resultIndex,
-                'search_token_id' => $searchTokenId
-            ]);
 
             // Create a unique cache key for this specific seat layout request.
             $cacheKey = "seat_layout_{$searchTokenId}_{$resultIndex}";
@@ -193,29 +163,11 @@ class ApiTicketController extends Controller
             // This is the core of the performance improvement.
             $data = Cache::remember($cacheKey, $cacheDurationInMinutes * 60, function () use ($resultIndex, $searchTokenId, $cacheKey) {
 
-                Log::info("API showSeat: Third-party bus CACHE MISS - Fetching from API for key: {$cacheKey}", [
-                    'result_index' => $resultIndex,
-                    'search_token_id' => $searchTokenId
-                ]);
-
                 // This block only runs if the data is NOT in the cache.
                 $response = getAPIBusSeats($resultIndex, $searchTokenId);
 
-                Log::info('API showSeat: Third-party API response received', [
-                    'result_index' => $resultIndex,
-                    'response_keys' => array_keys($response ?? []),
-                    'has_error' => isset($response['Error']),
-                    'error_code' => $response['Error']['ErrorCode'] ?? null,
-                    'error_message' => $response['Error']['ErrorMessage'] ?? null,
-                    'has_result' => isset($response['Result'])
-                ]);
-
                 if (!isset($response['Error']['ErrorCode']) || $response['Error']['ErrorCode'] != 0) {
                     $errorMessage = $response['Error']['ErrorMessage'] ?? 'Failed to retrieve seat layout from the provider.';
-                    Log::error('API showSeat: Third-party API error', [
-                        'error_message' => $errorMessage,
-                        'full_response' => $response
-                    ]);
                     // By returning null, we prevent caching a failed API response.
                     // Throwing an exception is cleaner to handle it outside the cache block.
                     throw new \RuntimeException($errorMessage);
@@ -230,29 +182,14 @@ class ApiTicketController extends Controller
 
                 $htmlLayout = $response['Result']['HTMLLayout'];
 
-                Log::info('API showSeat: Third-party bus HTML layout received', [
-                    'html_length' => strlen($htmlLayout),
-                    'html_preview' => substr($htmlLayout, 0, 100) . '...'
-                ]);
-
                 // --- THIS IS THE SLOW OPERATION ---
                 $parsedLayout = parseSeatHtmlToJson($htmlLayout); // Your existing slow helper is called here.
-
-                Log::info('API showSeat: Third-party bus layout parsed', [
-                    'parsed_layout_type' => gettype($parsedLayout),
-                    'available_seats' => $response['Result']['AvailableSeats'] ?? 0
-                ]);
 
                 return [
                     'html' => $parsedLayout,
                     'availableSeats' => $response['Result']['AvailableSeats']
                 ];
             });
-
-            Log::info("API showSeat: Third-party bus - CACHE HIT: Served layout from cache for key: {$cacheKey}", [
-                'cached_data_keys' => array_keys($data),
-                'available_seats' => $data['availableSeats'] ?? 0
-            ]);
 
             return response()->json($data, 200);
 
@@ -868,8 +805,8 @@ class ApiTicketController extends Controller
             ]);
 
             $request->validate([
-                'OriginCity' => 'required',
-                'DestinationCity' => 'required',
+                'OriginCity' => 'nullable',
+                'DestinationCity' => 'nullable',
                 'SearchTokenId' => 'required',
                 'ResultIndex' => 'required',
                 'UserIp' => 'nullable|string',
@@ -886,8 +823,8 @@ class ApiTicketController extends Controller
 
             // Prepare request data for BookingService
             $requestData = [
-                'OriginCity' => $request->OriginCity,
-                'DestinationCity' => $request->DestinationCity,
+                'OriginCity' => $request->OriginCity ?? '',
+                'DestinationCity' => $request->DestinationCity ?? "",
                 'SearchTokenId' => $request->SearchTokenId,
                 'ResultIndex' => $request->ResultIndex,
                 'UserIp' => $request->UserIp ?? $request->ip(),
@@ -959,7 +896,7 @@ class ApiTicketController extends Controller
                 'razorpay_payment_id' => 'required|string',
                 'razorpay_order_id' => 'required|string',
                 'razorpay_signature' => 'required|string',
-                'ticket_id' => 'required|integer|exists:booked_tickets,id',
+                'ticket_id' => 'nullable|integer|exists:booked_tickets,id',
             ]);
 
             // Use BookingService to verify payment and complete booking
@@ -999,6 +936,7 @@ class ApiTicketController extends Controller
         }
     }
 
+    // TODO:Deprecated code nothing inside
     public function getCombinedBuses(Request $request)
     {
         // Your existing getCombinedBuses logic...

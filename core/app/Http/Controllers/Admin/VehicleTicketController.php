@@ -98,6 +98,147 @@ class VehicleTicketController extends Controller
         $stoppages = stoppageCombination($stoppageArr, 2);
         return view('admin.trip.ticket.edit_price', compact('pageTitle', 'ticketPrice', 'stoppages'));
     }
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'id' => 'required|integer',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['success' => false, 'message' => $validator->errors()->first()]);
+    //     }
+
+    //     $ticket = BookedTicket::with(['user', 'trip.fleetType', 'trip.startFrom', 'trip.endTo'])
+    //         ->where('id', $request->id)
+    //         ->first();
+
+    //     if (!$ticket) {
+    //         return response()->json(['success' => false, 'message' => 'Ticket not found']);
+    //     }
+
+    //     // Process seat information
+    //     $seatNumbers = is_array(json_decode($ticket->seats, true))
+    //         ? implode(', ', json_decode($ticket->seats, true))
+    //         : $ticket->seats;
+
+    //     // Process boarding point
+    //     $boardingPoint = json_decode($ticket->boarding_point_details, true);
+    //     $pickupPoint = '';
+    //     if (isset($boardingPoint['CityPointAddress'])) {
+    //         $pickupPoint = $boardingPoint['CityPointAddress'];
+    //     } elseif (isset($boardingPoint['name'])) {
+    //         $pickupPoint = $boardingPoint['name'];
+    //     } elseif ($ticket->pickup_point) {
+    //         $pickupPoint = $ticket->pickup_point;
+    //     }
+
+    //     // Process dropping point
+    //     $droppingPoint = json_decode($ticket->dropping_point_details, true);
+    //     $dropPoint = '';
+    //     if (isset($droppingPoint['CityPointLocation'])) {
+    //         $dropPoint = $droppingPoint['CityPointLocation'];
+    //     } elseif (isset($droppingPoint['name'])) {
+    //         $dropPoint = $droppingPoint['name'];
+    //     } elseif ($ticket->dropping_point) {
+    //         $dropPoint = $ticket->dropping_point;
+    //     }
+
+    //     // Process trip details
+    //     $tripDetails = json_decode($ticket->trip_details, true);
+    //     $fleetType = $ticket->trip?->fleetType?->name ?? $ticket->fleet_type ?? '';
+    //     $startFrom = $ticket->trip?->startFrom?->name ?? $ticket->start_from ?? '';
+    //     $endTo = $ticket->trip?->endTo?->name ?? $ticket->end_to ?? '';
+
+    //     if (empty($fleetType) && !empty($tripDetails)) {
+    //         $fleetType = $tripDetails['fleet_type'] ?? $tripDetails['FleetType'] ?? '';
+    //     }
+
+    //     if (empty($startFrom) && !empty($tripDetails)) {
+    //         $startFrom = $tripDetails['start_from'] ?? $tripDetails['StartFrom'] ?? '';
+    //     }
+
+    //     if (empty($endTo) && !empty($tripDetails)) {
+    //         $endTo = $tripDetails['end_to'] ?? $tripDetails['EndTo'] ?? '';
+    //     }
+
+    //     // Format dates
+    //     $journeyDate = date('d M, Y', strtotime($ticket->date_of_journey));
+    //     $bookingDate = date('d M, Y h:i A', strtotime($ticket->created_at));
+
+    //     // Prepare response data
+    //     $ticketData = [
+    //         'id' => $ticket->id,
+    //         'pnr_number' => $ticket->pnr_number,
+    //         'user' => $ticket->user ? [
+    //             'id' => $ticket->user->id,
+    //             'fullname' => $ticket->user->fullname,
+    //             'username' => $ticket->user->username,
+    //         ] : null,
+    //         'fleet_type' => $fleetType,
+    //         'start_from' => $startFrom,
+    //         'end_to' => $endTo,
+    //         'pickup_point' => $pickupPoint,
+    //         'dropping_point' => $dropPoint,
+    //         'seat_numbers' => $seatNumbers,
+    //         'sub_total' => $ticket->sub_total,
+    //         'formatted_fare' => showAmount($ticket->sub_total),
+    //         'date_of_journey' => $ticket->date_of_journey,
+    //         'formatted_journey_date' => $journeyDate,
+    //         'formatted_booking_date' => $bookingDate,
+    //         'status' => $ticket->status,
+    //     ];
+
+    //     return response()->json(['success' => true, 'ticket' => $ticketData]);
+    // }
+
+
+    public function cancelTicket(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ticket_id' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            $notify[] = ['error', $validator->errors()->first()];
+            return back()->withNotify($notify);
+        }
+
+        $ticket = BookedTicket::findOrFail($request->ticket_id);
+
+        // Update ticket status to rejected (3)
+        $ticket->status = 3;
+        $ticket->save();
+
+        $notify[] = ['success', 'Ticket has been cancelled successfully'];
+        return back()->withNotify($notify);
+    }
+
+    public function refundTicket(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ticket_id' => 'required|integer',
+            'amount' => 'required|numeric',
+            'reason' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            $notify[] = ['error', $validator->errors()->first()];
+            return back()->withNotify($notify);
+        }
+
+        $ticket = BookedTicket::findOrFail($request->ticket_id);
+
+        // Update ticket status to rejected (3)
+        $ticket->status = 3;
+        $ticket->refund_amount = $request->amount;
+        $ticket->refund_reason = $request->reason;
+        $ticket->refunded_at = now();
+        $ticket->save();
+
+        // TODO: Process refund to user's wallet or payment method if needed
+
+        $notify[] = ['success', 'Ticket has been refunded successfully'];
+        return back()->withNotify($notify);
+    }
 
     public function getRouteData(Request $request)
     {
@@ -206,4 +347,64 @@ class VehicleTicketController extends Controller
             return response()->json(['error' => 'Ticket price not added for this fleet-route combination yet. Please add ticket price before creating a trip.']);
         }
     }
+
+    public function ticketDetails(Request $request)
+    {
+        $ticket = BookedTicket::with(['user', 'trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop'])
+            ->where('id', $request->id)
+            ->first();
+
+        if (!$ticket) {
+            return response()->json(['success' => false, 'message' => 'Ticket not found']);
+        }
+
+        // Format data for display
+        $ticket->formatted_journey_date = showDateTime($ticket->date_of_journey, 'd M, Y');
+        $ticket->formatted_booking_date = showDateTime($ticket->created_at, 'd M, Y h:i A');
+        $ticket->formatted_fare = showAmount($ticket->sub_total);
+
+        // Get fleet type, start and end locations
+        $ticket->fleet_type = $ticket->trip?->fleetType?->name ?? $ticket->fleet_type ?? '';
+        $ticket->start_from = $ticket->trip?->startFrom?->name ?? $ticket->start_from ?? '';
+        $ticket->end_to = $ticket->trip?->endTo?->name ?? $ticket->end_to ?? '';
+
+        // Fallback to JSON data if available
+        if (empty($ticket->fleet_type) && !empty($ticket->trip_details)) {
+            $tripDetails = json_decode($ticket->trip_details, true);
+            $ticket->fleet_type = $tripDetails['fleet_type'] ?? $tripDetails['FleetType'] ?? '';
+        }
+
+        if (empty($ticket->start_from) && !empty($ticket->trip_details)) {
+            $tripDetails = json_decode($ticket->trip_details, true);
+            $ticket->start_from = $tripDetails['start_from'] ?? $tripDetails['StartFrom'] ?? '';
+        }
+
+        if (empty($ticket->end_to) && !empty($ticket->trip_details)) {
+            $tripDetails = json_decode($ticket->trip_details, true);
+            $ticket->end_to = $tripDetails['end_to'] ?? $tripDetails['EndTo'] ?? '';
+        }
+
+        // Get pickup and dropping points
+        $boardingPoint = json_decode($ticket->boarding_point_details, true);
+        if (isset($boardingPoint['CityPointAddress'])) {
+            $ticket->pickup_point = $boardingPoint['CityPointAddress'];
+        } elseif (isset($boardingPoint['name'])) {
+            $ticket->pickup_point = $boardingPoint['name'];
+        }
+
+        $droppingPoint = json_decode($ticket->dropping_point_details, true);
+        if (isset($droppingPoint['CityPointLocation'])) {
+            $ticket->dropping_point = $droppingPoint['CityPointLocation'];
+        } elseif (isset($droppingPoint['name'])) {
+            $ticket->dropping_point = $droppingPoint['name'];
+        }
+
+        // Format seat numbers
+        $seats = is_array($ticket->seats) ? $ticket->seats : json_decode($ticket->seats, true);
+        $ticket->seat_numbers = is_array($seats) ? implode(', ', $seats) : $ticket->seats;
+
+        return response()->json(['success' => true, 'ticket' => $ticket]);
+    }
+
+
 }

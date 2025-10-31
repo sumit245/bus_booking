@@ -37,170 +37,6 @@ This module manages Operators (a specific role tied to fleet operations). It inc
 
 Below is a line-by-line explanation of the controller.
 
-```1:162:core/app/Http/Controllers/Admin/OperatorController.php
-<?php
-
-namespace App\Http\Controllers\Admin;
-
-use App\Models\Operator;                           // Imports the Operator Eloquent model
-use Illuminate\Http\Request;                        // For type-hinted Request dependency
-use App\Http\Controllers\Controller;               // Base controller class
-
-class OperatorController extends Controller
-{
-    /**
-     * Display a listing of the operators.
-     *
-     * @return \Illuminate\View\View
-     */
-    public function index()
-    {
-        $operators = Operator::all();                // Fetches all operators from DB
-        $pageTitle = "Manage Operators";            // Page title for views
-        return view('operators.index', compact('operators', 'pageTitle')); // Renders resources/views/operators/index.blade.php
-    }
-
-    /**
-     * Show the form for creating a new operator.
-     *
-     * @return \Illuminate\View\View
-     */
-    public function create()
-    {
-        $pageTitle = 'Add New Operator';            // Page title for creation form
-        return view('operators.create', compact('pageTitle')); // Renders resources/views/operators/create.blade.php
-    }
-
-    /**
-     * Store a newly created operator in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:operators,email',
-            'mobile' => 'required|string|max:20',
-            'password' => 'required|string|min:6|confirmed',      // expects password_confirmation
-            'address' => 'nullable|string',
-            'company_name' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'photo' => ['image', 'nullable', \Illuminate\Validation\Rule::dimensions()->maxWidth(400)->maxHeight(400)],
-            'pan_card' => ['image', 'nullable'],
-            'aadhaar_card' => ['image', 'nullable'],
-            'driving_license' => ['image', 'nullable'],
-            'bank_name' => 'nullable|string|max:255',             // retained in validation; migrated into bank_details JSON
-            'account_holder_name' => 'nullable|string|max:255',
-            'account_number' => 'nullable|string|max:50',
-            'ifsc_code' => 'nullable|string|max:20',
-            'gst_number' => 'nullable|string|max:20',
-            'cancelled_cheque' => ['image', 'nullable'],
-        ]);
-
-        $operator = new Operator();
-        $operator->name = $request->name;
-        $operator->email = $request->email;
-        $operator->mobile = $request->mobile;
-        $operator->password = bcrypt($request->password);        // Hashes password for storage
-        $operator->address = $request->address;
-        $operator->company_name = $request->company_name;
-        $operator->city = $request->city;
-        $operator->state = $request->state;
-
-        $path = imagePath()['profile']['operator']['path'];       // 'assets/images/operator/profile'
-        $size = imagePath()['profile']['operator']['size'];       // '400x400'
-
-        $fileUploads = ['photo', 'pan_card', 'aadhaar_card', 'driving_license', 'cancelled_cheque'];
-        foreach ($fileUploads as $file_field) {
-            if ($request->hasFile($file_field)) {
-                try {
-                    $filename = uploadImage($request->file($file_field), $path, $size); // Handles resize + save
-                    $operator->{$file_field} = $filename;         // Dynamic assignment of attribute
-                } catch (\Exception $exp) {
-                    $notify[] = ['error', 'Could not upload the ' . str_replace('_', ' ', $file_field)];
-                    return back()->withNotify($notify);
-                }
-            }
-        }
-
-        $operator->bank_details = [                              // Stored as JSON per migration
-            'bank_name' => $request->bank_name,
-            'account_holder_name' => $request->account_holder_name,
-            'account_number' => $request->account_number,
-            'ifsc_code' => $request->ifsc_code,
-            'gst_number' => $request->gst_number,
-        ];
-
-        $operator->save();
-
-        $notify[] = ['success', 'Operator created successfully.'];
-        return redirect()->route('admin.fleet.operators.index')->withNotify($notify);
-    }
-
-    /**
-     * Display the specified operator.
-     *
-     * @param  \App\Models\Operator  $operator  // Implicit route-model binding (id param)
-     * @return \Illuminate\View\View
-     */
-    public function show(Operator $operator)
-    {
-        return view('operators.show', compact('operator'));
-    }
-
-    /**
-     * Show the form for editing the specified operator.
-     *
-     * @param  \App\Models\Operator  $operator
-     * @return \Illuminate\View\View
-     */
-    public function edit(Operator $operator)
-    {
-        return view('operators.edit', compact('operator'));
-    }
-
-    /**
-     * Update the specified operator in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Operator  $operator
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function update(Request $request, Operator $operator)
-    {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:operators,email,' . $operator->id, // ignore current
-        ]);
-
-        $operator->update([
-            'name' => $request->name,
-            'email' => $request->email,
-        ]);
-
-        $notify[] = ['success', 'Operator updated successfully.'];
-        return redirect()->route('admin.fleet.operators.index')->withNotify($notify);
-    }
-
-    /**
-     * Remove the specified operator from storage.
-     *
-     * @param  \App\Models\Operator  $operator
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function destroy(Operator $operator)
-    {
-        $operator->delete();
-
-        $notify[] = ['success', 'Operator deleted successfully.'];
-        return redirect()->route('admin.fleet.operators.index')->withNotify($notify);
-    }
-}
-```
-
 Notes:
 
 - The controller expects routes with implicit model binding for `show`, `edit`, `update`, and `destroy` actions (matching numeric `{operator}` path parameters).
@@ -211,148 +47,8 @@ Notes:
 
 Operator admin routes are defined within the `admin` group (namespace `Admin`, name prefix `admin.`). The relevant entries are:
 
-```149:154:core/routes/web.php
-Route::get('manage/operators', 'OperatorController@index')->name('fleet.operators.index');
-Route::get('manage/operators/create', 'OperatorController@create')->name('fleet.operators.create');
-Route::post('manage/operators/store', 'OperatorController@store')->name('fleet.operators.store');
-```
-
 - These map to `index`, `create`, and `store` in `OperatorController`.
 - The index and create views referred by `OperatorController` are `resources/views/operators/index.blade.php` and `resources/views/operators/create.blade.php` (present under `core/resources/views/operators/`).
-
-### Model: `core/app/Models/Operator.php`
-
-```1:25:core/app/Models/Operator.php
-<?php
-
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class Operator extends Model
-{
-    use HasFactory;
-
-    protected $guarded = ['id'];                   // Mass-assignment protection for primary key
-
-    protected $casts = [
-        'bank_details' => 'json'                   // Casts bank_details to array
-    ];
-
-    /**
-     * Get the user that owns the operator.
-     */
-    public function user()
-    {
-        return $this->belongsTo(User::class);      // FK user_id -> users.id
-    }
-}
-```
-
-Key points:
-
-- `guarded` protects `id`; all other fields are mass-assignable.
-- `bank_details` is automatically cast to/from JSON.
-- Relation: each Operator belongs to a User (`operators.user_id`).
-
-### Database Schema (Migrations)
-
-1. Create table: `2024_07_23_100000_create_operators_table.php`
-
-```15:34:core/database/migrations/2024_07_23_100000_create_operators_table.php
-Schema::create('operators', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-    $table->string('name');
-    $table->string('mobile')->unique();
-    $table->string('email')->unique();
-    $table->text('address')->nullable();
-    $table->string('photo')->nullable();
-    $table->string('pan_card')->nullable();
-    $table->string('aadhaar_card')->nullable();
-    $table->string('driving_license')->nullable();
-    $table->string('bank_name')->nullable();
-    $table->string('account_holder_name')->nullable();
-    $table->string('account_number')->nullable();
-    $table->string('ifsc_code')->nullable();
-    $table->string('gst_number')->nullable();
-    $table->string('cancelled_cheque')->nullable();
-    $table->boolean('status')->default(1);
-    $table->timestamps();
-});
-```
-
-2. Alter table: `2025_10_09_133921_add_fields_to_operator.php`
-
-```16:28:core/database/migrations/2025_10_09_133921_add_fields_to_operator.php
-Schema::table('operators', function (Blueprint $table) {
-    $table->string('password');                    // Operator-auth password
-    $table->string('company_name')->nullable();
-    $table->string('city')->nullable();
-    $table->string('state')->nullable();
-    $table->boolean('sv')->default(0);             // sms verified flag
-    $table->boolean('ev')->default(0);             // email verified flag
-    $table->rememberToken();                       // auth remember token
-    $table->softDeletes();                         // deleted_at
-    $table->json('bank_details')->nullable();      // replaces individual bank columns
-
-    $table->dropColumn(['bank_name', 'account_holder_name', 'account_number', 'ifsc_code', 'gst_number']);
-});
-```
-
-Notes:
-
-- The controller’s `bank_details` assignment aligns with this migration.
-- The presence of `password`, `remember_token`, and `softDeletes` suggests operators may log in separately (ensure guards/providers if needed).
-
-### Admin Create View: `core/resources/views/admin/fleet/operator_create.blade.php`
-
-This is an admin-facing form (distinct from `resources/views/operators/create.blade.php`). It posts to `admin.fleet.operators.store` and includes tabs for Basic Details, Documents, and Bank Details.
-
-```6:26:core/resources/views/admin/fleet/operator_create.blade.php
-<form action="{{ route('admin.fleet.operators.store') }}" method="POST" enctype="multipart/form-data">
-  @csrf
-  ...
-  <ul class="nav nav-tabs" id="operatorTabs" role="tablist">
-    <!-- Basic Details / Documents / Bank Details -->
-  </ul>
-  <div class="tab-content mt-4" id="operatorTabsContent">
-    <!-- Basic Details fields: name, email, mobile, address, password, password_confirmation -->
-    <!-- Documents fields: photo, pan_card, aadhaar_card, driving_license -->
-    <!-- Bank Details fields: bank_name, account_holder_name, account_number, ifsc_code, gst_number, cancelled_cheque -->
-  </div>
-</form>
-```
-
-File upload fields use the `profilePicUpload` class and accept `.png,.jpg,.jpeg`. Image previews use `getImage('', imagePath()['operator']['size'])` for placeholder and `imagePath()['operator']['size']` for target sizing.
-
-### Helpers Used (files and images)
-
-- `imagePath()` in `core/app/Http/Helpers/helpers.php` defines upload destinations and sizes:
-
-```724:737:core/app/Http/Helpers/helpers.php
-$data['profile'] = [
-    'user' => ['path' => 'assets/images/user/profile', 'size' => '350x300'],
-    'admin' => ['path' => 'assets/admin/images/profile', 'size' => '400x400'],
-    'operator' => ['path' => 'assets/images/operator/profile', 'size' => '400x400']
-];
-```
-
-- `uploadImage($file, $location, $size, $old = null, $thumb = null)` saves and optionally resizes the image via Intervention Image:
-
-```100:125:core/app/Http/Helpers/helpers.php
-$filename = uniqid() . time() . '.' . $file->getClientOriginalExtension();
-$image = Image::make($file);
-if ($size) {
-    $size = explode('x', strtolower($size));
-    $image->resize($size[0], $size[1]);
-}
-$image->save($location . '/' . $filename);
-return $filename;
-```
-
----
 
 ## System Map (Outline)
 
@@ -598,27 +294,6 @@ The Staff Management module provides comprehensive functionality for operators t
 
 **Responsive Design:** Mobile-friendly interface with proper form layouts
 
-### 📱 WhatsApp Integration
-
-**Configuration:** Added to `config/services.php`
-
-```php
-'whatsapp' => [
-    'api_url' => env('WHATSAPP_API_URL'),
-    'api_key' => env('WHATSAPP_API_KEY'),
-],
-```
-
-**Helper Functions:** Complete notification system with:
-
-- Booking notifications with passenger details and bus information
-- Role-specific content (driver instructions, conductor tasks, attendant duties)
-- Attendance reminders
-- Salary payment confirmations
-- Error handling and logging
-
-**Staff Preferences:** Individual notification settings with WhatsApp number validation
-
 ### 🎯 Ready for Production
 
 The staff management module is now fully functional and ready for use. Operators can:
@@ -675,3 +350,589 @@ core/
 ```
 
 All the basic functionality requested has been implemented with a professional, scalable architecture that follows Laravel best practices and integrates seamlessly with the existing bus booking system.
+
+---
+
+## Merged Development & Production Summary
+
+This section consolidates development notes, production status, targets, and agent management analyses from the repository's development documentation. It mirrors the content previously kept in separate files and is intended so developers can get started without opening multiple notes.
+
+### Executive Summary
+
+The Bus Booking System is a Laravel 8 application providing a complete bus booking platform with operator management, route and bus management, a drag-and-drop seat layout editor, booking and payment flows (Razorpay), WhatsApp OTP-based mobile authentication, staff management, fee management, and admin/operator UIs. Recent fixes addressed the seat layout editor initialization and validated the OTP registration flow. The system is production-ready once environment credentials and staging validation are completed.
+
+### Key Accomplishments
+
+- Seat layout editor: corrected initialization and rendering, deck support, and test coverage.
+- OTP registration: WhatsApp OTP integration, 6-digit OTP verification, automatic account creation and login.
+- Booking flow: end-to-end search, seat block, payment, booking creation, and notifications.
+- Staff management: full CRUD, crew assignment, attendance, salary records, WhatsApp notifications.
+- Fee management: configurable GST, service charge, platform fee with admin UI and CLI tools.
+
+### High-level Project Tree (selected)
+
+- `core/` — Laravel application
+  - `app/` — Controllers, Models, Services, Helpers
+  - `config/` — Framework and app configuration
+  - `resources/views/` — Blade templates (admin, operator, frontend)
+  - `routes/` — `web.php`, `api.php`
+  - `database/` — Migrations, seeders
+- `assets/` — Admin and frontend JS/CSS/images
+- `public/` — Public web assets
+- `storage/` — Logs, compiled views, uploads
+
+### Major Modules and Specifications
+
+1. Operator Management — multi-step registration, profile/documents/bank details, admin approval, operator dashboard.
+2. Route Management — CRUD routes, city mapping, boarding/dropping points, route-bus assignment and history.
+3. Bus Management — bus CRUD, pricing with agent commissions, GST rules, features, and document handling.
+4. Seat Layout Editor — grid-based drag-and-drop UI, multi-deck support, seat types, pricing per seat, HTML/JSON exports.
+5. Booking System — search (operator & third-party), seat block APIs, payment flow (Razorpay), ticket generation, WhatsApp notifications.
+6. Mobile Authentication (WhatsApp OTP) — mobile-first login/signup, validation, automatic account creation.
+7. Staff Management — staff CRUD, crew assignment, attendance, salary records, WhatsApp notifications.
+8. Agent System (partial) — DB structures and scaffolding exist; admin CRUD views and commission APIs need completion.
+9. Fee Management — admin-configurable fees and CLI support.
+
+### Important Flows (textual)
+
+- Booking Flow: Search → select bus/schedule → seat layout → seat block → payment → booking confirmation → notifications.
+- Seat Layout Editor Flow: load configuration → build grid → render seats → drag/drop/type/pricing → save JSON + HTML.
+- OTP Registration Flow: input mobile → send WhatsApp OTP → verify OTP → login/create account.
+
+### Production Readiness & Checklist
+
+- Environment: PHP 7.4+, Laravel 8, MySQL; HTTPS recommended.
+- Required: WhatsApp Business API credentials, DB settings, mail config, payment gateway credentials.
+- Security: CSRF protection, input validation, session protection; add rate-limiting for OTPs.
+
+Completed: seat layout fixes, OTP registration, authentication flows, UI/notification consistency.
+Remaining: `.env` secrets, backups, monitoring, staging tests.
+
+### Known Issues & Risks
+
+- Agent system incomplete: missing admin CRUD and agent-specific booking views.
+- Search token expiry can cause undefined HTML layout errors — handle token expiry gracefully.
+- File permission issues can prevent compiled Blade views from being written; ensure proper storage permissions.
+
+### Pending Items & Next Targets
+
+Priority 1 (High): implement admin agent CRUD and views; finish agent booking flow (seat selection, commission API, agent seat blocking); UI/UX improvements.
+Priority 2 (Medium): improve error handling for search token expiry; full testing of user dashboard and end-to-end booking flow.
+Priority 3 (Low): monitoring (OTP metrics, seat layout performance, logs/alerts).
+
+### Operational Notes
+
+- Reuse existing booking APIs and services (e.g., `BusService`, `BookingService`) to avoid duplication.
+- Keep helper functions and notification patterns consistent.
+
+### Verification & Tests
+
+- Seat layout test harness: `test_seat_layout.html`.
+- OTP and booking flows should be validated in staging with external services configured.
+
+### Recommended Next Steps
+
+1. Provision production credentials (WhatsApp, Razorpay, mail) and validate in staging.
+2. Implement the missing agent admin UI and booking views.
+3. Harden OTP flows with rate-limiting and IP throttling.
+4. Add reporting for commissions and operator revenue.
+
+---
+
+Consolidated from project development notes; original per-feature markdown files have been removed or redirected to keep documentation in one place.
+
+---
+
+## Merged: BUS_BOOKING_SYSTEM_DOCUMENTATION.md
+
+The following section merges the contents of `BUS_BOOKING_SYSTEM_DOCUMENTATION.md` to provide a single consolidated documentation file. It contains system architecture, modules, data flows, integrations, UI guidelines, and pending items.
+
+# Bus Booking System - Comprehensive Documentation
+
+## System Overview
+
+This is a comprehensive **Bus Booking Management System** built using Laravel 8 framework. The system provides a complete solution for bus ticket booking, fleet management, operator services, and agent networks with integrated payment processing and real-time notifications.
+
+## Table of Contents
+
+1. [Architecture Overview](#architecture-overview)
+2. [User Roles & Permissions](#user-roles--permissions)
+3. [Core Modules](#core-modules)
+4. [Data Flow](#data-flow)
+5. [External Integrations](#external-integrations)
+6. [Database Schema](#database-schema)
+7. [API Endpoints](#api-endpoints)
+8. [Redundant Functions Report](#redundant-functions-report)
+
+## Architecture Overview
+
+The system follows a multi-layered architecture:
+
+```
+┌─────────────────────────────────────────┐
+│               Frontend Layer            │
+│  - User Interface (Blade Templates)    │
+│  - Agent Portal                        │
+│  - Operator Dashboard                  │
+│  - Admin Panel                         │
+└─────────────────────────────────────────┘
+        │
+┌─────────────────────────────────────────┐
+│            Controller Layer             │
+│  - API Controllers                      │
+│  - Web Controllers                      │
+│  - Authentication Controllers           │
+└─────────────────────────────────────────┘
+        │
+┌─────────────────────────────────────────┐
+│             Service Layer               │
+│  - BusService (Search & Management)    │
+│  - BookingService (Booking Logic)      │
+│  - AgentCommissionCalculator            │
+│  - RevenueCalculator                    │
+└─────────────────────────────────────────┘
+        │
+┌─────────────────────────────────────────┐
+│              Data Layer                 │
+│  - Eloquent Models                      │
+│  - Database Migrations                  │
+│  - Helper Functions                     │
+└─────────────────────────────────────────┘
+        │
+┌─────────────────────────────────────────┐
+│          External Services              │
+│  - Third-party Bus API                  │
+│  - Razorpay Payment Gateway            │
+│  - WhatsApp Business API                │
+│  - SMS Gateways                         │
+└─────────────────────────────────────────┘
+```
+
+## User Roles & Permissions
+
+### 1. **Admin (Super User)**
+
+- **Responsibilities**: System administration, user management, financial oversight
+- **Access**: All system features, reports, settings
+- **Key Functions**: Operator approval, agent management, revenue monitoring
+
+### 2. **Bus Operators**
+
+- **Responsibilities**: Fleet management, route configuration, crew assignment
+- **Access**: Operator dashboard, bus management, booking oversight
+- **Key Functions**: Bus registration, schedule management, crew assignment, payout tracking
+
+### 3. **Agents**
+
+- **Responsibilities**: Ticket sales, customer service
+- **Access**: Agent portal, booking interface, commission tracking
+- **Key Functions**: Book tickets for customers, earn commissions, track earnings
+
+### 4. **Regular Users (Customers)**
+
+- **Responsibilities**: Book tickets, manage bookings
+- **Access**: Public booking interface, user dashboard
+- **Key Functions**: Search buses, book tickets, view booking history
+
+## Core Modules
+
+### 1. **Bus Search & Management Module**
+
+**Location**: `app/Services/BusService.php`
+
+**Data Flow**:
+
+```
+User Search Request → BusService::searchBuses() →
+Fetch from Third-party API + Operator Buses →
+Apply Markup & Coupons → Apply Filters →
+Return Paginated Results
+```
+
+**Key Components**:
+
+- Search from multiple sources (API + operator buses)
+- Real-time caching for performance
+- Dynamic pricing with markup tables
+- Coupon application system
+- Advanced filtering and sorting
+
+### 2. **Booking Management Module**
+
+**Location**: `app/Services/BookingService.php`
+
+**Data Flow**:
+
+```
+Booking Request → Seat Blocking → Payment Order Creation →
+Payment Verification → Ticket Confirmation →
+WhatsApp Notifications → Booking Complete
+```
+
+**Key Components**:
+
+- Dual booking system (API buses + operator buses)
+- Razorpay integration for payments
+- Automatic user registration/login
+- Multi-passenger support for agents
+- Real-time seat blocking
+- WhatsApp notifications to passengers and crew
+
+### 3. **Fleet Management Module**
+
+**Location**: `app/Http/Controllers/Operator/`
+
+**Data Flow**:
+
+```
+Operator Registration → Bus Registration → Route Configuration →
+Schedule Setup → Crew Assignment → Revenue Tracking
+```
+
+**Key Components**:
+
+- Bus registration with seat layouts
+- Route management with boarding/dropping points
+- Schedule configuration
+- Staff and crew management
+- Attendance tracking
+- Revenue and payout calculation
+
+### 4. **Agent Commission Module**
+
+**Location**: `app/Services/AgentCommissionCalculator.php`
+
+**Data Flow**:
+
+```
+Agent Booking → Commission Calculation →
+Revenue Tracking → Payout Processing
+```
+
+**Key Components**:
+
+- Tiered commission structure
+- Real-time commission calculation
+- Performance-based bonuses
+- Monthly/weekly payout tracking
+
+### 5. **Payment Processing Module**
+
+**Location**: `app/Http/Controllers/RazorpayController.php`
+
+**Data Flow**:
+
+```
+Booking Request → Payment Order Creation →
+User Payment → Signature Verification →
+Booking Confirmation → Ticket Generation
+```
+
+**Key Components**:
+
+- Razorpay integration
+- Secure payment verification
+- Automatic refund processing for cancellations
+- Payment status tracking
+
+### 6. **Notification System**
+
+**Location**: `app/Http/Helpers/WhatsAppHelper.php`
+
+**Data Flow**:
+
+```
+Booking Confirmation → WhatsApp Template Selection →
+Parameter Formatting → API Call → Status Tracking
+```
+
+**Key Components**:
+
+- WhatsApp Business API integration
+- Template-based messaging
+- Crew notifications for operator buses
+- Admin notifications for new bookings
+- Automatic cancellation on notification failure
+
+## Data Flow
+
+### Complete Booking Process
+
+```
+1. USER SEARCH
+  ├── User enters origin, destination, date
+  /* Lines 193-196 omitted */
+  └── Paginated results returned
+
+2. SEAT SELECTION
+  ├── User selects bus and seats
+  /* Lines 200-202 omitted */
+  └── Seat selection confirmed
+
+3. PASSENGER DETAILS
+  ├── User/Agent enters passenger info
+  /* Lines 206-208 omitted */
+  └── Data prepared for booking
+
+4. PAYMENT PROCESSING
+  ├── Seats blocked via API
+  /* Lines 212-215 omitted */
+  └── Booking status updated
+
+5. CONFIRMATION & NOTIFICATIONS
+  ├── API booking confirmed
+  /* Lines 219-223 omitted */
+  └── Process complete
+
+6. POST-BOOKING
+  ├── Commission calculated (if agent)
+  /* Lines 227-229 omitted */
+  └── Reports generated
+```
+
+### Revenue Flow
+
+```
+TICKET SALE
+├── Total Fare Collected
+├── Platform Commission (Admin)
+├── Agent Commission (if applicable)
+├── Operator Share
+├── Third-party API Commission (if applicable)
+└── Net Revenue Distribution
+```
+
+### Data Synchronization
+
+```
+OPERATOR BUS MANAGEMENT
+├── Bus Registration → seat_layouts table
+├── Route Setup → operator_routes, boarding_points, dropping_points
+├── Schedule Creation → bus_schedules table
+├── Crew Assignment → crew_assignments table
+└── Real-time sync with booking system
+```
+
+## External Integrations
+
+### 1. **Third-Party Bus API**
+
+**Purpose**: Fetch buses from external operators
+**Functions**: `searchAPIBuses()`, `blockSeatHelper()`, `bookAPITicket()`
+**Data Flow**: Search → Block → Book → Get Details → Cancel (if needed)
+
+### 2. **Razorpay Payment Gateway**
+
+**Purpose**: Handle payment processing
+**Integration**: Order creation, payment verification, refund processing
+**Security**: Signature verification, webhook handling
+
+### 3. **WhatsApp Business API**
+
+**Purpose**: Send booking confirmations and notifications
+**Templates**: Ticket confirmation, crew notifications, admin alerts
+**Features**: Template messaging, media support, delivery tracking
+
+### 4. **SMS Gateway Integration**
+
+**Purpose**: Backup communication channel
+**Providers**: Multiple SMS providers supported
+**Usage**: OTP verification, booking confirmations
+
+## Database Schema
+
+### Key Tables
+
+**Users & Authentication**
+
+- `users` - Customer accounts
+- `agents` - Agent accounts
+- `operators` - Bus operator accounts
+- `admins` - System administrators
+
+**Bus & Fleet Management**
+
+- `cities` - Available cities
+- `operator_routes` - Routes configured by operators
+- `operator_buses` - Buses registered by operators
+- `seat_layouts` - Bus seat configurations
+- `bus_schedules` - Schedule management
+- `boarding_points`, `dropping_points` - Stop management
+
+**Booking & Transactions**
+
+- `booked_tickets` - All booking records
+- `operator_bookings` - Operator-specific bookings
+- `agent_bookings` - Agent commission tracking
+- `transactions` - Payment records
+
+**Business Logic**
+
+- `markup_table` - Pricing markup configuration
+- `coupon_tables` - Discount management
+- `revenue_reports` - Financial tracking
+- `operator_payouts` - Payout management
+
+**Staff & Crew Management**
+
+- `staff` - Operator staff records
+- `crew_assignments` - Bus crew assignments
+- `attendance` - Staff attendance tracking
+- `salary_records` - Payroll management
+
+## API Endpoints
+
+### Public APIs
+
+- `GET /api/cities/search` - City autocomplete
+- `POST /api/buses/search` - Search available buses
+- `POST /api/seats/layout` - Get seat layout
+- `POST /api/booking/block` - Block seats
+- `POST /api/booking/confirm` - Confirm booking
+
+### Agent APIs
+
+- `POST /api/agent/booking` - Agent booking interface
+- `GET /api/agent/earnings` - Commission tracking
+- `GET /api/agent/bookings` - Booking history
+
+### Operator APIs
+
+- `GET /api/operator/dashboard` - Dashboard data
+- `POST /api/operator/bus` - Bus management
+- `GET /api/operator/revenue` - Revenue tracking
+
+## Redundant Functions Report
+
+After comprehensive analysis of the codebase, here are the identified redundant functions, methods, and classes:
+
+### 1. **Duplicate Validation Functions**
+
+**Redundant Functions:**
+
+- `validatePhone()` in `API/UserController.php` vs `validateLogin()` in `Auth/LoginController.php`
+- `validateCurrentStep()` in multiple Blade templates
+- `validatePassengerDetails()` repeated across booking interfaces
+- `validateCommissionConfig()` vs `validateLayoutConsistency()` - similar validation patterns
+
+**Recommendation**: Create a centralized `ValidationService` class
+
+### 2. **Duplicate Formatting Functions**n+
+
+**Highly Redundant Functions:**
+
+- `getFormattedBasePriceAttribute()`, `getFormattedPublishedPriceAttribute()`, `getFormattedOfferedPriceAttribute()` in `OperatorBus.php`
+- `getFormattedNetPayableAttribute()`, `getFormattedAmountPaidAttribute()`, `getFormattedPendingAmountAttribute()` in multiple models
+- `getFormattedTimeAttribute()` in both `BoardingPoint.php` and `DroppingPoint.php`
+- `getFormattedDepartureTimeAttribute()` and `getFormattedArrivalTimeAttribute()` patterns repeated
+
+**Recommendation**: Create a `FormattingTrait` for currency and time formatting
+
+### 3. **Duplicate Email/SMS Functions**
+
+**Redundant Functions:**
+
+- `sendEmail()` function duplicated across multiple controllers
+- `sendSms()` patterns repeated in various auth controllers
+- `sendEmailSingle()` vs `sendEmailAll()` - similar logic with minor differences
+- `notify()` function that just calls `sendEmail()` and `sendSms()`
+
+**Recommendation**: Centralize in a `NotificationService`
+
+### 4. **Duplicate API Helper Functions**
+
+**Redundant Functions:**
+
+- `searchAPIBuses()`, `blockSeatHelper()`, `bookAPITicket()` - repeated API call patterns
+- `fetchTripsFromApi()` vs manual API calls in controllers
+- `getAPITicketDetails()` and `getAPIBusSeats()` - similar structure
+
+**Recommendation**: Create a unified `BusAPIService` class
+
+### 5. **Duplicate Authentication Logic**
+
+**Redundant Classes/Functions:**
+
+- `ForgotPasswordController` logic duplicated across Admin, Operator, and User namespaces
+- `ResetPasswordController` - nearly identical implementations
+- Password reset email sending logic duplicated 3 times
+
+**Recommendation**: Create a base `AuthenticationController` with shared logic
+
+### 6. **Duplicate Controller Patterns**
+
+**Redundant Controllers:**
+
+- `ApiTicketController.php` vs `ApiControllerTrash.php` (one is literally named "Trash")
+- Similar CRUD patterns across `AdminController`, `OperatorController`, `AgentController`
+- `ManageTripController` exists in both `Admin` and `API` namespaces with similar functions
+
+**Recommendation**: Use Laravel's Resource Controllers and traits
+
+### 7. **Duplicate Model Accessors**
+
+**Redundant Methods:**
+
+- Currency formatting accessors repeated across 6+ models
+- Time formatting patterns in 4+ models
+- Status formatting logic duplicated across booking-related models
+
+**Recommendation**: Create shared traits for common accessor patterns
+
+### 8. **Duplicate WhatsApp Functions**
+
+**Redundant Functions:**
+
+- `formatBookingTemplateParams()` and `formatCrewBookingTemplateParams()` - very similar logic
+- Multiple WhatsApp sending functions with slight variations
+- Template parameter formatting duplicated
+
+**Recommendation**: Consolidate into `WhatsAppService` with template factory
+
+### 9. **Trash/Unused Files**
+
+**Files to Remove:**
+
+- `ApiControllerTrash.php` - appears to be an old version
+- `bus_search_results_processed.json` in Models directory (should be in storage)
+- Multiple unused JSON files in core directory
+- Potentially unused migrations (need verification)
+
+## Summary
+
+**Total Redundant Functions Identified: 45+**
+
+**Major Categories:**
+
+1. **Validation Functions**: 8 redundant implementations
+2. **Formatting Functions**: 15+ redundant accessors/methods
+3. **Email/SMS Functions**: 6 duplicate implementations
+4. **API Helper Functions**: 5 redundant patterns
+5. **Authentication Logic**: 6 duplicate controllers/methods
+6. **Controller Patterns**: 4 redundant/similar controllers
+7. **Model Accessors**: 10+ duplicate formatting methods
+8. **WhatsApp Functions**: 3 similar implementations
+9. **Unused Files**: 5+ trash/obsolete files
+
+## Optimization Recommendations
+
+1. **Create Service Classes**: Centralize business logic
+2. **Use Traits**: Share common model methods
+3. **Implement Factory Pattern**: For notifications and API calls
+4. **Remove Dead Code**: Clean up unused files
+5. **Consolidate Controllers**: Use inheritance and traits
+6. **Cache Strategy**: Implement consistent caching
+7. **Error Handling**: Standardize error responses
+8. **Documentation**: Add inline documentation for complex business logic
+
+This system is well-architected but suffers from code duplication due to rapid development. Implementing the above recommendations would improve maintainability and reduce technical debt significantly.
+
+## Operator Module - Pending Items & Priorities
+
+### **🎯 HIGH PRIORITY PENDING ITEMS**
+
+... (remaining sections omitted in README merge for brevity; original `BUS_BOOKING_SYSTEM_DOCUMENTATION.md` contains the full remaining content including Operator/Agent Module detailed priorities, UI guidelines, and file structure references)
+
+---
+
+Note: The full `BUS_BOOKING_SYSTEM_DOCUMENTATION.md` remains in the repo (if needed) and has been merged into this `README.md` to provide a single consolidated reference for developers. If you'd like the remaining omitted sections inlined here verbatim, I can append them too.

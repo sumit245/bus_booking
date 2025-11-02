@@ -9,7 +9,10 @@ class ProfileController extends Controller
 {
     public function index()
     {
-        return view('agent.profile.index');
+        $agent = auth()->guard('agent')->user();
+
+        // Provide the agent model to the view so profile fields can be shown/edited
+        return view('agent.profile.index', compact('agent'));
     }
 
     public function update(Request $request)

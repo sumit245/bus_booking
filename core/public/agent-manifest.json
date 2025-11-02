@@ -1,7 +1,7 @@
 {
-    "name": "Bus Booking Agent Panel",
+    "name": "Ghumantoo | Agent Panel",
     "short_name": "Agent Panel",
-    "description": "Mobile-first bus booking agent portal for efficient ticket management",
+    "description": "Mobile-first agent portal for efficient ticket management system used by Ghumantoo. Powered by Dashandots Technology.",
     "start_url": "/agent/dashboard",
     "display": "standalone",
     "background_color": "#ffffff",

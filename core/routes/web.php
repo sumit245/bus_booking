@@ -12,6 +12,24 @@ Route::get("/clear", function () {
     \Illuminate\Support\Facades\Artisan::call("optimize:clear");
 });
 
+// Serve PWA manifest and service worker for Agent Panel
+// These are named so blade templates can reference route('agent.manifest') and route('agent.sw')
+Route::get('/agent-manifest.json', function () {
+    $path = public_path('agent-manifest.json');
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path, ['Content-Type' => 'application/manifest+json']);
+})->name('agent.manifest');
+
+Route::get('/agent-sw.js', function () {
+    $path = public_path('agent-sw.js');
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path, ['Content-Type' => 'application/javascript']);
+})->name('agent.sw');
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes

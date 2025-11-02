@@ -1,8 +1,8 @@
-## Bus Booking – Comprehensive Documentation
+# Bus Booking – Comprehensive Documentation
 
 This document provides a deep technical overview of the Bus Booking Laravel application, including a detailed, line-by-line walkthrough of the Operator Management module and a structured map of the rest of the codebase. It is intended for developers who will maintain, extend, or audit the system.
 
-### Tech Stack
+## Tech Stack
 
 - **Framework**: Laravel (PHP)
 - **Frontend**: Blade templates, Bootstrap-based admin UI
@@ -232,7 +232,7 @@ The Staff Management module provides comprehensive functionality for operators t
 
 ### 🚀 Key Features Implemented
 
-#### Staff Management:
+#### Staff Management
 
 - ✅ Create/edit/view/delete staff members
 - ✅ Role-based staff (driver, conductor, attendant, manager, other)
@@ -243,7 +243,7 @@ The Staff Management module provides comprehensive functionality for operators t
 - ✅ Employee ID auto-generation
 - ✅ Status management (active/inactive)
 
-#### Crew Assignment:
+#### Crew Assignment
 
 - ✅ Assign staff to buses with date ranges
 - ✅ Role-based assignments (driver, conductor, attendant)
@@ -252,7 +252,7 @@ The Staff Management module provides comprehensive functionality for operators t
 - ✅ Bulk assignment functionality
 - ✅ Assignment status tracking
 
-#### Attendance Management:
+#### Attendance Management
 
 - ✅ Daily attendance marking
 - ✅ Check-in/check-out time tracking
@@ -262,7 +262,7 @@ The Staff Management module provides comprehensive functionality for operators t
 - ✅ Bulk approval functionality
 - ✅ Monthly attendance statistics
 
-#### WhatsApp Notifications:
+#### WhatsApp Notifications
 
 - ✅ Booking notifications to assigned crew
 - ✅ Attendance reminders
@@ -270,7 +270,7 @@ The Staff Management module provides comprehensive functionality for operators t
 - ✅ Configurable notification preferences
 - ✅ Role-specific notification content
 
-#### Salary Management:
+#### Salary Management
 
 - ✅ Monthly salary calculation
 - ✅ Overtime and allowance tracking
@@ -316,7 +316,7 @@ The module is ready for the next phase of integration:
 
 ### 📁 File Structure
 
-```
+```text
 core/
 ├── app/
 │   ├── Http/
@@ -447,7 +447,7 @@ Consolidated from project development notes; original per-feature markdown files
 
 The following section merges the contents of `BUS_BOOKING_SYSTEM_DOCUMENTATION.md` to provide a single consolidated documentation file. It contains system architecture, modules, data flows, integrations, UI guidelines, and pending items.
 
-# Bus Booking System - Comprehensive Documentation
+## Bus Booking System - Comprehensive Documentation
 
 ## System Overview
 
@@ -468,13 +468,13 @@ This is a comprehensive **Bus Booking Management System** built using Laravel 8 
 
 The system follows a multi-layered architecture:
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │               Frontend Layer            │
-│  - User Interface (Blade Templates)    │
-│  - Agent Portal                        │
-│  - Operator Dashboard                  │
-│  - Admin Panel                         │
+│  - User Interface (Blade Templates)     │
+│  - Agent Portal                         │
+│  - Operator Dashboard                   │
+│  - Admin Panel                          │
 └─────────────────────────────────────────┘
         │
 ┌─────────────────────────────────────────┐
@@ -486,8 +486,8 @@ The system follows a multi-layered architecture:
         │
 ┌─────────────────────────────────────────┐
 │             Service Layer               │
-│  - BusService (Search & Management)    │
-│  - BookingService (Booking Logic)      │
+│  - BusService (Search & Management)     │
+│  - BookingService (Booking Logic)       │
 │  - AgentCommissionCalculator            │
 │  - RevenueCalculator                    │
 └─────────────────────────────────────────┘
@@ -502,7 +502,7 @@ The system follows a multi-layered architecture:
 ┌─────────────────────────────────────────┐
 │          External Services              │
 │  - Third-party Bus API                  │
-│  - Razorpay Payment Gateway            │
+│  - Razorpay Payment Gateway             │
 │  - WhatsApp Business API                │
 │  - SMS Gateways                         │
 └─────────────────────────────────────────┘
@@ -542,7 +542,7 @@ The system follows a multi-layered architecture:
 
 **Data Flow**:
 
-```
+```text
 User Search Request → BusService::searchBuses() →
 Fetch from Third-party API + Operator Buses →
 Apply Markup & Coupons → Apply Filters →
@@ -563,7 +563,7 @@ Return Paginated Results
 
 **Data Flow**:
 
-```
+```text
 Booking Request → Seat Blocking → Payment Order Creation →
 Payment Verification → Ticket Confirmation →
 WhatsApp Notifications → Booking Complete
@@ -584,7 +584,7 @@ WhatsApp Notifications → Booking Complete
 
 **Data Flow**:
 
-```
+```text
 Operator Registration → Bus Registration → Route Configuration →
 Schedule Setup → Crew Assignment → Revenue Tracking
 ```
@@ -604,7 +604,7 @@ Schedule Setup → Crew Assignment → Revenue Tracking
 
 **Data Flow**:
 
-```
+```text
 Agent Booking → Commission Calculation →
 Revenue Tracking → Payout Processing
 ```
@@ -622,7 +622,7 @@ Revenue Tracking → Payout Processing
 
 **Data Flow**:
 
-```
+```text
 Booking Request → Payment Order Creation →
 User Payment → Signature Verification →
 Booking Confirmation → Ticket Generation
@@ -641,7 +641,7 @@ Booking Confirmation → Ticket Generation
 
 **Data Flow**:
 
-```
+```text
 Booking Confirmation → WhatsApp Template Selection →
 Parameter Formatting → API Call → Status Tracking
 ```
@@ -658,7 +658,7 @@ Parameter Formatting → API Call → Status Tracking
 
 ### Complete Booking Process
 
-```
+```text
 1. USER SEARCH
   ├── User enters origin, destination, date
   /* Lines 193-196 omitted */
@@ -692,7 +692,7 @@ Parameter Formatting → API Call → Status Tracking
 
 ### Revenue Flow
 
-```
+```text
 TICKET SALE
 ├── Total Fare Collected
 ├── Platform Commission (Admin)
@@ -704,7 +704,7 @@ TICKET SALE
 
 ### Data Synchronization
 
-```
+```text
 OPERATOR BUS MANAGEMENT
 ├── Bus Registration → seat_layouts table
 ├── Route Setup → operator_routes, boarding_points, dropping_points
@@ -743,14 +743,14 @@ OPERATOR BUS MANAGEMENT
 
 ### Key Tables
 
-**Users & Authentication**
+#### Users & Authentication
 
 - `users` - Customer accounts
 - `agents` - Agent accounts
 - `operators` - Bus operator accounts
 - `admins` - System administrators
 
-**Bus & Fleet Management**
+#### Bus & Fleet Management
 
 - `cities` - Available cities
 - `operator_routes` - Routes configured by operators
@@ -759,21 +759,21 @@ OPERATOR BUS MANAGEMENT
 - `bus_schedules` - Schedule management
 - `boarding_points`, `dropping_points` - Stop management
 
-**Booking & Transactions**
+#### Booking & Transactions
 
 - `booked_tickets` - All booking records
 - `operator_bookings` - Operator-specific bookings
 - `agent_bookings` - Agent commission tracking
 - `transactions` - Payment records
 
-**Business Logic**
+#### Business Logic
 
 - `markup_table` - Pricing markup configuration
 - `coupon_tables` - Discount management
 - `revenue_reports` - Financial tracking
 - `operator_payouts` - Payout management
 
-**Staff & Crew Management**
+#### Staff & Crew Management
 
 - `staff` - Operator staff records
 - `crew_assignments` - Bus crew assignments
@@ -782,25 +782,9 @@ OPERATOR BUS MANAGEMENT
 
 ## API Endpoints
 
-### Public APIs
+See the full "API Reference — Full Endpoint List" below for complete method signatures, authentication/guard requirements, request parameters, and response shapes.
 
-- `GET /api/cities/search` - City autocomplete
-- `POST /api/buses/search` - Search available buses
-- `POST /api/seats/layout` - Get seat layout
-- `POST /api/booking/block` - Block seats
-- `POST /api/booking/confirm` - Confirm booking
-
-### Agent APIs
-
-- `POST /api/agent/booking` - Agent booking interface
-- `GET /api/agent/earnings` - Commission tracking
-- `GET /api/agent/bookings` - Booking history
-
-### Operator APIs
-
-- `GET /api/operator/dashboard` - Dashboard data
-- `POST /api/operator/bus` - Bus management
-- `GET /api/operator/revenue` - Revenue tracking
+This short summary was removed to avoid duplication and drift. Use the detailed API Reference (search for "API Reference — Full Endpoint List") as the canonical source of truth.
 
 ## Redundant Functions Report
 
@@ -817,7 +801,7 @@ After comprehensive analysis of the codebase, here are the identified redundant 
 
 **Recommendation**: Create a centralized `ValidationService` class
 
-### 2. **Duplicate Formatting Functions**n+
+### 2. **Duplicate Formatting Functions**
 
 **Highly Redundant Functions:**
 
@@ -863,7 +847,6 @@ After comprehensive analysis of the codebase, here are the identified redundant 
 
 **Redundant Controllers:**
 
-- `ApiTicketController.php` vs `ApiControllerTrash.php` (one is literally named "Trash")
 - Similar CRUD patterns across `AdminController`, `OperatorController`, `AgentController`
 - `ManageTripController` exists in both `Admin` and `API` namespaces with similar functions
 
@@ -893,14 +876,11 @@ After comprehensive analysis of the codebase, here are the identified redundant 
 
 **Files to Remove:**
 
-- `ApiControllerTrash.php` - appears to be an old version
-- `bus_search_results_processed.json` in Models directory (should be in storage)
-- Multiple unused JSON files in core directory
 - Potentially unused migrations (need verification)
 
 ## Summary
 
-**Total Redundant Functions Identified: 45+**
+### Total Redundant Functions Identified: 45+
 
 **Major Categories:**
 
@@ -927,12 +907,151 @@ After comprehensive analysis of the codebase, here are the identified redundant 
 
 This system is well-architected but suffers from code duplication due to rapid development. Implementing the above recommendations would improve maintainability and reduce technical debt significantly.
 
-## Operator Module - Pending Items & Priorities
+## API Reference — Full Endpoint List
 
-### **🎯 HIGH PRIORITY PENDING ITEMS**
+This section lists the main HTTP API endpoints used across the system. For each endpoint you'll find: HTTP method, path, brief purpose, authentication requirement, main request parameters, and typical success response shape. Use these as a developer reference; adjust payload field names to match controller request validations.
 
-... (remaining sections omitted in README merge for brevity; original `BUS_BOOKING_SYSTEM_DOCUMENTATION.md` contains the full remaining content including Operator/Agent Module detailed priorities, UI guidelines, and file structure references)
+Note: 'Auth' indicates required authentication/guard. Common guards: `auth` (user), `auth:agent`, `auth:operator`, `auth:admin`. Many endpoints accept JSON bodies and return JSON.
 
----
+## Canonical API routes (from code)
 
-Note: The full `BUS_BOOKING_SYSTEM_DOCUMENTATION.md` remains in the repo (if needed) and has been merged into this `README.md` to provide a single consolidated reference for developers. If you'd like the remaining omitted sections inlined here verbatim, I can append them too.
+A machine-readable Postman collection was generated from the application's route declarations and saved at:
+
+- `bus_booking_routes.postman_collection.json` (repo root)
+
+This collection was built directly from these source files and is authoritative for testing:
+
+- `core/routes/api.php` (loaded with `/api` prefix via RouteServiceProvider — these endpoints are available at `{{baseUrl}}/api/...`)
+- `core/routes/web.php` (API-like endpoints, webhooks, and temporary JSON routes are listed without `/api` prefix)
+
+Why this collection exists
+
+- The human-facing API Reference in this README is a conceptual, developer-focused map. For exact HTTP paths, methods, and the runtime prefixing used by Laravel, import the Postman collection above — it contains only the routes declared in code (no inferred endpoints).
+
+How to use
+
+1. Import `bus_booking_routes.postman_collection.json` into Postman (Import → File).
+
+2. Set the environment variable `baseUrl` to your server (for example `http://localhost` or your staging URL).
+
+3. Fill request bodies with the exact payloads your controllers expect and run requests.
+
+If you want, I can now extract request validation rules and example bodies from controller FormRequests and update the collection with sample payloads and response examples (recommended for automated testing). Reply: "Fill bodies from controllers" to proceed.
+
+### API — Authentication & User
+
+- POST /api/auth/register — Register a user (public). Params: { mobile, name?, otp? } — returns { user, token }
+- POST /api/auth/send-otp — Send OTP to mobile (public). Params: { mobile } — returns { success }
+- POST /api/auth/verify-otp — Verify OTP and login/register (public). Params: { mobile, otp } — returns { user, token }
+- POST /api/auth/login — Email/password or mobile login (public). Params: { email|mobile, password } — returns { user, token }
+- POST /api/auth/logout — Auth (user) — invalidates token. Auth: `auth` — returns { success }
+- POST /api/auth/forgot-password — Request password reset (public). Params: { email }
+- POST /api/auth/reset-password — Reset password with token (public). Params: { token, email, password }
+
+### API — Public / Catalog
+
+- GET /api/cities/search?q={q} — City autocomplete (public). Returns [{ id, name, state, slug }]
+- GET /api/markup — Get pricing markup config (public/admin-protected). Returns markup table
+- GET /api/coupons — List active coupons (public)
+
+### API — Bus Search & Catalog
+
+- POST /api/buses/search — Search available buses (public). Body: { origin_id, destination_id, date, passenger_count, filters? } — returns paginated bus list with schedules and fare breakdown
+- GET /api/buses/{bus_id}/schedules?date=YYYY-MM-DD — Get schedules for a specific bus or operator
+- POST /api/buses/{schedule_id}/availability — Check seat availability (public). Body: { seats[] } — returns blocked hold token / availability
+
+### API — Seat Layout / Seat Editor
+
+- POST /api/seats/layout — Return seat layout JSON for a given bus/schedule. Body: { bus_id|operator_bus_id, layout_version? } — returns seat JSON structure
+- POST /api/seats/save-layout — Auth: `auth:operator` — Save/update seat layout for operator buses. Body: { bus_id, layout_json }
+- GET /api/seats/layout-html?bus_id={id} — Return HTML preview used by test harness (public/admin)
+
+### API — Booking Flow (core)
+
+- POST /api/booking/block — Block seats (public/agent). Body: { schedule_id, seats[], hold_ttl?, customer_info, agent_id? } — returns { block_token, expires_at }
+- POST /api/booking/create — Create booking after payment verification (public/agent). Body: { block_token, payment_reference, passengers[] } — returns { booking_id, ticket, status }
+- POST /api/booking/confirm — Confirm booking (internal/payment callback). Body: { booking_id, payment_status } — returns updated booking
+- GET /api/booking/{booking_id} — Get booking details (auth required: user/agent/operator/admin based on scope)
+- POST /api/booking/cancel — Cancel booking. Body: { booking_id, reason } — returns refund initiation status
+- GET /api/booking/{booking_id}/ticket — Returns ticket PDF/HTML (auth)
+
+### API — Agent APIs
+
+- POST /api/agent/booking — Agent-specific booking endpoint (Auth: `auth:agent`). Supports multi-passenger and agent commission context — returns booking & commission summary
+- GET /api/agent/earnings — Auth: `auth:agent` — Agent earnings summary and payout history
+- GET /api/agent/bookings — Auth: `auth:agent` — List agent-created bookings with filters
+- POST /api/agent/payout-request — Auth: `auth:agent` — Request payout of commission
+
+### API — Operator APIs (operator/owner scope)
+
+- GET /api/operator/dashboard — Auth: `auth:operator` — Operator KPIs (bookings, revenue, occupancy)
+- GET /api/operator/revenue — Auth: `auth:operator` — Revenue reports with date ranges
+- POST /api/operator/bus — Auth: `auth:operator` — Create operator bus (body: bus data, seat layout)
+- PUT /api/operator/bus/{id} — Auth: `auth:operator` — Update bus
+- DELETE /api/operator/bus/{id} — Auth: `auth:operator` — Remove bus (soft delete)
+- GET /api/operator/bus/{id} — Auth: `auth:operator` — Bus details and layouts
+- POST /api/operator/crew/assign — Auth: `auth:operator` — Assign crew (body: staff_id, bus_id, start_date, end_date, role)
+- GET /api/operator/staff — Auth: `auth:operator` — Staff list and attendance
+- POST /api/operator/attendance/mark — Auth: `auth:operator` — Mark attendance
+
+### API — Admin APIs
+
+- GET /api/admin/operators — Auth: `auth:admin` — List operators
+- GET /api/admin/agents — Auth: `auth:admin` — List agents
+- GET /api/admin/bookings — Auth: `auth:admin` — Search/all bookings with filters
+- POST /api/admin/agents/{id}/toggle — Auth: `auth:admin` — Enable/disable agent
+- GET /api/admin/reports/revenue — Auth: `auth:admin` — Revenue reports with date ranges
+
+### API — Payments / Razorpay integration
+
+- POST /api/payments/order — Create payment order (public/after booking block). Body: { amount, currency, receipt, booking_id } — returns { order_id, amount }
+- POST /api/payments/verify — Verify payment signature (internal/public). Body: { razorpay_payment_id, razorpay_order_id, razorpay_signature } — returns verification status
+- POST /api/payments/webhook — Razorpay webhook endpoint (public, signed) — used to update booking/payment states
+- POST /api/payments/refund — Initiate refund (auth: admin/operator) — Body: { payment_id, amount, reason }
+
+### API — Webhooks & IPN
+
+- POST /api/webhooks/booking — Internal webhook for seat/block lifecycle events (signed)
+- POST /api/webhooks/payment/razorpay — Razorpay IPN/webhook (same as /api/payments/webhook)
+
+### API — Notifications (WhatsApp/SMS/Email)
+
+- POST /api/notify/whatsapp/send — Internal helper (auth/service) — Body: { template, to, params } — returns send status
+- POST /api/notify/sms/send — Internal helper (auth/service) — Sends SMS
+- POST /api/notify/email/send — Internal helper (auth/service) — Sends email templates
+
+### API — Utilities & Diagnostics
+
+- GET /api/debug/seatlayout/{bus_id} — Returns processed seat layout for debugging (auth: dev/admin)
+- GET /api/status/health — Minimal health check endpoint (public)
+- GET /api/system/config — Returns runtime config values (auth: admin)
+
+Examples & Response Shapes (short)
+
+- Successful booking create response:
+  {
+  "booking_id": 12345,
+  "status": "confirmed",
+  "ticket": { "ticket_no": "BK-2025-0001", "passengers": [...] }
+  }
+
+- Search result shape (bus list item):
+  {
+  "schedule_id": 987,
+  "operator_id": 12,
+  "departure_time": "2025-11-01T09:00:00+05:30",
+  "arrival_time": "2025-11-01T13:00:00+05:30",
+  "fare": { "base": 500, "tax": 45, "total": 545 },
+  "seats_available": 12
+  }
+
+Tips
+
+- Prefer JSON requests with appropriate Content-Type headers.
+- Use JWT or Sanctum tokens returned from `/api/auth/verify-otp` or `/api/auth/login` for `Authorization: Bearer <token>` on protected endpoints.
+- For payment webhooks enable signature verification and IP whitelisting for Razorpay or any payment provider.
+
+If you'd like, I can now:
+
+- Expand any endpoint with full request/response examples and validation rules, or
+- Generate a Postman / OpenAPI (Swagger) spec from this list.

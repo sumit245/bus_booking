@@ -31,7 +31,12 @@ class Authenticate extends Middleware
                 return redirect()->route('admin.login');
             } elseif ($firstGuard === 'operator') {
                 return redirect()->route('operator.login');
+            } elseif ($firstGuard === 'agent') {
+                // Redirect unauthenticated agent users to the agent login page
+                return redirect()->route('agent.login');
             }
+
+            // Fallback to the regular user login route
             return redirect()->route('user.login');
         }
 

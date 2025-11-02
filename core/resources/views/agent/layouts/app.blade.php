@@ -1,11 +1,11 @@
 @extends('admin.layouts.master')
 
-@section('content')
+@push('style')
     <!-- PWA Meta Tags -->
-    <meta name="application-name" content="Bus Booking Agent Panel">
+    <meta name="application-name" content="Ghumantoo | Agent Panel">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Agent Panel">
+    <meta name="apple-mobile-web-app-title" content="Ghumantoo | Agent Panel">
     <meta name="format-detection" content="telephone=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="msapplication-config" content="/assets/images/logoIcon/browserconfig.xml">
@@ -182,22 +182,19 @@
             }
         }
     </style>
+@endpush
 
+@section('content')
     <!-- page-wrapper start -->
-    <div class="page-wrapper default-version">
+    <div class="page-wrapper">
         @include('agent.partials.sidenav')
-        @include('agent.partials.topnav')
-
         <div class="body-wrapper">
-            <div class="bodywrapper__inner">
-                @include('agent.partials.breadcrumb')
-                @yield('panel')
-            </div><!-- bodywrapper__inner end -->
+            @yield('panel')
         </div><!-- body-wrapper end -->
     </div>
 
     <!-- PWA Install Prompt -->
-    <div id="pwa-install-prompt" class="pwa-install-prompt">
+    <div id="pwa-install-prompt" class="pwa-install-prompt" style="display:none" aria-live="polite">
         <div class="d-flex justify-content-center align-items-center">
             <div>
                 <strong>Install Agent Panel</strong>
@@ -280,16 +277,21 @@
             e.preventDefault();
             deferredPrompt = e;
 
-            // Show install prompt after a delay
+            // Make sure the element is visible and animate it in
             setTimeout(() => {
                 if (installPrompt) {
+                    installPrompt.style.display = 'block';
+                    // force reflow then add class for transition
+                    // eslint-disable-next-line no-unused-expressions
+                    installPrompt.offsetHeight;
                     installPrompt.classList.add('show');
                 }
-            }, 3000);
+            }, 800);
         });
 
         if (installBtn) {
             installBtn.addEventListener('click', async () => {
+                // If the browser provided the beforeinstallprompt event, use it.
                 if (deferredPrompt) {
                     try {
                         deferredPrompt.prompt();
@@ -300,10 +302,44 @@
                         deferredPrompt = null;
                         if (installPrompt) {
                             installPrompt.classList.remove('show');
+                            // hide after transition
+                            setTimeout(() => installPrompt.style.display = 'none', 350);
                         }
                     } catch (error) {
                         console.error('Install prompt error:', error);
+                        if (typeof iziToast !== 'undefined') {
+                            iziToast.error({
+                                title: 'Install failed',
+                                message: 'Could not trigger install prompt.'
+                            });
+                        } else {
+                            alert(
+                                'Could not trigger install prompt. Please use your browser menu to "Install" or "Add to Home screen".'
+                                );
+                        }
                     }
+                    return;
+                }
+
+                // Fallback: some browsers (or contexts) don't expose beforeinstallprompt.
+                // Provide helpful instructions and open the manifest file so users can manually add the PWA.
+                const fallbackMsg =
+                    'Install not available from this browser. Use the browser menu (⋮) → "Install" or "Add to Home screen". You can also open the app manifest.';
+                if (typeof iziToast !== 'undefined') {
+                    iziToast.info({
+                        title: 'Install',
+                        message: fallbackMsg,
+                        timeout: 8000
+                    });
+                } else {
+                    alert(fallbackMsg);
+                }
+
+                // Navigate to the manifest in the same tab to avoid pop-up blocking
+                try {
+                    window.location.href = '{{ route('agent.manifest') }}';
+                } catch (e) {
+                    // ignore
                 }
             });
         }
@@ -312,6 +348,7 @@
             dismissBtn.addEventListener('click', () => {
                 if (installPrompt) {
                     installPrompt.classList.remove('show');
+                    setTimeout(() => installPrompt.style.display = 'none', 250);
                 }
             });
         }
@@ -321,6 +358,7 @@
             console.log('PWA was installed successfully');
             if (installPrompt) {
                 installPrompt.classList.remove('show');
+                setTimeout(() => installPrompt.style.display = 'none', 250);
             }
         });
 

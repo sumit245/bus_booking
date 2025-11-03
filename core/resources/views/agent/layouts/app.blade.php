@@ -253,17 +253,44 @@
 
     <!-- PWA Registration Script -->
     <script>
-        // Register Service Worker
+        // Register Service Worker with enhanced error handling
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('{{ route('agent.sw') }}')
-                    .then(function(registration) {
-                        console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                        console.log('SW registration failed: ', registrationError);
+            window.addEventListener('load', async function() {
+                try {
+                    const registration = await navigator.serviceWorker.register('{{ route('agent.sw') }}');
+                    console.log('SW registered: ', registration);
+
+                    // Check if service worker is active
+                    if (registration.active) {
+                        console.log('Service worker is active');
+                    } else {
+                        console.warn('Service worker is not active yet');
+                    }
+
+                    // Monitor service worker state changes
+                    registration.addEventListener('statechange', () => {
+                        console.log('Service worker state changed:', registration.active?.state);
                     });
+                } catch (registrationError) {
+                    console.error('SW registration failed: ', registrationError);
+                    if (typeof iziToast !== 'undefined') {
+                        iziToast.error({
+                            title: 'Installation Error',
+                            message: 'Failed to register service worker. PWA features may not work.',
+                            timeout: false
+                        });
+                    }
+                }
             });
+        } else {
+            console.warn('Service workers are not supported');
+            if (typeof iziToast !== 'undefined') {
+                iziToast.warning({
+                    title: 'Browser Support',
+                    message: 'Your browser does not support PWA features',
+                    timeout: false
+                });
+            }
         }
 
         // PWA Install Prompt
@@ -277,20 +304,58 @@
             e.preventDefault();
             deferredPrompt = e;
 
-            // Make sure the element is visible and animate it in
-            setTimeout(() => {
-                if (installPrompt) {
-                    installPrompt.style.display = 'block';
-                    // force reflow then add class for transition
-                    // eslint-disable-next-line no-unused-expressions
-                    installPrompt.offsetHeight;
-                    installPrompt.classList.add('show');
-                }
-            }, 800);
+            // Check if the app is not already installed
+            if ('getInstalledRelatedApps' in navigator) {
+                navigator.getInstalledRelatedApps().then((apps) => {
+                    if (!apps.length) {
+                        // Show install prompt after a short delay
+                        setTimeout(() => {
+                            if (installPrompt) {
+                                installPrompt.style.display = 'block';
+                                // force reflow then add class for transition
+                                // eslint-disable-next-line no-unused-expressions
+                                installPrompt.offsetHeight;
+                                installPrompt.classList.add('show');
+                            }
+                        }, 800);
+                    } else {
+                        console.log('App is already installed');
+                    }
+                });
+            } else {
+                // If getInstalledRelatedApps is not supported, show the prompt anyway
+                setTimeout(() => {
+                    if (installPrompt) {
+                        installPrompt.style.display = 'block';
+                        installPrompt.offsetHeight;
+                        installPrompt.classList.add('show');
+                    }
+                }, 800);
+            }
         });
 
         if (installBtn) {
+            // Debug function to check PWA criteria
+            async function checkInstallationCriteria() {
+                const criteria = {
+                    https: window.location.protocol === 'https:',
+                    serviceWorker: 'serviceWorker' in navigator,
+                    manifestPresent: !!document.querySelector('link[rel="manifest"]'),
+                    display: true // We know our manifest has proper display mode
+                };
+
+                // Check if running in standalone mode
+                const displayMode = window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser';
+
+                console.log('PWA Installation Criteria:', criteria);
+                console.log('Current display mode:', displayMode);
+
+                return criteria;
+            }
+
             installBtn.addEventListener('click', async () => {
+                // Check installation criteria first
+                const criteria = await checkInstallationCriteria();
                 // If the browser provided the beforeinstallprompt event, use it.
                 if (deferredPrompt) {
                     try {
@@ -315,7 +380,7 @@
                         } else {
                             alert(
                                 'Could not trigger install prompt. Please use your browser menu to "Install" or "Add to Home screen".'
-                                );
+                            );
                         }
                     }
                     return;

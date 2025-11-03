@@ -200,10 +200,11 @@ class WhatsAppHelper
             $bookingDetails['source_name'] ?? 'N/A',
             $bookingDetails['destination_name'] ?? 'N/A',
             $bookingDetails['date_of_journey'] ?? 'N/A',
-            $bookingDetails['pnr'] ?? 'N/A',
-            $bookingDetails['seats'] ?? 'N/A',
             $bookingDetails['boarding_details'] ?? 'N/A',
             $bookingDetails['drop_off_details'] ?? 'N/A',
+            $bookingDetails['seats'] ?? 'N/A',
+            // $bookingDetails['pnr'] ?? 'N/A',
+
         ];
     }
 

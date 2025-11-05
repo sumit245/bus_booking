@@ -67,10 +67,25 @@ Route::prefix("ticket")->group(function () {
 });
 
 // Admin Ticket Routes
-Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin']], function () {
     Route::get('ticket/details', 'Admin\VehicleTicketController@ticketDetails')->name('admin.ticket.details');
     Route::post('ticket/cancel', 'Admin\VehicleTicketController@cancelTicket')->name('admin.ticket.cancel');
     Route::post('ticket/refund', 'Admin\VehicleTicketController@refundTicket')->name('admin.ticket.refund');
+
+    // Debug route to test if routing works
+    Route::get('ticket/test-route', function (\Illuminate\Http\Request $request) {
+        \Log::info('=== TEST ROUTE CALLED ===', [
+            'timestamp' => now()->toDateTimeString(),
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'params' => $request->all()
+        ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Test route is working!',
+            'timestamp' => now()->toDateTimeString()
+        ]);
+    })->name('admin.ticket.test');
 });
 
 /*
@@ -602,10 +617,26 @@ Route::
                 )->name("manual.deactivate");
             });
 
+            // Admin Booking Routes
+            Route::name("booking.")
+                ->prefix("booking")
+                ->group(function () {
+                Route::get("/search", "BookingController@search")->name("search");
+                Route::get("/results", "BookingController@results")->name("results");
+                // Reuse SiteController methods for seat selection and booking
+                Route::get("/seats/{id}/{slug}", "\App\Http\Controllers\SiteController@selectSeat")->name("seats");
+                Route::post("/block-seat", "\App\Http\Controllers\SiteController@blockSeat")->name("block");
+                Route::post("/book", "\App\Http\Controllers\SiteController@bookTicketApi")->name("book");
+            });
+
             // ticket booking history
             Route::name("vehicle.ticket.")
                 ->prefix("ticket")
                 ->group(function () {
+                // New unified route with filter support
+                Route::get("/", "VehicleTicketController@index")->name("index");
+
+                // Backward compatibility: Old routes redirect to new filter-based approach
                 Route::get(
                     "booked",
                     "VehicleTicketController@booked",
@@ -1657,20 +1688,26 @@ Route::middleware(["auth:agent"])
             Route::get("/search/results", function (\Illuminate\Http\Request $request, ) {
                 $pageTitle = "Search Results";
 
-                // Get search parameters from request
-                $searchData = $request->all();
-                if (
-                    empty($searchData["OriginId"]) ||
-                    empty($searchData["DestinationId"])
-                ) {
-                    return redirect()
-                        ->route("agent.search")
-                        ->with("error", "Please complete the search form.");
-                }
+                // Validate search parameters
+                $validatedData = $request->validate([
+                    "OriginId" => "required|integer",
+                    "DestinationId" => "required|integer|different:OriginId",
+                    "DateOfJourney" => "required|after_or_equal:today",
+                    "passengers" => "sometimes|integer|min:1|max:10",
+                    "page" => "sometimes|integer|min:1",
+                    "sortBy" => "sometimes|string|in:departure,price-low,price-high,duration",
+                    "fleetType" => "sometimes|array",
+                    "fleetType.*" => "string|in:A/c,Non-A/c,Seater,Sleeper",
+                    "departure_time" => "sometimes|array",
+                    "departure_time.*" => "string|in:morning,afternoon,evening,night",
+                    "live_tracking" => "sometimes|boolean",
+                    "min_price" => "sometimes|numeric|min:0",
+                    "max_price" => "sometimes|numeric|gt:min_price",
+                ]);
 
                 // Use existing BusService to get results
                 $busService = new \App\Services\BusService();
-                $result = $busService->searchBuses($searchData);
+                $result = $busService->searchBuses($validatedData);
 
                 // Store session data required for seat selection
                 session()->put(
@@ -1678,33 +1715,35 @@ Route::middleware(["auth:agent"])
                     $result["SearchTokenId"] ?? null,
                 );
                 session()->put("user_ip", $request->ip());
-                session()->put("origin_id", $searchData["OriginId"]);
-                session()->put("destination_id", $searchData["DestinationId"]);
-                session()->put("date_of_journey", $searchData["DateOfJourney"]);
-                session()->put("passengers", $searchData["passengers"] ?? 1);
+                session()->put("origin_id", $validatedData["OriginId"]);
+                session()->put("destination_id", $validatedData["DestinationId"]);
+                session()->put("date_of_journey", $validatedData["DateOfJourney"]);
+                session()->put("passengers", $validatedData["passengers"] ?? 1);
 
                 // Debug logging
                 \Log::info("Agent search session stored", [
                     "search_token_id" => $result["SearchTokenId"] ?? null,
-                    "origin_id" => $searchData["OriginId"],
-                    "destination_id" => $searchData["DestinationId"],
-                    "date_of_journey" => $searchData["DateOfJourney"],
+                    "origin_id" => $validatedData["OriginId"],
+                    "destination_id" => $validatedData["DestinationId"],
+                    "date_of_journey" => $validatedData["DateOfJourney"],
                     "user_ip" => $request->ip(),
+                    "page" => $validatedData["page"] ?? 1,
                 ]);
 
                 $fromCityData = \App\Models\City::where(
                     "city_id",
-                    $searchData["OriginId"],
+                    $validatedData["OriginId"],
                 )->first();
                 $toCityData = \App\Models\City::where(
                     "city_id",
-                    $searchData["DestinationId"],
+                    $validatedData["DestinationId"],
                 )->first();
-                $dateOfJourney = $searchData["DateOfJourney"];
-                $passengers = $searchData["passengers"] ?? 1;
+                $dateOfJourney = $validatedData["DateOfJourney"];
+                $passengers = $validatedData["passengers"] ?? 1;
 
-                // Get trips from BusService results
+                // Get trips and pagination from BusService results
                 $availableBuses = $result["trips"] ?? [];
+                $pagination = $result["pagination"] ?? null;
 
                 return view(
                     "agent.search.results",
@@ -1715,6 +1754,7 @@ Route::middleware(["auth:agent"])
                         "dateOfJourney",
                         "passengers",
                         "availableBuses",
+                        "pagination",
                     ),
                 );
             })->name("search.results");

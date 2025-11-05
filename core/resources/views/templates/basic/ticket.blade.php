@@ -252,10 +252,15 @@
                     $(`#${listId}`).empty(); // Clear previous suggestions
                     if (input.length === 0) return; // If input is empty, do nothing
 
-                    // Filter cities based on input
+                    // Filter cities based on input - match initial 3 characters only
                     const filteredCities = cities.filter(city => {
                         const cityName = city.city_name.toLowerCase();
-                        return cityName.includes(input);
+                        // Only show cities that start with the input (minimum 3 characters)
+                        if (input.length >= 3) {
+                            return cityName.startsWith(input);
+                        }
+                        // For less than 3 characters, show all cities (user is still typing)
+                        return true;
                     });
 
                     // Sort filtered cities to prioritize exact matches

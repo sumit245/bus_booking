@@ -188,6 +188,59 @@ class SiteController extends Controller
         return response()->json(['success' => 'Cookie accepted successfully']);
     }
 
+    /**
+     * Display the ticket booking/search page
+     * This is the initial page where users can search for buses
+     */
+    public function ticket()
+    {
+        $pageTitle = 'Book Ticket';
+        
+        // Get cities for the search form
+        $cities = DB::table("cities")->orderBy("city_name")->get();
+        
+        // Determine layout based on authentication
+        if (auth()->user()) {
+            $layout = 'layouts.master';
+        } else {
+            $layout = 'layouts.frontend';
+        }
+        
+        // Get default cities if session data exists
+        $originCity = null;
+        $destinationCity = null;
+        
+        if (session()->has('origin_id')) {
+            $originCity = DB::table("cities")->where("city_id", session('origin_id'))->first();
+        }
+        if (session()->has('destination_id')) {
+            $destinationCity = DB::table("cities")->where("city_id", session('destination_id'))->first();
+        }
+        
+        // Provide default cities if session data is not available
+        if (!$originCity) {
+            $originCity = DB::table("cities")->where("city_name", "Patna")->first();
+        }
+        if (!$destinationCity) {
+            $destinationCity = DB::table("cities")->where("city_name", "Delhi")->first();
+        }
+        
+        // Initialize variables needed by the view (for seat selection, but empty for initial page)
+        $parsedLayout = [];
+        $seatHtml = '';
+        $isOperatorBus = false;
+        
+        return view($this->activeTemplate . 'book_ticket', compact(
+            'pageTitle', 
+            'layout', 
+            'cities', 
+            'originCity', 
+            'destinationCity',
+            'parsedLayout',
+            'seatHtml',
+            'isOperatorBus'
+        ));
+    }
 
     // 1. First of all this function will check if there is any trip available for the searched route
     public function ticketSearch(Request $request)
@@ -338,14 +391,26 @@ class SiteController extends Controller
 
             if (!isset($response['Result'])) {
                 // Redirect based on user type
-                $redirectUrl = auth('agent')->check() ? route('agent.search') : '/';
+                if (auth('agent')->check()) {
+                    $redirectUrl = route('agent.search');
+                } elseif (auth('admin')->check()) {
+                    $redirectUrl = route('admin.booking.search');
+                } else {
+                    $redirectUrl = '/';
+                }
                 return redirect($redirectUrl)->with('error', 'Search session expired. Please search again.');
             }
 
             // Check if HTMLLayout exists in response
             if (!isset($response['Result']['HTMLLayout'])) {
                 // Redirect based on user type
-                $redirectUrl = auth('agent')->check() ? route('agent.search') : '/';
+                if (auth('agent')->check()) {
+                    $redirectUrl = route('agent.search');
+                } elseif (auth('admin')->check()) {
+                    $redirectUrl = route('admin.booking.search');
+                } else {
+                    $redirectUrl = '/';
+                }
                 return redirect($redirectUrl)->with('error', 'Search session expired. Please search again.');
             }
 
@@ -389,6 +454,19 @@ class SiteController extends Controller
             ]);
 
             return view('agent.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
+        }
+
+        // Check if accessed by admin
+        if (auth('admin')->check()) {
+            Log::info('Admin seat selection - Variables:', [
+                'seatHtml' => $seatHtml ? 'Present' : 'Empty',
+                'parsedLayout' => $parsedLayout ? 'Present' : 'Empty',
+                'isOperatorBus' => $isOperatorBus,
+                'result_index' => $resultIndex
+            ]);
+
+            // Use admin booking seats view with admin layout
+            return view('admin.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
         }
 
         // Regular user flow
@@ -515,8 +593,11 @@ class SiteController extends Controller
     {
         Log::info('Block Seat Request:', ['request' => $request->all()]);
 
-        // Different validation for agent vs regular booking
-        if (auth('agent')->check()) {
+        // Check if this is an agent or admin booking (both use multiple passengers)
+        $isAgentOrAdmin = auth('agent')->check() || auth('admin')->check();
+        
+        // Different validation for agent/admin vs regular booking
+        if ($isAgentOrAdmin) {
             $request->validate([
                 'boarding_point_index' => 'required',
                 'dropping_point_index' => 'required',
@@ -544,20 +625,40 @@ class SiteController extends Controller
         }
 
         // Prepare request data for BookingService
-        if (auth('agent')->check()) {
-            // Agent booking - handle multiple passengers
+        if ($isAgentOrAdmin) {
+            // Agent/Admin booking - handle multiple passengers
             $passengerNames = $request->passenger_names;
             $passengerAges = $request->passenger_ages;
             $passengerGenders = $request->passenger_genders;
 
-            // Split names into first and last names
+            // Split names into first and last names with proper handling
             $passengerFirstNames = [];
             $passengerLastNames = [];
 
-            foreach ($passengerNames as $fullName) {
-                $nameParts = explode(' ', trim($fullName), 2);
-                $passengerFirstNames[] = $nameParts[0];
-                $passengerLastNames[] = isset($nameParts[1]) ? $nameParts[1] : '';
+            foreach ($passengerNames as $index => $fullName) {
+                $fullName = trim($fullName);
+                $gender = $passengerGenders[$index] ?? 1; // Default to 1 (Male) if not set
+                
+                // Determine title based on gender
+                $title = 'Mr';
+                if ($gender == 2) {
+                    $title = 'Mrs';
+                } elseif ($gender == 3) {
+                    $title = 'Ms';
+                }
+                
+                // Split name by spaces
+                $nameParts = explode(' ', $fullName, 2);
+                
+                if (count($nameParts) == 1) {
+                    // Only one name provided - use title as firstname, provided name as lastname
+                    $passengerFirstNames[] = $title;
+                    $passengerLastNames[] = $nameParts[0];
+                } else {
+                    // Two or more parts - first part as firstname, rest as lastname
+                    $passengerFirstNames[] = $nameParts[0];
+                    $passengerLastNames[] = $nameParts[1];
+                }
             }
 
             $requestData = [
@@ -610,6 +711,16 @@ class SiteController extends Controller
             Log::info('Agent booking initiated', [
                 'agent_id' => $requestData['agent_id'],
                 'commission_rate' => $commissionRate
+            ]);
+        }
+
+        // Add admin-specific data if accessed by admin
+        if (auth('admin')->check()) {
+            $requestData['admin_id'] = auth('admin')->id();
+            $requestData['booking_source'] = 'admin';
+
+            Log::info('Admin booking initiated', [
+                'admin_id' => $requestData['admin_id']
             ]);
         }
 

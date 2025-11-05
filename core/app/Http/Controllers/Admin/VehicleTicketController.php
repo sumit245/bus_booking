@@ -10,66 +10,133 @@ use App\Models\TicketPrice;
 use App\Models\TicketPriceByStoppage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 
 class VehicleTicketController extends Controller
 {
+    /**
+     * Unified ticket listing with filter support
+     * Supports: all, booked, pending, rejected, cancelled
+     * URL: /admin/ticket?filter=booked&search=ABC123
+     */
+    public function index(Request $request)
+    {
+        // Get filter from query parameter (default: 'all')
+        $filter = $request->get('filter', 'all');
+
+        // Build base query with relationships
+        // Conditionally include pickup relationship to avoid errors if column doesn't exist
+        $relationships = ['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'drop', 'user'];
+
+        // Check if pickup_point column exists before eager loading pickup relationship
+        $tableName = (new BookedTicket)->getTable();
+        if (Schema::hasColumn($tableName, 'pickup_point')) {
+            $relationships[] = 'pickup';
+        }
+
+        // Set default values
+        $pageTitle = 'All Tickets';
+        $emptyMessage = 'No tickets found';
+
+        // Build query with filter - use scope methods directly on the model
+        switch ($filter) {
+            case 'booked':
+                $query = BookedTicket::booked();
+                $pageTitle = 'Booked Tickets';
+                $emptyMessage = 'There are no booked tickets';
+                break;
+            case 'pending':
+                $query = BookedTicket::pending();
+                $pageTitle = 'Pending Tickets';
+                $emptyMessage = 'There are no pending tickets';
+                break;
+            case 'rejected':
+                $query = BookedTicket::rejected();
+                $pageTitle = 'Rejected Tickets';
+                $emptyMessage = 'There are no rejected tickets';
+                break;
+            case 'cancelled':
+                $query = BookedTicket::where('status', 3);
+                $pageTitle = 'Cancelled Tickets';
+                $emptyMessage = 'There are no cancelled tickets';
+                break;
+            case 'all':
+            default:
+                // No filter applied - show all tickets
+                $query = BookedTicket::query();
+                break;
+        }
+
+        // Now apply eager loading AFTER the filter
+        $query->with($relationships);
+
+        // Search functionality
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where('pnr_number', 'like', '%' . $search . '%');
+            $pageTitle .= ' - Search: ' . $search;
+        }
+
+        // Date range filters (optional)
+        if ($request->has('date_from') && !empty($request->date_from)) {
+            $query->where('date_of_journey', '>=', $request->date_from);
+        }
+
+        if ($request->has('date_to') && !empty($request->date_to)) {
+            $query->where('date_of_journey', '<=', $request->date_to);
+        }
+
+        // Debug: Log the query and filter
+        Log::info('Ticket filter query', [
+            'filter' => $filter,
+            'sql' => $query->toSql(),
+            'bindings' => $query->getBindings(),
+            'count_before_paginate' => $query->count()
+        ]);
+
+        // Order and paginate
+        $tickets = $query->orderBy('id', 'desc')->paginate(getPaginate());
+
+        // Append query parameters to pagination links
+        $tickets->appends($request->query());
+
+        return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets', 'filter'));
+    }
+
+    /**
+     * Backward compatibility: Redirect old routes to new filter-based approach
+     */
     public function booked()
     {
-        $pageTitle = 'Booked Ticket';
-        $emptyMessage = 'There is no booked ticket';
-        $tickets = BookedTicket::booked()->with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop', 'user'])->paginate(getPaginate());
-        return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets'));
+        return redirect()->route('admin.vehicle.ticket.index', ['filter' => 'booked']);
     }
 
     public function pending()
     {
-        $pageTitle = 'Pending Ticket';
-        $emptyMessage = 'There is no pending ticket';
-        $tickets = BookedTicket::pending()->with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop', 'user'])->paginate(getPaginate());
-        return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets'));
+        return redirect()->route('admin.vehicle.ticket.index', ['filter' => 'pending']);
     }
 
     public function rejected()
     {
-        $pageTitle = 'Rejected Ticket';
-        $emptyMessage = 'There is no rejected ticket';
-        $tickets = BookedTicket::rejected()->with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop', 'user'])->paginate(getPaginate());
-        return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets'));
+        return redirect()->route('admin.vehicle.ticket.index', ['filter' => 'rejected']);
     }
 
     public function list()
     {
-        $pageTitle = 'All Ticket';
-        $emptyMessage = 'There is no ticket found';
-        $tickets = BookedTicket::with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop', 'user'])->paginate(getPaginate());
-        return view('admin.ticket.log', compact('pageTitle', 'emptyMessage', 'tickets'));
+        return redirect()->route('admin.vehicle.ticket.index', ['filter' => 'all']);
     }
 
+    /**
+     * Search functionality - now integrated into index method
+     * Keeping for backward compatibility
+     */
     public function search(Request $request, $scope)
     {
-        $search = $request->search;
-        $pageTitle = '';
-        $emptyMessage = 'No search result was found.';
-
-        $ticket = BookedTicket::where('pnr_number', $search);
-        switch ($scope) {
-            case 'pending':
-                $pageTitle .= 'Pending Ticket Search';
-                break;
-            case 'booked':
-                $pageTitle .= 'Booked Ticket Search';
-                break;
-            case 'rejected':
-                $pageTitle .= 'Rejected Ticket Search';
-                break;
-            case 'list':
-                $pageTitle .= 'Ticket Booking History Search';
-                break;
-        }
-        $tickets = $ticket->with(['trip', 'pickup', 'drop', 'user'])->paginate(getPaginate());
-        $pageTitle .= ' - ' . $search;
-
-        return view('admin.ticket.log', compact('pageTitle', 'search', 'scope', 'emptyMessage', 'tickets'));
+        return redirect()->route('admin.vehicle.ticket.index', [
+            'filter' => $scope === 'list' ? 'all' : $scope,
+            'search' => $request->search ?? ''
+        ]);
     }
 
     public function ticketPriceList()
@@ -98,98 +165,6 @@ class VehicleTicketController extends Controller
         $stoppages = stoppageCombination($stoppageArr, 2);
         return view('admin.trip.ticket.edit_price', compact('pageTitle', 'ticketPrice', 'stoppages'));
     }
-    // {
-    //     $validator = Validator::make($request->all(), [
-    //         'id' => 'required|integer',
-    //     ]);
-
-    //     if ($validator->fails()) {
-    //         return response()->json(['success' => false, 'message' => $validator->errors()->first()]);
-    //     }
-
-    //     $ticket = BookedTicket::with(['user', 'trip.fleetType', 'trip.startFrom', 'trip.endTo'])
-    //         ->where('id', $request->id)
-    //         ->first();
-
-    //     if (!$ticket) {
-    //         return response()->json(['success' => false, 'message' => 'Ticket not found']);
-    //     }
-
-    //     // Process seat information
-    //     $seatNumbers = is_array(json_decode($ticket->seats, true))
-    //         ? implode(', ', json_decode($ticket->seats, true))
-    //         : $ticket->seats;
-
-    //     // Process boarding point
-    //     $boardingPoint = json_decode($ticket->boarding_point_details, true);
-    //     $pickupPoint = '';
-    //     if (isset($boardingPoint['CityPointAddress'])) {
-    //         $pickupPoint = $boardingPoint['CityPointAddress'];
-    //     } elseif (isset($boardingPoint['name'])) {
-    //         $pickupPoint = $boardingPoint['name'];
-    //     } elseif ($ticket->pickup_point) {
-    //         $pickupPoint = $ticket->pickup_point;
-    //     }
-
-    //     // Process dropping point
-    //     $droppingPoint = json_decode($ticket->dropping_point_details, true);
-    //     $dropPoint = '';
-    //     if (isset($droppingPoint['CityPointLocation'])) {
-    //         $dropPoint = $droppingPoint['CityPointLocation'];
-    //     } elseif (isset($droppingPoint['name'])) {
-    //         $dropPoint = $droppingPoint['name'];
-    //     } elseif ($ticket->dropping_point) {
-    //         $dropPoint = $ticket->dropping_point;
-    //     }
-
-    //     // Process trip details
-    //     $tripDetails = json_decode($ticket->trip_details, true);
-    //     $fleetType = $ticket->trip?->fleetType?->name ?? $ticket->fleet_type ?? '';
-    //     $startFrom = $ticket->trip?->startFrom?->name ?? $ticket->start_from ?? '';
-    //     $endTo = $ticket->trip?->endTo?->name ?? $ticket->end_to ?? '';
-
-    //     if (empty($fleetType) && !empty($tripDetails)) {
-    //         $fleetType = $tripDetails['fleet_type'] ?? $tripDetails['FleetType'] ?? '';
-    //     }
-
-    //     if (empty($startFrom) && !empty($tripDetails)) {
-    //         $startFrom = $tripDetails['start_from'] ?? $tripDetails['StartFrom'] ?? '';
-    //     }
-
-    //     if (empty($endTo) && !empty($tripDetails)) {
-    //         $endTo = $tripDetails['end_to'] ?? $tripDetails['EndTo'] ?? '';
-    //     }
-
-    //     // Format dates
-    //     $journeyDate = date('d M, Y', strtotime($ticket->date_of_journey));
-    //     $bookingDate = date('d M, Y h:i A', strtotime($ticket->created_at));
-
-    //     // Prepare response data
-    //     $ticketData = [
-    //         'id' => $ticket->id,
-    //         'pnr_number' => $ticket->pnr_number,
-    //         'user' => $ticket->user ? [
-    //             'id' => $ticket->user->id,
-    //             'fullname' => $ticket->user->fullname,
-    //             'username' => $ticket->user->username,
-    //         ] : null,
-    //         'fleet_type' => $fleetType,
-    //         'start_from' => $startFrom,
-    //         'end_to' => $endTo,
-    //         'pickup_point' => $pickupPoint,
-    //         'dropping_point' => $dropPoint,
-    //         'seat_numbers' => $seatNumbers,
-    //         'sub_total' => $ticket->sub_total,
-    //         'formatted_fare' => showAmount($ticket->sub_total),
-    //         'date_of_journey' => $ticket->date_of_journey,
-    //         'formatted_journey_date' => $journeyDate,
-    //         'formatted_booking_date' => $bookingDate,
-    //         'status' => $ticket->status,
-    //     ];
-
-    //     return response()->json(['success' => true, 'ticket' => $ticketData]);
-    // }
-
 
     public function cancelTicket(Request $request)
     {
@@ -251,8 +226,6 @@ class VehicleTicketController extends Controller
         $stoppages = stoppageCombination($stoppages, 2);
         return view('admin.trip.ticket.route_data', compact('stoppages', 'route'));
     }
-
-
 
     public function ticketPriceStore(Request $request)
     {
@@ -350,61 +323,187 @@ class VehicleTicketController extends Controller
 
     public function ticketDetails(Request $request)
     {
-        $ticket = BookedTicket::with(['user', 'trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop'])
-            ->where('id', $request->id)
-            ->first();
+        // Log to file directly to ensure it works even if Log facade fails
+        file_put_contents(
+            storage_path('logs/ticket_details_debug.log'),
+            date('Y-m-d H:i:s') . " - TicketDetails METHOD CALLED\n" .
+            "URL: " . $request->fullUrl() . "\n" .
+            "Method: " . $request->method() . "\n" .
+            "ID: " . ($request->id ?? 'NULL') . "\n" .
+            "All params: " . json_encode($request->all()) . "\n" .
+            "---\n",
+            FILE_APPEND
+        );
 
-        if (!$ticket) {
-            return response()->json(['success' => false, 'message' => 'Ticket not found']);
+        // Log immediately when method is called
+        Log::info('=== TicketDetails METHOD CALLED ===', [
+            'timestamp' => now()->toDateTimeString(),
+            'request_method' => $request->method(),
+            'request_url' => $request->fullUrl(),
+            'request_id' => $request->id,
+            'request_pnr' => $request->pnr,
+            'all_params' => $request->all(),
+            'headers' => $request->headers->all()
+        ]);
+
+        try {
+            Log::info('TicketDetails processing started', [
+                'id' => $request->id,
+                'pnr' => $request->pnr,
+                'all_params' => $request->all()
+            ]);
+
+            // Validate request
+            if (!$request->has('id') || empty($request->id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ticket ID is required'
+                ], 400);
+            }
+
+            // Build relationships array - conditionally include pickup
+            $relationships = ['user', 'trip.fleetType', 'trip.startFrom', 'trip.endTo', 'drop'];
+
+            // Check if pickup_point column exists before eager loading pickup relationship
+            $tableName = (new BookedTicket)->getTable();
+            if (Schema::hasColumn($tableName, 'pickup_point')) {
+                $relationships[] = 'pickup';
+            }
+
+            Log::info('Loading ticket with relationships', ['relationships' => $relationships]);
+
+            $ticket = BookedTicket::with($relationships)
+                ->where('id', $request->id)
+                ->first();
+
+            if (!$ticket) {
+                Log::warning('Ticket not found', ['id' => $request->id]);
+                return response()->json(['success' => false, 'message' => 'Ticket not found'], 404);
+            }
+
+            Log::info('Ticket found', ['ticket_id' => $ticket->id, 'pnr' => $ticket->pnr_number]);
+
+            // Format data for display
+            $ticket->formatted_journey_date = showDateTime($ticket->date_of_journey, 'd M, Y');
+            $ticket->formatted_booking_date = showDateTime($ticket->created_at, 'd M, Y h:i A');
+            $ticket->formatted_fare = showAmount($ticket->sub_total);
+
+            // Get fleet type, start and end locations
+            $ticket->fleet_type = $ticket->trip?->fleetType?->name ?? $ticket->fleet_type ?? '';
+            $ticket->start_from = $ticket->trip?->startFrom?->name ?? $ticket->start_from ?? '';
+            $ticket->end_to = $ticket->trip?->endTo?->name ?? $ticket->end_to ?? '';
+
+            // Fallback to JSON data if available
+            if (empty($ticket->fleet_type) && !empty($ticket->trip_details)) {
+                $tripDetails = json_decode($ticket->trip_details, true);
+                $ticket->fleet_type = $tripDetails['fleet_type'] ?? $tripDetails['FleetType'] ?? '';
+            }
+
+            if (empty($ticket->start_from) && !empty($ticket->trip_details)) {
+                $tripDetails = json_decode($ticket->trip_details, true);
+                $ticket->start_from = $tripDetails['start_from'] ?? $tripDetails['StartFrom'] ?? '';
+            }
+
+            if (empty($ticket->end_to) && !empty($ticket->trip_details)) {
+                $tripDetails = json_decode($ticket->trip_details, true);
+                $ticket->end_to = $tripDetails['end_to'] ?? $tripDetails['EndTo'] ?? '';
+            }
+
+            // Get pickup and dropping points from JSON or relationship
+            $ticket->pickup_point = 'N/A';
+            $ticket->dropping_point = 'N/A';
+
+            // Try to get pickup point from JSON
+            if ($ticket->boarding_point_details) {
+                $boardingPoint = json_decode($ticket->boarding_point_details, true);
+                if (isset($boardingPoint['CityPointAddress'])) {
+                    $ticket->pickup_point = $boardingPoint['CityPointAddress'];
+                } elseif (isset($boardingPoint['CityPointName'])) {
+                    $ticket->pickup_point = $boardingPoint['CityPointName'];
+                } elseif (isset($boardingPoint['name'])) {
+                    $ticket->pickup_point = $boardingPoint['name'];
+                }
+            }
+
+            // Fallback to relationship if available and JSON doesn't have it
+            if ($ticket->pickup_point === 'N/A' && $ticket->pickup) {
+                $ticket->pickup_point = $ticket->pickup->name ?? 'N/A';
+            }
+
+            // Fallback to origin_city if still N/A
+            if ($ticket->pickup_point === 'N/A' && $ticket->origin_city) {
+                $ticket->pickup_point = $ticket->origin_city;
+            }
+
+            // Try to get dropping point from JSON
+            if ($ticket->dropping_point_details) {
+                $droppingPoint = json_decode($ticket->dropping_point_details, true);
+                if (isset($droppingPoint['CityPointLocation'])) {
+                    $ticket->dropping_point = $droppingPoint['CityPointLocation'];
+                } elseif (isset($droppingPoint['CityPointName'])) {
+                    $ticket->dropping_point = $droppingPoint['CityPointName'];
+                } elseif (isset($droppingPoint['name'])) {
+                    $ticket->dropping_point = $droppingPoint['name'];
+                }
+            }
+
+            // Fallback to relationship if available and JSON doesn't have it
+            if ($ticket->dropping_point === 'N/A' && $ticket->drop) {
+                $ticket->dropping_point = $ticket->drop->name ?? 'N/A';
+            }
+
+            // Fallback to destination_city if still N/A
+            if ($ticket->dropping_point === 'N/A' && $ticket->destination_city) {
+                $ticket->dropping_point = $ticket->destination_city;
+            }
+
+            // Format seat numbers
+            $seats = is_array($ticket->seats) ? $ticket->seats : json_decode($ticket->seats, true);
+            $ticket->seat_numbers = is_array($seats) ? implode(', ', $seats) : $ticket->seats;
+
+            Log::info('Ticket details formatted successfully', ['ticket_id' => $ticket->id]);
+
+            // Prepare response data - manually build array to avoid JSON encoding issues
+            $responseData = [
+                'success' => true,
+                'ticket' => [
+                    'id' => $ticket->id,
+                    'pnr_number' => $ticket->pnr_number,
+                    'formatted_journey_date' => $ticket->formatted_journey_date,
+                    'formatted_booking_date' => $ticket->formatted_booking_date,
+                    'formatted_fare' => $ticket->formatted_fare,
+                    'fleet_type' => $ticket->fleet_type,
+                    'start_from' => $ticket->start_from,
+                    'end_to' => $ticket->end_to,
+                    'pickup_point' => $ticket->pickup_point,
+                    'dropping_point' => $ticket->dropping_point,
+                    'seat_numbers' => $ticket->seat_numbers,
+                    'status' => $ticket->status,
+                    'sub_total' => $ticket->sub_total,
+                    'user' => $ticket->user ? [
+                        'id' => $ticket->user->id,
+                        'fullname' => $ticket->user->fullname ?? ($ticket->user->firstname . ' ' . $ticket->user->lastname),
+                        'username' => $ticket->user->username,
+                    ] : null,
+                ]
+            ];
+
+            Log::info('Sending ticket details response', ['ticket_id' => $ticket->id]);
+
+            return response()->json($responseData);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching ticket details: ' . $e->getMessage(), [
+                'ticket_id' => $request->id ?? null,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading ticket details: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Format data for display
-        $ticket->formatted_journey_date = showDateTime($ticket->date_of_journey, 'd M, Y');
-        $ticket->formatted_booking_date = showDateTime($ticket->created_at, 'd M, Y h:i A');
-        $ticket->formatted_fare = showAmount($ticket->sub_total);
-
-        // Get fleet type, start and end locations
-        $ticket->fleet_type = $ticket->trip?->fleetType?->name ?? $ticket->fleet_type ?? '';
-        $ticket->start_from = $ticket->trip?->startFrom?->name ?? $ticket->start_from ?? '';
-        $ticket->end_to = $ticket->trip?->endTo?->name ?? $ticket->end_to ?? '';
-
-        // Fallback to JSON data if available
-        if (empty($ticket->fleet_type) && !empty($ticket->trip_details)) {
-            $tripDetails = json_decode($ticket->trip_details, true);
-            $ticket->fleet_type = $tripDetails['fleet_type'] ?? $tripDetails['FleetType'] ?? '';
-        }
-
-        if (empty($ticket->start_from) && !empty($ticket->trip_details)) {
-            $tripDetails = json_decode($ticket->trip_details, true);
-            $ticket->start_from = $tripDetails['start_from'] ?? $tripDetails['StartFrom'] ?? '';
-        }
-
-        if (empty($ticket->end_to) && !empty($ticket->trip_details)) {
-            $tripDetails = json_decode($ticket->trip_details, true);
-            $ticket->end_to = $tripDetails['end_to'] ?? $tripDetails['EndTo'] ?? '';
-        }
-
-        // Get pickup and dropping points
-        $boardingPoint = json_decode($ticket->boarding_point_details, true);
-        if (isset($boardingPoint['CityPointAddress'])) {
-            $ticket->pickup_point = $boardingPoint['CityPointAddress'];
-        } elseif (isset($boardingPoint['name'])) {
-            $ticket->pickup_point = $boardingPoint['name'];
-        }
-
-        $droppingPoint = json_decode($ticket->dropping_point_details, true);
-        if (isset($droppingPoint['CityPointLocation'])) {
-            $ticket->dropping_point = $droppingPoint['CityPointLocation'];
-        } elseif (isset($droppingPoint['name'])) {
-            $ticket->dropping_point = $droppingPoint['name'];
-        }
-
-        // Format seat numbers
-        $seats = is_array($ticket->seats) ? $ticket->seats : json_decode($ticket->seats, true);
-        $ticket->seat_numbers = is_array($seats) ? implode(', ', $seats) : $ticket->seats;
-
-        return response()->json(['success' => true, 'ticket' => $ticket]);
     }
-
 
 }

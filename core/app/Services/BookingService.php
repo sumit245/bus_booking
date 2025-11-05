@@ -185,11 +185,22 @@ class BookingService
             }
             $fullPhone = '91' . $fullPhone;
 
+            // Handle firstname and lastname - support both single passenger and multiple passengers (agent/admin)
+            $firstName = $requestData['FirstName'] 
+                ?? (isset($requestData['passenger_firstnames']) && is_array($requestData['passenger_firstnames']) 
+                    ? ($requestData['passenger_firstnames'][0] ?? '') 
+                    : ($requestData['passenger_firstname'] ?? ''));
+            
+            $lastName = $requestData['LastName'] 
+                ?? (isset($requestData['passenger_lastnames']) && is_array($requestData['passenger_lastnames']) 
+                    ? ($requestData['passenger_lastnames'][0] ?? '') 
+                    : ($requestData['passenger_lastname'] ?? ''));
+
             $user = User::firstOrCreate(
                 ['mobile' => $fullPhone],
                 [
-                    'firstname' => $requestData['FirstName'] ?? $requestData['passenger_firstname'],
-                    'lastname' => $requestData['LastName'] ?? $requestData['passenger_lastname'],
+                    'firstname' => $firstName,
+                    'lastname' => $lastName,
                     'email' => $requestData['Email'] ?? $requestData['passenger_email'],
                     'username' => 'user' . time(),
                     'password' => Hash::make(Str::random(8)),
@@ -276,16 +287,32 @@ class BookingService
             ? $requestData['Seats'] ?? $requestData['seats']
             : explode(',', $requestData['Seats'] ?? $requestData['seats']);
 
-        $resultIndex = $requestData['ResultIndex'] ?? $requestData['result_index'];
-        $searchTokenId = $requestData['SearchTokenId'] ?? $requestData['search_token_id'];
-        $boardingPointId = $requestData['BoardingPointId'] ?? $requestData['boarding_point_index'];
-        $droppingPointId = $requestData['DroppingPointId'] ?? $requestData['dropping_point_index'];
+        $resultIndex = $requestData['ResultIndex'] ?? $requestData['result_index'] ?? '';
+        $searchTokenId = $requestData['SearchTokenId'] ?? $requestData['search_token_id'] ?? '';
+        $boardingPointId = $requestData['BoardingPointId'] ?? $requestData['boarding_point_index'] ?? '';
+        $droppingPointId = $requestData['DroppingPointId'] ?? $requestData['dropping_point_index'] ?? '';
         $userIp = $requestData['UserIp'] ?? $requestData['user_ip'] ?? request()->ip();
+
+        // Validate required fields
+        if (empty($resultIndex)) {
+            return ['success' => false, 'message' => 'ResultIndex is required'];
+        }
+        if (empty($boardingPointId)) {
+            return ['success' => false, 'message' => 'Boarding point is required'];
+        }
+        if (empty($droppingPointId)) {
+            return ['success' => false, 'message' => 'Dropping point is required'];
+        }
 
         // Check if this is an operator bus
         if (str_starts_with($resultIndex, 'OP_')) {
+            // Operator buses don't require searchTokenId
             return $this->blockOperatorBusSeat($resultIndex, $boardingPointId, $droppingPointId, $passengers, $seats, $userIp, $searchTokenId);
         } else {
+            // Third-party buses require searchTokenId
+            if (empty($searchTokenId)) {
+                return ['success' => false, 'message' => 'SearchTokenId is required for third-party bus bookings'];
+            }
             return blockSeatHelper($searchTokenId, $resultIndex, $boardingPointId, $droppingPointId, $passengers, $seats, $userIp);
         }
     }
@@ -405,6 +432,17 @@ class BookingService
 
             $bookingId = 'OP_BOOK_' . time() . '_' . $operatorBusId;
 
+            // Get cancellation policy from operator bus
+            $cancelPolicy = $operatorBus->cancellation_policies ?? [];
+            
+            // Format cancellation policy to match API format if needed
+            if (!empty($cancelPolicy) && isset($cancelPolicy[0]['TimeBeforeDept'])) {
+                // Policy is already in correct format
+            } else {
+                // Use default policies if none set
+                $cancelPolicy = $operatorBus->getCancellationPoliciesAttribute();
+            }
+
             $result = [
                 'BookingId' => $bookingId,
                 'BookingStatus' => 'Blocked',
@@ -420,7 +458,7 @@ class BookingService
                 'DroppingPointId' => $droppingPointId,
                 'OperatorBusId' => $operatorBusId,
                 'ResultIndex' => $resultIndex,
-                'CancelPolicy' => $busData['CancelPolicy'] ?? [],
+                'CancelPolicy' => $cancelPolicy,
             ];
 
             return [
@@ -648,9 +686,11 @@ class BookingService
         $departureTime = $blockResponse['Result']['DepartureTime'] ?? null;
         $arrivalTime = $blockResponse['Result']['ArrivalTime'] ?? null;
         
+        // Get searchTokenId early for use throughout the method
+        $searchTokenId = $requestData['SearchTokenId'] ?? $requestData['search_token_id'] ?? '';
+        
         // Fallback to cache if not in blockResponse (shouldn't happen for operator buses)
         if (!$departureTime || !$arrivalTime) {
-            $searchTokenId = $requestData['SearchTokenId'] ?? $requestData['search_token_id'] ?? '';
             if ($searchTokenId) {
                 $cachedBuses = Cache::get('bus_search_results_' . $searchTokenId);
                 if ($cachedBuses && isset($cachedBuses['CombinedBuses'])) {
@@ -790,6 +830,17 @@ class BookingService
                     'commission_amount' => $agentCommission
                 ]);
             }
+        }
+
+        // Fix: Handle admin-specific data (only set for admin bookings)
+        if (isset($requestData['admin_id'])) {
+            $bookedTicket->booking_source = $requestData['booking_source'] ?? 'admin';
+
+            Log::info('Admin booking created', [
+                'admin_id' => $requestData['admin_id'],
+                'base_fare' => $baseFare,
+                'total_amount' => $feeCalculation['total_amount']
+            ]);
         }
 
         // Fix: Only set operator-specific fields for operator buses
@@ -1273,26 +1324,67 @@ class BookingService
             // Prepare ticket details for WhatsApp
             $ticketDetails = $this->prepareTicketDetailsForWhatsApp($bookedTicket, $apiResponse, $bookingData);
 
-            // Send ticket details to passenger
-            $passengerWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $bookedTicket->user->mobile);
+            // Send ticket details to passenger (user who booked)
+            $passengerWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $bookedTicket->user->mobile ?? null);
 
-            // Send ticket details to admin
+            // Send ticket details to admin (always notify admin)
             $adminWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, "8269566034");
 
-            Log::info('Passenger and admin WhatsApp notification results', [
+            // Send ticket details to agent if booking was made by agent
+            $agentWhatsAppSuccess = true;
+            if ($bookedTicket->agent_id) {
+                $agent = \App\Models\Agent::find($bookedTicket->agent_id);
+                if ($agent && $agent->phone) {
+                    $agentWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $agent->phone);
+                    Log::info('Agent WhatsApp notification sent', [
+                        'ticket_id' => $bookedTicket->id,
+                        'agent_id' => $bookedTicket->agent_id,
+                        'agent_phone' => $agent->phone,
+                        'success' => $agentWhatsAppSuccess
+                    ]);
+                }
+            }
+
+            // Send ticket details to operator if booking is for operator bus
+            $operatorWhatsAppSuccess = true;
+            if ($bookedTicket->operator_id) {
+                $operator = \App\Models\Operator::find($bookedTicket->operator_id);
+                if ($operator && $operator->mobile) {
+                    $operatorWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $operator->mobile);
+                    Log::info('Operator WhatsApp notification sent', [
+                        'ticket_id' => $bookedTicket->id,
+                        'operator_id' => $bookedTicket->operator_id,
+                        'operator_mobile' => $operator->mobile,
+                        'success' => $operatorWhatsAppSuccess
+                    ]);
+                }
+            }
+
+            Log::info('WhatsApp notification results for all stakeholders', [
                 'ticket_id' => $bookedTicket->id,
                 'passenger_success' => $passengerWhatsAppSuccess,
-                'admin_success' => $adminWhatsAppSuccess
+                'admin_success' => $adminWhatsAppSuccess,
+                'agent_success' => $agentWhatsAppSuccess,
+                'operator_success' => $operatorWhatsAppSuccess
             ]);
 
-            // Check if passenger or admin WhatsApp failed
+            // Check if critical notifications failed (passenger and admin are mandatory)
             if (!$passengerWhatsAppSuccess || !$adminWhatsAppSuccess) {
-                Log::error('Passenger or admin WhatsApp notification failed', [
+                Log::error('Critical WhatsApp notification failed', [
                     'ticket_id' => $bookedTicket->id,
                     'passenger_success' => $passengerWhatsAppSuccess,
                     'admin_success' => $adminWhatsAppSuccess
                 ]);
                 return false;
+            }
+            
+            // Log warning if agent/operator notifications failed but don't fail the booking
+            if (!$agentWhatsAppSuccess || !$operatorWhatsAppSuccess) {
+                Log::warning('Non-critical WhatsApp notification failed', [
+                    'ticket_id' => $bookedTicket->id,
+                    'agent_success' => $agentWhatsAppSuccess,
+                    'operator_success' => $operatorWhatsAppSuccess
+                ]);
             }
 
             // For operator buses, send crew notifications

@@ -68,18 +68,31 @@ class BusService
         $trips = $this->applyFilters($trips, $validatedData);
         $trips = $this->applySorting($trips, $validatedData); // Sorting now works on a proper array
 
-        $page = $validatedData['page'] ?? 1;
+        // Get page number from validated data or request
+        $page = (int) ($validatedData['page'] ?? request()->input('page', 1));
         $perPage = 50; // Increased from 20 to 50 for better UX
-        $paginatedTrips = array_slice($trips, ($page - 1) * $perPage, $perPage);
+        $totalTrips = count($trips);
+        $offset = ($page - 1) * $perPage;
+        $paginatedTrips = array_slice($trips, $offset, $perPage);
+
+        // Debug logging
+        Log::info('BusService pagination', [
+            'requested_page' => $page,
+            'total_trips' => $totalTrips,
+            'per_page' => $perPage,
+            'offset' => $offset,
+            'paginated_count' => count($paginatedTrips),
+            'has_more' => ($page * $perPage) < $totalTrips
+        ]);
 
         return [
             'SearchTokenId' => $apiResponse['SearchTokenId'],
             'trips' => $paginatedTrips, // This is now guaranteed to be a sequential array
             'pagination' => [
-                'total_results' => count($trips),
+                'total_results' => $totalTrips,
                 'per_page' => $perPage,
-                'current_page' => (int) $page,
-                'has_more_pages' => ($page * $perPage) < count($trips),
+                'current_page' => $page,
+                'has_more_pages' => ($page * $perPage) < $totalTrips,
             ]
         ];
     }

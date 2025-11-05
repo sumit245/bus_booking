@@ -148,7 +148,7 @@ class BookingController extends Controller
 
     public function confirm($bookingId)
     {
-        $bookedTicket = BookedTicket::with(['agent', 'agentBooking'])
+        $bookedTicket = BookedTicket::with(['agent', 'agentBooking', 'pickup', 'drop'])
             ->where('id', $bookingId)
             ->where('agent_id', Auth::guard('agent')->id())
             ->firstOrFail();

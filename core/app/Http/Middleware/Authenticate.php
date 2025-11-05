@@ -17,16 +17,31 @@ class Authenticate extends Middleware
 
     public function handle($request, Closure $next, ...$guards)
     {
+        \Log::info('Authenticate middleware - checking', [
+            'url' => $request->fullUrl(),
+            'guards' => $guards,
+            'has_guards' => !empty($guards)
+        ]);
+        
         // If guards are specified, check each one
         if (!empty($guards)) {
             foreach ($guards as $guard) {
-                if (Auth::guard($guard)->check()) {
+                $isAuthenticated = Auth::guard($guard)->check();
+                \Log::info('Authenticate middleware - checking guard', [
+                    'guard' => $guard,
+                    'is_authenticated' => $isAuthenticated
+                ]);
+                
+                if ($isAuthenticated) {
+                    \Log::info('Authenticate middleware - guard authenticated, proceeding', ['guard' => $guard]);
                     return $next($request);
                 }
             }
 
             // If no guards are authenticated, redirect based on the first guard
             $firstGuard = $guards[0];
+            \Log::warning('Authenticate middleware - no guards authenticated, redirecting', ['first_guard' => $firstGuard]);
+            
             if ($firstGuard === 'admin') {
                 return redirect()->route('admin.login');
             } elseif ($firstGuard === 'operator') {
@@ -41,9 +56,14 @@ class Authenticate extends Middleware
         }
 
         // If no guards specified, check default guard
-        if (Auth::check()) {
+        $defaultCheck = Auth::check();
+        \Log::info('Authenticate middleware - default guard check', ['is_authenticated' => $defaultCheck]);
+        
+        if ($defaultCheck) {
             return $next($request);
         }
+        
+        \Log::warning('Authenticate middleware - default guard not authenticated, redirecting to user login');
         return redirect()->route('user.login');
     }
 

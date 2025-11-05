@@ -131,9 +131,7 @@ class UserController extends Controller
 
             // Fetch all tickets for the user, including completed and cancelled ones.
             $tickets = BookedTicket::with([
-                'trip.fleetType',
-                'pickup',
-                'drop'
+                'trip.fleetType'
             ])
                 ->where('user_id', $user->id)
                 // Explicitly fetch tickets with any status if needed, or filter for specific ones.
@@ -153,6 +151,7 @@ class UserController extends Controller
                 $search_token_id = $response && isset($response->SearchTokenId) ? $response->SearchTokenId : null;
                 $userIp = $response && isset($response->UserIp) ? $response->UserIp : null;
 
+                $passengers = [];
                 foreach ($seats as $index => $seat) {
                     $isLead = ($index === 0);
                     $passengers[] = [
@@ -178,9 +177,11 @@ class UserController extends Controller
                     'date_of_journey' => Carbon::parse($ticket->date_of_journey)->format('Y-m-d'),
                     'departure_time' => $ticket->departure_time ? Carbon::parse($ticket->departure_time)->format('h:i A') : 'N/A',
                     'arrival_time' => $ticket->arrival_time ? Carbon::parse($ticket->arrival_time)->format('h:i A') : 'N/A',
-                    'duration' => Carbon::parse($ticket->arrival_time)
-                        ->diff($ticket->departure_time)
-                        ->format('%H:%I'),
+                    'duration' => ($ticket->arrival_time && $ticket->departure_time) 
+                        ? Carbon::parse($ticket->arrival_time)
+                            ->diff(Carbon::parse($ticket->departure_time))
+                            ->format('%H:%I')
+                        : 'N/A',
                     'boarding_point_details' => $ticket->boarding_point_details ? json_decode($ticket->boarding_point_details) : null,
                     'boarding_point' => $ticket->origin_city,
                     'dropping_point_details' => $ticket->dropping_point_details ? json_decode($ticket->dropping_point_details) : null,

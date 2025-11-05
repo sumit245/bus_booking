@@ -648,6 +648,12 @@
                             <i class="las la-map-marker-alt"></i>
                             <span>${point.CityPointLocation || point.CityPointName}</span>
                         </div>
+                        ${point.CityPointContactNumber ? `
+                            <div class="point-contact">
+                                <i class="las la-phone"></i>
+                                <span>${point.CityPointContactNumber}</span>
+                            </div>
+                            ` : ''}
                     </div>
                 </div>
                 `;

@@ -1,4 +1,4 @@
-@extends('agent.layouts.app')
+@extends('admin.layouts.app')
 
 @section('panel')
     <div class="container-fluid px-0">
@@ -17,17 +17,10 @@
                         </small>
                     </div>
                     <div>
-                        @if (auth('agent')->check())
-                            <a href="{{ route('agent.search') }}" class="btn btn-sm btn-outline-primary">
-                                <i class="las la-search"></i>
-                                @lang('New Search')
-                            </a>
-                        @elseif(auth('admin')->check())
-                            <a href="{{ route('admin.booking.search') }}" class="btn btn-sm btn-outline-primary">
-                                <i class="las la-search"></i>
-                                @lang('New Search')
-                            </a>
-                        @endif
+                        <a href="{{ route('admin.booking.search') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="las la-search"></i>
+                            @lang('New Search')
+                        </a>
                     </div>
                 </div>
             </div>
@@ -72,9 +65,7 @@
                         </h6>
                     </div>
                     <div class="card-body">
-                        <form
-                            action="{{ auth('agent')->check() ? route('agent.booking.block') : route('admin.booking.block') }}"
-                            method="POST" id="agentBookingForm">
+                        <form action="{{ route('admin.booking.block') }}" method="POST" id="agentBookingForm">
                             @csrf
 
                             <!-- Journey Details (Read-only) -->
@@ -97,7 +88,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text">+91</span>
                                     <input type="tel" class="form-control" name="passenger_phone"
-                                        value="@if (auth('agent')->check()) {{ auth('agent')->user()->phone ?? '' }}@elseif(auth('admin')->check()){{ '' }} @endif"
+                                        value="{{ auth('admin')->user()->mobile ?? (auth('admin')->user()->phone ?? '') }}"
                                         required>
                                 </div>
                             </div>
@@ -105,8 +96,7 @@
                             <div class="form-group mb-3">
                                 <label class="form-label">@lang('Email') *</label>
                                 <input type="email" class="form-control" name="passenger_email"
-                                    value="{{ auth('agent')->check() ? auth('agent')->user()->email ?? '' : (auth('admin')->check() ? auth('admin')->user()->email ?? '' : '') }}"
-                                    required>
+                                    value="{{ auth('admin')->user()->email ?? '' }}" required>
                             </div>
 
                             <!-- Passenger Details (Dynamic based on selected seats) -->
@@ -145,8 +135,13 @@
                             <input type="hidden" name="dropping_point_index" id="dropping_point_index">
                             <input type="hidden" name="seats" id="selected_seats">
                             <input type="hidden" name="price" id="total_price">
-                            <input type="hidden" name="agent_id" value="{{ auth('agent')->id() }}">
-                            <input type="hidden" name="booking_source" value="agent">
+                            @if(auth('admin')->check())
+                                <input type="hidden" name="admin_id" value="{{ auth('admin')->id() }}">
+                                <input type="hidden" name="booking_source" value="admin">
+                            @elseif(auth('agent')->check())
+                                <input type="hidden" name="agent_id" value="{{ auth('agent')->id() }}">
+                                <input type="hidden" name="booking_source" value="agent">
+                            @endif
 
                             <!-- Desktop Button -->
                             <div class="d-none d-lg-block">
@@ -231,26 +226,25 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Mobile Sticky Bottom Bar -->
-        <div class="d-block d-lg-none">
-            <div class="mobile-sticky-bar">
-                <div class="container-fluid px-0">
-                    <div class="d-flex"></div>
-                    <button type="button" class="btn btn-outline-secondary w-48" id="resetButton">
-                        <i class="las la-undo"></i>
-                        @lang('Reset')
-                    </button>
-                    <button type="submit" form="agentBookingForm" class="btn btn-primary w-48 mx-1"
-                        id="bookButtonMobile" disabled>
-                        <i class="las la-credit-card"></i>
-                        @lang('Proceed to Pay')
-                    </button>
+            <!-- Mobile Sticky Bottom Bar -->
+            <div class="d-block d-lg-none">
+                <div class="mobile-sticky-bar">
+                    <div class="container-fluid px-0">
+                        <div class="d-flex"></div>
+                        <button type="button" class="btn btn-outline-secondary w-48" id="resetButton">
+                            <i class="las la-undo"></i>
+                            @lang('Reset')
+                        </button>
+                        <button type="submit" form="agentBookingForm" class="btn btn-primary w-48 mx-1"
+                            id="bookButtonMobile" disabled>
+                            <i class="las la-credit-card"></i>
+                            @lang('Proceed to Pay')
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
     </div>
 @endsection
@@ -450,7 +444,7 @@
             if (droppingSelectMobile) droppingSelectMobile.innerHTML = '<option value="">@lang('Loading...')</option>';
 
             // Load boarding points from API
-            fetch('{{ route('agent.booking.boarding-points') }}', {
+            fetch('{{ route('get.boarding.points') }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

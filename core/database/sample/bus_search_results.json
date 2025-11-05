@@ -1,0 +1,338 @@
+{
+    "UserIp": "103.209.223.52",
+    "SearchTokenId": "c14085eac0d8204a88471998cf9c4f4270ff45c5",
+    "Error": {
+        "ErrorCode": 0,
+        "ErrorMessage": ""
+    },
+    "Result": [
+        {
+            "ResultIndex": "TB-2",
+            "ArrivalTime": "2025-12-06T05:30:00",
+            "AvailableSeats": 41,
+            "DepartureTime": "2025-12-06T04:15:00",
+            "RouteId": "5046687054534786153",
+            "BusType": "Non Ac Seater / Sleeper 2+1",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Mbbs Bus Service",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": true,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 29059,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "New Bus Stand Rewa",
+                    "CityPointName": "New Bus Stand Rewa",
+                    "CityPointTime": "2025-12-06T04:15:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Vijayant Travels New Bus Stand Shop No 20",
+                    "CityPointName": "Rewa Old Bus Stand",
+                    "CityPointTime": "2025-12-06T04:35:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "MBBS Bus Service D-14 Bus Stand",
+                    "CityPointName": "Satna bus stand\t",
+                    "CityPointTime": "2025-12-06T05:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 367.5,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 367.5,
+                "OfferedPrice": 347.65,
+                "AgentCommission": 19.85,
+                "ServiceCharges": 0,
+                "TDS": 0.99,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 16:15 on 04 Dec 2025",
+                    "TimeBeforeDept": "36$-1",
+                    "FromDate": "2025-11-05T23:53:35",
+                    "ToDate": "2025-12-04T16:15:00"
+                },
+                {
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 16:15 on 04 Dec 2025 - 13:15 on 05 Dec 2025",
+                    "TimeBeforeDept": "15$36",
+                    "FromDate": "2025-12-04T16:15:00",
+                    "ToDate": "2025-12-05T13:15:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 13:15 on 05 Dec 2025",
+                    "TimeBeforeDept": "0$15",
+                    "FromDate": "2025-12-05T13:15:00",
+                    "ToDate": "2025-12-06T05:30:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-1",
+            "ArrivalTime": "2025-12-06T05:30:00",
+            "AvailableSeats": 41,
+            "DepartureTime": "2025-12-06T04:15:00",
+            "RouteId": "5046687054531505293",
+            "BusType": "A/c Seater/sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Mbbs Bus Service",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 29059,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "New Bus Stand Rewa",
+                    "CityPointName": "New Bus Stand Rewa",
+                    "CityPointTime": "2025-12-06T04:15:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Vijayant Travels New Bus Stand Shop No 20",
+                    "CityPointName": "Rewa Old Bus Stand",
+                    "CityPointTime": "2025-12-06T04:35:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "MBBS Bus Service D-14 Bus Stand",
+                    "CityPointName": "Satna bus stand\t",
+                    "CityPointTime": "2025-12-06T05:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 420,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 420,
+                "OfferedPrice": 397.32,
+                "AgentCommission": 22.68,
+                "ServiceCharges": 0,
+                "TDS": 1.13,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 16:15 on 04 Dec 2025",
+                    "TimeBeforeDept": "36$-1",
+                    "FromDate": "2025-11-05T23:53:35",
+                    "ToDate": "2025-12-04T16:15:00"
+                },
+                {
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Between 16:15 on 04 Dec 2025 - 13:15 on 05 Dec 2025",
+                    "TimeBeforeDept": "15$36",
+                    "FromDate": "2025-12-04T16:15:00",
+                    "ToDate": "2025-12-05T13:15:00"
+                },
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "After 13:15 on 05 Dec 2025",
+                    "TimeBeforeDept": "0$15",
+                    "FromDate": "2025-12-05T13:15:00",
+                    "ToDate": "2025-12-06T05:30:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-4",
+            "ArrivalTime": "2025-12-06T18:30:00",
+            "AvailableSeats": 21,
+            "DepartureTime": "2025-12-06T18:20:00",
+            "RouteId": "5046687054538973321",
+            "BusType": "Ve A/c Sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Jai Bhawani Tours And Travels",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": false,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 18098,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Jai Bhawani Travels New Bus Stand",
+                    "CityPointName": "Jai Bhawani Travels New Bus Stand",
+                    "CityPointTime": "2025-12-06T18:00:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Old Bus Stand Rewa",
+                    "CityPointName": "Rewa Old Bus Stand",
+                    "CityPointTime": "2025-12-06T18:20:00"
+                },
+                {
+                    "CityPointIndex": 3,
+                    "CityPointLocation": "Railway station square",
+                    "CityPointName": "Railway station square",
+                    "CityPointTime": "2025-12-06T18:30:00"
+                },
+                {
+                    "CityPointIndex": 4,
+                    "CityPointLocation": "Chorahta",
+                    "CityPointName": "Chorahta",
+                    "CityPointTime": "2025-12-06T18:40:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bela Byepass Maihar Road Cut 25km Far In Rewa Road",
+                    "CityPointName": "Others",
+                    "CityPointTime": "2025-12-06T18:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 1982.4,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 1982.4,
+                "OfferedPrice": 1875.35,
+                "AgentCommission": 107.05,
+                "ServiceCharges": 0,
+                "TDS": 5.35,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 18:20 on 06 Dec 2025",
+                    "TimeBeforeDept": "0$-1",
+                    "FromDate": "2025-11-05T23:53:35",
+                    "ToDate": "2025-12-06T18:20:00"
+                }
+            ]
+        },
+        {
+            "ResultIndex": "TB-3",
+            "ArrivalTime": "2025-12-06T19:30:00",
+            "AvailableSeats": 26,
+            "DepartureTime": "2025-12-06T19:20:00",
+            "RouteId": "5046687054536316566",
+            "BusType": "Ve A/c Sleeper (2+1)",
+            "ServiceName": "Seat Seller",
+            "TravelName": "Jai Bhawani Tours And Travels",
+            "IdProofRequired": false,
+            "IsDropPointMandatory": false,
+            "LiveTrackingAvailable": true,
+            "MTicketEnabled": true,
+            "MaxSeatsPerTicket": 6,
+            "OperatorId": 18098,
+            "PartialCancellationAllowed": true,
+            "BoardingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Jai Bhawani Travels New Bus Stand",
+                    "CityPointName": "Jai Bhawani Travels New Bus Stand",
+                    "CityPointTime": "2025-12-06T19:00:00"
+                },
+                {
+                    "CityPointIndex": 2,
+                    "CityPointLocation": "Old Bus Stand Rewa",
+                    "CityPointName": "Rewa Old Bus Stand",
+                    "CityPointTime": "2025-12-06T19:20:00"
+                },
+                {
+                    "CityPointIndex": 3,
+                    "CityPointLocation": "Railway station square",
+                    "CityPointName": "Railway station square",
+                    "CityPointTime": "2025-12-06T19:30:00"
+                },
+                {
+                    "CityPointIndex": 4,
+                    "CityPointLocation": "Chorahta",
+                    "CityPointName": "Chorahta",
+                    "CityPointTime": "2025-12-06T19:40:00"
+                }
+            ],
+            "DroppingPointsDetails": [
+                {
+                    "CityPointIndex": 1,
+                    "CityPointLocation": "Bela Byepass Maihar Road Cut 25km Far In Rewa Road",
+                    "CityPointName": "Others",
+                    "CityPointTime": "2025-12-06T19:30:00"
+                }
+            ],
+            "BusPrice": {
+                "BasePrice": 2310,
+                "Tax": 0,
+                "OtherCharges": 0,
+                "Discount": 0,
+                "PublishedPrice": 2310,
+                "OfferedPrice": 2185.26,
+                "AgentCommission": 124.74,
+                "ServiceCharges": 0,
+                "TDS": 6.24,
+                "GST": {
+                    "CGSTAmount": 0,
+                    "CGSTRate": 0,
+                    "IGSTAmount": 0,
+                    "IGSTRate": 18,
+                    "SGSTAmount": 0,
+                    "SGSTRate": 0,
+                    "TaxableAmount": 0
+                }
+            },
+            "CancellationPolicies": [
+                {
+                    "CancellationCharge": 100,
+                    "CancellationChargeType": 2,
+                    "PolicyString": "Till 19:20 on 06 Dec 2025",
+                    "TimeBeforeDept": "0$-1",
+                    "FromDate": "2025-11-05T23:53:35",
+                    "ToDate": "2025-12-06T19:20:00"
+                }
+            ]
+        }
+    ]
+}

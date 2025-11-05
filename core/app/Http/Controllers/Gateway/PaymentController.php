@@ -163,8 +163,8 @@ class PaymentController extends Controller
                 'journey_date' => showDateTime($bookedTicket->date_of_journey , 'd m, Y'),
                 'seats' => implode(',',$bookedTicket->seats),
                 'total_seats' => sizeof($bookedTicket->seats),
-                'source' => $bookedTicket->pickup->name,
-                'destination' => $bookedTicket->drop->name
+                'source' => $bookedTicket->pickup?->name ?? 'N/A',
+                'destination' => $bookedTicket->drop?->name ?? 'N/A'
             ]);
 
         }

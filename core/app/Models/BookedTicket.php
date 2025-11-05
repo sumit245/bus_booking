@@ -99,12 +99,71 @@ class BookedTicket extends Model
         return $this->belongsTo(Trip::class);
     }
 
-    // Note: pickup() relationship removed - pickup_point column is redundant and being dropped
-    // Use boarding_point_details JSON instead for pickup/boarding information
+    // Note: pickup() relationship - safely returns Counter model
+    // Uses pickup_point column if available, otherwise returns null
+    // The relationship is defined but will only work if the column exists
+    // The controller checks for column existence before eager loading
+    public function pickup()
+    {
+        return $this->belongsTo(Counter::class, 'pickup_point');
+    }
+
+    /**
+     * Accessor for pickup - safely returns Counter model from various sources
+     */
+    public function getPickupAttribute()
+    {
+        // Try to get from JSON details first
+        if ($this->boarding_point_details) {
+            $details = json_decode($this->boarding_point_details, true);
+            if (isset($details['CityPointIndex'])) {
+                $counter = Counter::find($details['CityPointIndex']);
+                if ($counter) {
+                    return $counter;
+                }
+            }
+        }
+        
+        // Fallback to pickup_point column if it exists
+        if (isset($this->attributes['pickup_point']) && $this->attributes['pickup_point']) {
+            return Counter::find($this->attributes['pickup_point']);
+        }
+        
+        return null;
+    }
 
     public function drop()
     {
         return $this->belongsTo(Counter::class, 'dropping_point');
+    }
+
+    /**
+     * Accessor for drop - safely returns Counter model from various sources
+     */
+    public function getDropAttribute()
+    {
+        // Try to get from relationship first (most reliable)
+        if ($this->relationLoaded('drop') && $this->getRelation('drop')) {
+            return $this->getRelation('drop');
+        }
+        
+        // Try to get from JSON details
+        if ($this->dropping_point_details) {
+            $details = json_decode($this->dropping_point_details, true);
+            if (isset($details['CityPointIndex'])) {
+                $counter = Counter::find($details['CityPointIndex']);
+                if ($counter) {
+                    return $counter;
+                }
+            }
+        }
+        
+        // Fallback to dropping_point column
+        if (isset($this->attributes['dropping_point']) && $this->attributes['dropping_point']) {
+            return Counter::find($this->attributes['dropping_point']);
+        }
+        
+        return null;
     }
 
     public function user()

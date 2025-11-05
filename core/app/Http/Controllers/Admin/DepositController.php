@@ -169,6 +169,20 @@ class DepositController extends Controller
         $bookedTicket->status = 1;
         $bookedTicket->save();
 
+        // Extract pickup and drop point names - use relationship if available, otherwise JSON fallback
+        $pickupName = $bookedTicket->pickup?->name ?? 'N/A';
+        $dropName = $bookedTicket->drop?->name ?? 'N/A';
+        
+        // Fallback to JSON if relationship returns null
+        if ($pickupName === 'N/A' && $bookedTicket->boarding_point_details) {
+            $boardingPoint = json_decode($bookedTicket->boarding_point_details, true);
+            $pickupName = $boardingPoint['CityPointName'] ?? $boardingPoint['name'] ?? $bookedTicket->origin_city ?? 'N/A';
+        }
+        if ($dropName === 'N/A' && $bookedTicket->dropping_point_details) {
+            $droppingPoint = json_decode($bookedTicket->dropping_point_details, true);
+            $dropName = $droppingPoint['CityPointName'] ?? $droppingPoint['name'] ?? $bookedTicket->destination_city ?? 'N/A';
+        }
+
         $general = GeneralSetting::first();
         notify($user, 'PAYMENT_APPROVE', [
             'method_name' => $deposit->gatewayCurrency()->name,
@@ -182,8 +196,8 @@ class DepositController extends Controller
             'journey_date' => showDateTime($bookedTicket->date_of_journey, 'd m, Y'),
             'seats' => implode(',', $bookedTicket->seats),
             'total_seats' => sizeof($bookedTicket->seats),
-            'source' => $bookedTicket->pickup->name ?? 'N/A',
-            'destination' => $bookedTicket->drop->name ?? 'N/A'
+            'source' => $pickupName,
+            'destination' => $dropName
         ]);
         $notify[] = ['success', 'Payment request has been approved.'];
 
@@ -206,6 +220,20 @@ class DepositController extends Controller
         $bookedTicket->status = 0;
         $bookedTicket->save();
 
+        // Extract pickup and drop point names - use relationship if available, otherwise JSON fallback
+        $pickupName = $bookedTicket->pickup?->name ?? 'N/A';
+        $dropName = $bookedTicket->drop?->name ?? 'N/A';
+        
+        // Fallback to JSON if relationship returns null
+        if ($pickupName === 'N/A' && $bookedTicket->boarding_point_details) {
+            $boardingPoint = json_decode($bookedTicket->boarding_point_details, true);
+            $pickupName = $boardingPoint['CityPointName'] ?? $boardingPoint['name'] ?? $bookedTicket->origin_city ?? 'N/A';
+        }
+        if ($dropName === 'N/A' && $bookedTicket->dropping_point_details) {
+            $droppingPoint = json_decode($bookedTicket->dropping_point_details, true);
+            $dropName = $droppingPoint['CityPointName'] ?? $droppingPoint['name'] ?? $bookedTicket->destination_city ?? 'N/A';
+        }
+
         $general = GeneralSetting::first();
         notify($deposit->user, 'PAYMENT_REJECT', [
             'method_name' => $deposit->gatewayCurrency()->name,
@@ -220,8 +248,8 @@ class DepositController extends Controller
             'journey_date' => showDateTime($bookedTicket->date_of_journey, 'd m, Y'),
             'seats' => implode(',', $bookedTicket->seats),
             'total_seats' => sizeof($bookedTicket->seats),
-            'source' => $bookedTicket->pickup->name,
-            'destination' => $bookedTicket->drop->name
+            'source' => $pickupName,
+            'destination' => $dropName
         ]);
 
         $notify[] = ['success', 'Payment request has been rejected.'];

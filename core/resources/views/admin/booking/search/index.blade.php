@@ -1,4 +1,4 @@
-@extends('agent.layouts.app')
+@extends('admin.layouts.app')
 
 @section('panel')
     <div class="container-fluid">
@@ -11,7 +11,7 @@
                 </h6>
             </div>
             <div class="card-body">
-                <form method="GET" action="{{ route('agent.search.results') }}" id="searchForm">
+                <form method="GET" action="{{ route('admin.booking.results') }}" id="searchForm">
                     @csrf
 
                     <div class="row">
@@ -51,8 +51,8 @@
                             <label for="date_of_journey" class="form-label">@lang('Journey Date') *</label>
                             <input type="date" class="form-control @error('DateOfJourney') is-invalid @enderror"
                                 id="date_of_journey" name="DateOfJourney"
-                                value="{{ old('date_of_journey', date('Y-m-d')) }}" min="{{ date('Y-m-d') }}" required>
-                            @error('date_of_journey')
+                                value="{{ old('DateOfJourney', date('Y-m-d')) }}" min="{{ date('Y-m-d') }}" required>
+                            @error('DateOfJourney')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
                         </div>
@@ -116,56 +116,17 @@
                 </div>
             </div>
         </div>
-
-        <!-- Commission Information -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="las la-percentage text-success"></i>
-                    @lang('Commission Information')
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="commission-preview">
-                            <h6 class="text-muted">@lang('Commission Structure')</h6>
-                            <div id="commission-preview-content">
-                                <p class="text-muted">@lang('Commission will be calculated based on booking amount')</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="commission-calculator">
-                            <h6 class="text-muted">@lang('Calculate Commission')</h6>
-                            <div class="input-group">
-                                <input type="number" class="form-control" id="commission-amount"
-                                    placeholder="@lang('Enter booking amount')" min="0" step="0.01">
-                                <div class="input-group-append">
-                                    <button class="btn btn-outline-secondary" type="button" id="calculate-commission">
-                                        @lang('Calculate')
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="commission-result" class="mt-2"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 @endsection
 
 @push('script')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Ensure jQuery is available
             if (typeof $ === 'undefined') {
                 console.error('jQuery is not loaded');
                 return;
             }
 
-            // Wait for jQuery to be fully loaded
             $(document).ready(function() {
                 // Initialize Select2 with custom matcher for city search (match initial 3 characters only)
                 $('.select2').select2({
@@ -236,58 +197,6 @@
                     $('#date_of_journey').val(dateString);
                 });
 
-                // Commission calculation
-                $('#calculate-commission').click(function() {
-                    const amount = $('#commission-amount').val();
-                    if (!amount || amount <= 0) {
-                        $('#commission-result').html(
-                            '<div class="alert alert-warning">@lang('Please enter a valid amount')</div>');
-                        return;
-                    }
-
-                    $.ajax({
-                        url: '{{ route('agent.api.commission.calculate') }}',
-                        method: 'POST',
-                        data: {
-                            booking_amount: amount,
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(response) {
-                            if (response.success) {
-                                const commission = response.commission;
-                                const netAmount = response.net_amount_paid;
-                                const totalCommission = response
-                                    .total_commission_earned;
-
-                                let resultHtml = '<div class="alert alert-success">';
-                                resultHtml += '<strong>@lang('Commission Details:')</strong><br>';
-                                resultHtml +=
-                                    `@lang('Commission Amount:'): ₹${totalCommission.toFixed(2)}<br>`;
-                                resultHtml +=
-                                    `@lang('Commission Type:'): ${commission.commission_type}<br>`;
-                                if (commission.commission_percentage > 0) {
-                                    resultHtml +=
-                                        `@lang('Commission Rate:'): ${commission.commission_percentage}%<br>`;
-                                }
-                                resultHtml +=
-                                    `@lang('Net Amount to Pay:'): ₹${netAmount.toFixed(2)}<br>`;
-                                resultHtml += '</div>';
-
-                                $('#commission-result').html(resultHtml);
-                            } else {
-                                $('#commission-result').html(
-                                    '<div class="alert alert-danger">@lang('Error calculating commission')</div>'
-                                );
-                            }
-                        },
-                        error: function() {
-                            $('#commission-result').html(
-                                '<div class="alert alert-danger">@lang('Error calculating commission')</div>'
-                            );
-                        }
-                    });
-                });
-
                 // Form validation
                 $('#searchForm').on('submit', function(e) {
                     const fromCity = $('#origin_city_id').val();
@@ -295,13 +204,13 @@
 
                     if (!fromCity || !toCity) {
                         e.preventDefault();
-                        alert('Please select departure and destination cities');
+                        notify('error', 'Please select departure and destination cities');
                         return false;
                     }
 
                     if (fromCity === toCity) {
                         e.preventDefault();
-                        alert('Departure and destination cities cannot be the same');
+                        notify('error', 'Departure and destination cities cannot be the same');
                         return false;
                     }
 
@@ -317,3 +226,4 @@
         });
     </script>
 @endpush
+

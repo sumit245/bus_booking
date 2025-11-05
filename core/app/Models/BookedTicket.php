@@ -11,7 +11,7 @@ class BookedTicket extends Model
     use HasFactory;
 
     protected $casts = [
-        'source_destination' => 'array',
+        // Note: source_destination removed from casts - manually json_encoded to match old format
         'seats' => 'array',
         'passenger_names' => 'array'
     ];
@@ -28,11 +28,8 @@ class BookedTicket extends Model
         'gender',
         'trip_id',
         'source_destination',
-        'pickup_point',
-        'boarding_point',
         'dropping_point',
         'seats',
-        'seat_numbers',
         'ticket_count',
         'unit_price',
         'sub_total',
@@ -102,10 +99,8 @@ class BookedTicket extends Model
         return $this->belongsTo(Trip::class);
     }
 
-    public function pickup()
-    {
-        return $this->belongsTo(Counter::class, 'pickup_point');
-    }
+    // Note: pickup() relationship removed - pickup_point column is redundant and being dropped
+    // Use boarding_point_details JSON instead for pickup/boarding information
 
     public function drop()
     {

@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\BookedTicket;
 use App\Models\User;
+use App\Models\GeneralSetting;
+use App\Models\City;
+use App\Models\OperatorBus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -39,14 +42,14 @@ class BookingService
                 ];
             }
 
-            // Calculate total fare
-            $totalFare = $this->calculateTotalFare($blockResponse['Result']);
+            // Calculate base fare (before fees)
+            $baseFare = $this->calculateTotalFare($blockResponse['Result']);
 
-            // Create pending ticket record
-            $bookedTicket = $this->createPendingTicket($requestData, $blockResponse, $totalFare, $user->id);
+            // Create pending ticket record (will calculate fees and total_amount internally)
+            $bookedTicket = $this->createPendingTicket($requestData, $blockResponse, $baseFare, $user->id);
 
-            // Create Razorpay order
-            $razorpayOrder = $this->createRazorpayOrder($bookedTicket, $totalFare);
+            // Create Razorpay order using the calculated total_amount from ticket
+            $razorpayOrder = $this->createRazorpayOrder($bookedTicket, $bookedTicket->total_amount ?? $baseFare);
 
             // Cache booking data for payment verification
             $this->cacheBookingData($bookedTicket->id, $requestData, $blockResponse);
@@ -56,7 +59,7 @@ class BookingService
                 'ticket_id' => $bookedTicket->id,
                 'order_details' => $razorpayOrder,
                 'order_id' => $razorpayOrder->id,
-                'amount' => $totalFare,
+                'amount' => $bookedTicket->total_amount ?? $baseFare,
                 'currency' => 'INR',
                 'block_details' => $blockResponse['Result'],
                 'cancellation_policy' => $this->formatCancellationPolicy($blockResponse['Result']['CancelPolicy'] ?? [])
@@ -91,12 +94,16 @@ class BookingService
 
             // Get cached booking data
             $bookingData = Cache::get('booking_data_' . $bookedTicket->id);
+            Log::info('BookingService: Retrieved cached booking data', ['booking_data' => $bookingData]);
             if (!$bookingData) {
                 return [
                     'success' => false,
                     'message' => 'Booking session expired. Please try again.'
                 ];
             }
+            
+            // Ensure ticket_id is in booking data for operator bus bookings
+            $bookingData['ticket_id'] = $bookedTicket->id;
 
             // Complete the booking via API
             $apiResponse = $this->completeBooking($bookingData);
@@ -296,12 +303,53 @@ class BookingService
                 return ['success' => false, 'message' => 'Operator bus details not found or incomplete.'];
             }
 
-            // Get timings from cache
-            $cachedBuses = Cache::get('bus_search_results_' . $searchTokenId);
-            $busData = collect($cachedBuses['CombinedBuses'] ?? [])->firstWhere('ResultIndex', $resultIndex);
-
-            $departureTime = $busData['DepartureTime'] ?? now()->toIso8601String();
-            $arrivalTime = $busData['ArrivalTime'] ?? now()->addHours(8)->toIso8601String();
+            // CRITICAL: Always get times from BusSchedule model, NOT cache (cache may have wrong times)
+            // Parse ResultIndex: OP_{bus_id}_{schedule_id} - last part is schedule_id
+            $parts = explode('_', str_replace('OP_', '', $resultIndex));
+            $scheduleId = !empty($parts) ? (int)end($parts) : null;
+            
+            $departureTime = null;
+            $arrivalTime = null;
+            
+            if ($scheduleId) {
+                $schedule = \App\Models\BusSchedule::find($scheduleId);
+                if ($schedule && $schedule->departure_time && $schedule->arrival_time) {
+                    // Get date of journey from request or session
+                    $dateOfJourney = request()->input('DateOfJourney') 
+                        ?? request()->input('date_of_journey') 
+                        ?? session('date_of_journey')
+                        ?? now()->format('Y-m-d');
+                    
+                    // Build full datetime from schedule time + date of journey
+                    $departureTime = Carbon::parse($dateOfJourney . ' ' . $schedule->departure_time->format('H:i:s'))->format('Y-m-d\TH:i:s');
+                    $arrivalTime = Carbon::parse($dateOfJourney . ' ' . $schedule->arrival_time->format('H:i:s'));
+                    
+                    // Handle next day arrival
+                    if ($arrivalTime->lt(Carbon::parse($departureTime))) {
+                        $arrivalTime->addDay();
+                    }
+                    $arrivalTime = $arrivalTime->format('Y-m-d\TH:i:s');
+                    
+                    Log::info('Got times from BusSchedule', [
+                        'schedule_id' => $scheduleId,
+                        'departure_time' => $departureTime,
+                        'arrival_time' => $arrivalTime,
+                        'schedule_departure' => $schedule->departure_time->format('H:i:s'),
+                        'schedule_arrival' => $schedule->arrival_time->format('H:i:s')
+                    ]);
+                }
+            }
+            
+            // If no times found, this is an error
+            if (!$departureTime || !$arrivalTime) {
+                Log::error('CRITICAL: Could not get departure/arrival times for operator bus', [
+                    'result_index' => $resultIndex,
+                    'schedule_id' => $scheduleId,
+                    'operator_bus_id' => $operatorBusId,
+                    'schedule_exists' => $scheduleId ? \App\Models\BusSchedule::find($scheduleId) !== null : false
+                ]);
+                return ['success' => false, 'message' => 'Could not retrieve bus schedule times. Please try searching again.'];
+            }
 
             // Get boarding and dropping points
             $boardingPoint = $operatorBus->currentRoute->boardingPoints->find($boardingPointId);
@@ -395,7 +443,7 @@ class BookingService
     }
 
     /**
-     * Calculate total fare from block response
+     * Calculate total fare from block response (base fare only)
      */
     private function calculateTotalFare(array $blockResult)
     {
@@ -405,40 +453,297 @@ class BookingService
     }
 
     /**
+     * Calculate fees (service charge, platform fee, GST) and total amount
+     * Formula: base_fare + service_charge + platform_fee + gst = total_amount
+     */
+    private function calculateFeesAndTotal(float $baseFare, ?float $agentCommission = null): array
+    {
+        $generalSettings = GeneralSetting::first();
+        
+        $serviceChargePercentage = $generalSettings->service_charge_percentage ?? 0;
+        $platformFeePercentage = $generalSettings->platform_fee_percentage ?? 0;
+        $platformFeeFixed = $generalSettings->platform_fee_fixed ?? 0;
+        $gstPercentage = $generalSettings->gst_percentage ?? 0;
+
+        // Service Charge
+        $serviceCharge = round($baseFare * ($serviceChargePercentage / 100), 2);
+
+        // Platform Fee (percentage + fixed)
+        $platformFee = round(($baseFare * ($platformFeePercentage / 100)) + $platformFeeFixed, 2);
+
+        // Amount before GST
+        $amountBeforeGST = $baseFare + $serviceCharge + $platformFee;
+
+        // GST (on base_fare + service_charge + platform_fee)
+        $gst = round($amountBeforeGST * ($gstPercentage / 100), 2);
+
+        // Total Amount (base + fees + GST + agent commission if applicable)
+        $totalAmount = $amountBeforeGST + $gst;
+        if ($agentCommission !== null && $agentCommission > 0) {
+            // Agent commission is already included in the base fare or calculated separately
+            // Don't add it to total_amount as it's a deduction, not an addition
+        }
+
+        return [
+            'base_fare' => round($baseFare, 2),
+            'service_charge' => $serviceCharge,
+            'service_charge_percentage' => $serviceChargePercentage,
+            'platform_fee' => $platformFee,
+            'platform_fee_percentage' => $platformFeePercentage,
+            'platform_fee_fixed' => $platformFeeFixed,
+            'gst' => $gst,
+            'gst_percentage' => $gstPercentage,
+            'amount_before_gst' => round($amountBeforeGST, 2),
+            'total_amount' => round($totalAmount, 2),
+            'agent_commission' => $agentCommission ?? 0,
+        ];
+    }
+
+    /**
+     * Get city IDs and names from request data (handles both operator and third-party buses)
+     */
+    private function getCityIdsAndNames(array $requestData, string $resultIndex, ?array $blockResponse = null): array
+    {
+        $originId = null;
+        $destinationId = null;
+        $originName = null;
+        $destinationName = null;
+
+        // Check if this is an operator bus
+        if (str_starts_with($resultIndex, 'OP_')) {
+            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+            $operatorBus = OperatorBus::with('currentRoute.originCity', 'currentRoute.destinationCity')->find($operatorBusId);
+            
+            if ($operatorBus && $operatorBus->currentRoute) {
+                $originId = $operatorBus->currentRoute->origin_city_id ?? null;
+                $destinationId = $operatorBus->currentRoute->destination_city_id ?? null;
+                $originName = $operatorBus->currentRoute->originCity->city_name ?? null;
+                $destinationName = $operatorBus->currentRoute->destinationCity->city_name ?? null;
+            }
+        }
+
+        // Fallback to request/session data
+        if (!$originId) {
+            $originId = $requestData['origin_id'] ?? $requestData['OriginId'] ?? null;
+            // If it's a string (city name), try to find the ID
+            if (!$originId && isset($requestData['origin_city']) && is_numeric($requestData['origin_city'])) {
+                $originId = $requestData['origin_city'];
+            }
+        }
+        if (!$destinationId) {
+            $destinationId = $requestData['destination_id'] ?? $requestData['DestinationId'] ?? null;
+            // If it's a string (city name), try to find the ID
+            if (!$destinationId && isset($requestData['destination_city']) && is_numeric($requestData['destination_city'])) {
+                $destinationId = $requestData['destination_city'];
+            }
+        }
+
+        // Get city names if we have IDs
+        if ($originId && !$originName) {
+            $originCity = City::find($originId);
+            $originName = $originCity ? $originCity->city_name : null;
+        }
+        if ($destinationId && !$destinationName) {
+            $destinationCity = City::find($destinationId);
+            $destinationName = $destinationCity ? $destinationCity->city_name : null;
+        }
+
+        // Try to extract from cached search data
+        if ((!$originId || !$destinationId) && isset($requestData['search_token_id'])) {
+            $cachedBuses = Cache::get('bus_search_results_' . $requestData['search_token_id']);
+            if ($cachedBuses && isset($cachedBuses['origin_city_id'])) {
+                $originId = $originId ?? $cachedBuses['origin_city_id'];
+                $destinationId = $destinationId ?? $cachedBuses['destination_city_id'];
+            }
+        }
+
+        return [
+            'origin_id' => $originId,
+            'destination_id' => $destinationId,
+            'origin_name' => $originName,
+            'destination_name' => $destinationName
+        ];
+    }
+
+    /**
      * Create pending ticket record
      */
-    private function createPendingTicket(array $requestData, array $blockResponse, float $totalFare, int $userId)
+    private function createPendingTicket(array $requestData, array $blockResponse, float $baseFare, int $userId)
     {
         $seats = is_array($requestData['Seats'] ?? $requestData['seats'])
             ? $requestData['Seats'] ?? $requestData['seats']
             : explode(',', $requestData['Seats'] ?? $requestData['seats']);
 
-        $unitPrice = collect($blockResponse['Result']['Passenger'])->sum(function ($passenger) {
+        $resultIndex = $requestData['ResultIndex'] ?? $requestData['result_index'] ?? '';
+        $isOperatorBus = str_starts_with($resultIndex, 'OP_');
+
+        // Get city IDs and names
+        $cityData = $this->getCityIdsAndNames($requestData, $resultIndex, $blockResponse);
+        $originId = $cityData['origin_id'] ?? 0;
+        $destinationId = $cityData['destination_id'] ?? 0;
+        $originName = $cityData['origin_name'];
+        $destinationName = $cityData['destination_name'];
+
+        // Calculate unit price per seat
+        $totalUnitPrice = collect($blockResponse['Result']['Passenger'])->sum(function ($passenger) {
             return $passenger['Seat']['Price']['OfferedPrice'] ?? 0;
         });
+        $unitPrice = count($seats) > 0 ? round($totalUnitPrice / count($seats), 2) : round($totalUnitPrice, 2);
+
+        // Calculate fees and total amount
+        $agentCommission = isset($requestData['agent_id']) && isset($requestData['commission_rate'])
+            ? round($baseFare * $requestData['commission_rate'], 2)
+            : null;
+        
+        $feeCalculation = $this->calculateFeesAndTotal($baseFare, $agentCommission);
+
+        // Get operator bus data if applicable
+        $operatorBusId = null;
+        $operatorId = null;
+        $routeId = null;
+        $scheduleId = null;
+        
+        if ($isOperatorBus) {
+            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+            $operatorBus = OperatorBus::with('currentRoute', 'operator')->find($operatorBusId);
+            
+            if ($operatorBus) {
+                $operatorId = $operatorBus->operator_id ?? null;
+                $routeId = $operatorBus->current_route_id ?? null;
+                
+                // Extract schedule_id directly from ResultIndex: OP_{bus_id}_{schedule_id}
+                $parts = explode('_', str_replace('OP_', '', $resultIndex));
+                $scheduleId = !empty($parts) ? (int)end($parts) : null;
+                
+                // Verify schedule exists and belongs to this bus
+                if ($scheduleId) {
+                    $schedule = \App\Models\BusSchedule::find($scheduleId);
+                    if (!$schedule || $schedule->operator_bus_id != $operatorBusId) {
+                        Log::warning('Schedule ID mismatch', [
+                            'schedule_id' => $scheduleId,
+                            'operator_bus_id' => $operatorBusId,
+                            'result_index' => $resultIndex
+                        ]);
+                        $scheduleId = null;
+                    }
+                }
+            }
+        }
 
         $bookedTicket = new BookedTicket();
         $bookedTicket->user_id = $userId;
-        $bookedTicket->bus_type = $blockResponse['Result']['BusType'];
-        $bookedTicket->travel_name = $blockResponse['Result']['TravelName'];
-        $bookedTicket->source_destination = json_encode([
-            $requestData['OriginCity'] ?? $requestData['origin_city'] ?? 0,
-            $requestData['DestinationCity'] ?? $requestData['destination_city'] ?? 0
-        ]);
-        $bookedTicket->departure_time = Carbon::parse($blockResponse['Result']['DepartureTime'])->format('H:i:s');
-        $bookedTicket->arrival_time = Carbon::parse($blockResponse['Result']['ArrivalTime'])->format('H:i:s');
+        $bookedTicket->bus_type = $blockResponse['Result']['BusType'] ?? null;
+        $bookedTicket->travel_name = $blockResponse['Result']['TravelName'] ?? null;
+        
+        // Fix: source_destination should use actual city IDs - save as JSON string in old format: "[\"9292\",\"230\"]"
+        // Note: We manually json_encode here to match the old format (string with escaped quotes)
+        $bookedTicket->source_destination = json_encode([(string)$originId, (string)$destinationId]);
+        
+        // Fix: origin_city and destination_city should be city names
+        $bookedTicket->origin_city = $originName;
+        $bookedTicket->destination_city = $destinationName;
+        
+        // Fix: Extract departure_time and arrival_time - USE blockResponse FIRST
+        // blockOperatorBusSeat now ensures times come from BusSchedule (not current time)
+        $departureTime = $blockResponse['Result']['DepartureTime'] ?? null;
+        $arrivalTime = $blockResponse['Result']['ArrivalTime'] ?? null;
+        
+        // Fallback to cache if not in blockResponse (shouldn't happen for operator buses)
+        if (!$departureTime || !$arrivalTime) {
+            $searchTokenId = $requestData['SearchTokenId'] ?? $requestData['search_token_id'] ?? '';
+            if ($searchTokenId) {
+                $cachedBuses = Cache::get('bus_search_results_' . $searchTokenId);
+                if ($cachedBuses && isset($cachedBuses['CombinedBuses'])) {
+                    $busData = collect($cachedBuses['CombinedBuses'])->firstWhere('ResultIndex', $resultIndex);
+                    if ($busData) {
+                        $departureTime = $departureTime ?? $busData['DepartureTime'] ?? null;
+                        $arrivalTime = $arrivalTime ?? $busData['ArrivalTime'] ?? null;
+                    }
+                }
+            }
+        }
+        
+        // LAST RESORT: For operator buses, get directly from BusSchedule model
+        if ((!$departureTime || !$arrivalTime) && $isOperatorBus) {
+            // Parse ResultIndex: OP_{bus_id}_{schedule_id} - last part is schedule_id
+            $parts = explode('_', str_replace('OP_', '', $resultIndex));
+            $scheduleId = !empty($parts) ? (int)end($parts) : null;
+            
+            if ($scheduleId) {
+                $schedule = \App\Models\BusSchedule::find($scheduleId);
+                if ($schedule && $schedule->departure_time && $schedule->arrival_time) {
+                    $dateOfJourney = $requestData['DateOfJourney'] ?? $requestData['date_of_journey'] ?? now()->format('Y-m-d');
+                    
+                    if (!$departureTime) {
+                        $departureTime = Carbon::parse($dateOfJourney . ' ' . $schedule->departure_time->format('H:i:s'))->format('Y-m-d\TH:i:s');
+                    }
+                    if (!$arrivalTime) {
+                        $arrivalTime = Carbon::parse($dateOfJourney . ' ' . $schedule->arrival_time->format('H:i:s'));
+                        if ($arrivalTime->lt(Carbon::parse($departureTime))) {
+                            $arrivalTime->addDay();
+                        }
+                        $arrivalTime = $arrivalTime->format('Y-m-d\TH:i:s');
+                    }
+                    
+                    Log::info('Got times from BusSchedule in createPendingTicket', [
+                        'schedule_id' => $scheduleId,
+                        'departure_time' => $departureTime,
+                        'arrival_time' => $arrivalTime
+                    ]);
+                }
+            }
+        }
+        
+        // Parse and set times (extract just the time portion from ISO8601 datetime strings)
+        if ($departureTime) {
+            try {
+                // Handle both ISO8601 datetime (2025-11-03T06:56:29) and time-only (06:56:29) formats
+                $parsed = Carbon::parse($departureTime);
+                $bookedTicket->departure_time = $parsed->format('H:i:s');
+                Log::info('Setting departure_time', ['original' => $departureTime, 'parsed' => $bookedTicket->departure_time]);
+            } catch (\Exception $e) {
+                Log::warning('Failed to parse departure_time', ['time' => $departureTime, 'error' => $e->getMessage()]);
+                $bookedTicket->departure_time = null;
+            }
+        }
+        
+        if ($arrivalTime) {
+            try {
+                // Handle both ISO8601 datetime (2025-11-03T14:56:29) and time-only (14:56:29) formats
+                $parsed = Carbon::parse($arrivalTime);
+                $bookedTicket->arrival_time = $parsed->format('H:i:s');
+                Log::info('Setting arrival_time', ['original' => $arrivalTime, 'parsed' => $bookedTicket->arrival_time]);
+            } catch (\Exception $e) {
+                Log::warning('Failed to parse arrival_time', ['time' => $arrivalTime, 'error' => $e->getMessage()]);
+                $bookedTicket->arrival_time = null;
+            }
+        }
         $bookedTicket->operator_pnr = $blockResponse['Result']['BookingId'] ?? null;
-        $bookedTicket->boarding_point_details = json_encode($blockResponse['Result']['BoardingPointdetails']);
+        $bookedTicket->boarding_point_details = json_encode($blockResponse['Result']['BoardingPointdetails'] ?? []);
         $bookedTicket->dropping_point_details = isset($blockResponse['Result']['DroppingPointsdetails'])
             ? json_encode($blockResponse['Result']['DroppingPointsdetails']) : null;
+        
+        // Fix: seats - seat_numbers is redundant and will be dropped
         $bookedTicket->seats = $seats;
+        
         $bookedTicket->ticket_count = count($seats);
-        $bookedTicket->unit_price = round($unitPrice, 2);
-        $bookedTicket->sub_total = round($totalFare, 2);
+        $bookedTicket->unit_price = $unitPrice;
+        $bookedTicket->sub_total = round($baseFare, 2);
+        
+        // Fix: Calculate and set total_amount correctly
+        $bookedTicket->total_amount = $feeCalculation['total_amount'];
+        
         $bookedTicket->pnr_number = getTrx(10);
-        $bookedTicket->pickup_point = $requestData['BoardingPointId'] ?? $requestData['boarding_point_index'];
-        $bookedTicket->dropping_point = $requestData['DroppingPointId'] ?? $requestData['dropping_point_index'];
-        $bookedTicket->search_token_id = $requestData['SearchTokenId'] ?? $requestData['search_token_id'];
+        
+        // Fix: Use boarding_point_id for dropping_point (pickup_point and boarding_point are redundant and will be dropped)
+        $boardingPointId = $requestData['BoardingPointId'] ?? $requestData['boarding_point_index'] ?? null;
+        $droppingPointId = $requestData['DroppingPointId'] ?? $requestData['dropping_point_index'] ?? null;
+        
+        // Note: pickup_point and boarding_point are redundant - migration will drop them
+        // For now, set dropping_point only
+        $bookedTicket->dropping_point = $droppingPointId;
+        
+        $bookedTicket->search_token_id = $requestData['SearchTokenId'] ?? $requestData['search_token_id'] ?? null;
         $bookedTicket->date_of_journey = $requestData['DateOfJourney'] ?? $requestData['date_of_journey'] ?? now()->format('Y-m-d');
 
         $leadPassenger = collect($blockResponse['Result']['Passenger'])->firstWhere('LeadPassenger', true)
@@ -450,7 +755,7 @@ class BookingService
         $bookedTicket->passenger_name = trim(($leadPassenger['FirstName'] ?? '') . ' ' . ($leadPassenger['LastName'] ?? ''));
         $bookedTicket->passenger_age = $leadPassenger['Age'] ?? null;
 
-        // Save all passenger names
+        // Save all passenger names - ensure consistent JSON encoding (array format)
         $passengerNames = [];
         if (isset($requestData['passenger_firstnames']) && isset($requestData['passenger_lastnames'])) {
             // Agent booking - use provided passenger data
@@ -465,33 +770,104 @@ class BookingService
                 $passengerNames[] = trim(($passenger['FirstName'] ?? '') . ' ' . ($passenger['LastName'] ?? ''));
             }
         }
-        $bookedTicket->passenger_names = $passengerNames;
+        // Fix: Store as JSON array, not double-encoded string
+        $bookedTicket->passenger_names = $passengerNames; // Eloquent will auto-json_encode due to $casts
 
-        // Handle agent-specific data
+        // Fix: Handle agent-specific data (only set for agent bookings)
         if (isset($requestData['agent_id'])) {
             $bookedTicket->agent_id = $requestData['agent_id'];
             $bookedTicket->booking_source = $requestData['booking_source'] ?? 'agent';
 
             // Calculate and store commission
             if (isset($requestData['commission_rate'])) {
-                $commissionAmount = round($totalFare * $requestData['commission_rate'], 2);
                 $bookedTicket->agent_commission = $requestData['commission_rate'];
-                $bookedTicket->agent_commission_amount = $commissionAmount;
+                $bookedTicket->agent_commission_amount = $agentCommission;
 
                 Log::info('Agent commission calculated', [
                     'agent_id' => $requestData['agent_id'],
-                    'total_fare' => $totalFare,
+                    'base_fare' => $baseFare,
                     'commission_rate' => $requestData['commission_rate'],
-                    'commission_amount' => $commissionAmount
+                    'commission_amount' => $agentCommission
                 ]);
             }
         }
 
-        $bookedTicket->api_response = json_encode($blockResponse);
+        // Fix: Only set operator-specific fields for operator buses
+        if ($isOperatorBus && $operatorBusId) {
+            $bookedTicket->operator_id = $operatorId;
+            $bookedTicket->operator_booking_id = $blockResponse['Result']['BookingId'] ?? null;
+            $bookedTicket->bus_id = $operatorBusId;
+            $bookedTicket->route_id = $routeId;
+            $bookedTicket->schedule_id = $scheduleId;
+            // Fix: Set booking_id for operator buses (use operator_pnr or BookingId)
+            $bookedTicket->booking_id = $blockResponse['Result']['BookingId'] ?? $bookedTicket->operator_pnr ?? null;
+        } else {
+            // For third-party buses, keep these null
+            $bookedTicket->operator_id = null;
+            $bookedTicket->operator_booking_id = null;
+            $bookedTicket->bus_id = null;
+            $bookedTicket->route_id = null;
+            $bookedTicket->schedule_id = null;
+            // Fix: Set booking_id for third-party buses (use api_booking_id later, or pnr for now)
+            $bookedTicket->booking_id = null; // Will be set from api_booking_id after booking confirmation
+        }
+        
+        // Fix: ticket_no - will be set after booking confirmation from api_response
+        $bookedTicket->ticket_no = null; // Will be populated from api_ticket_no after booking
+        
+        // Fix: payment_status and paid_amount - will be set when payment is confirmed
+        $bookedTicket->payment_status = null; // Will be set to 'paid' after payment confirmation
+        $bookedTicket->paid_amount = 0; // Will be set to total_amount after payment confirmation
 
-        // Save bus details from block response
+        // Fix: Standardize api_response with correct origin/destination
+        $standardizedBlockResponse = $blockResponse;
+        if (isset($standardizedBlockResponse['Result'])) {
+            $standardizedBlockResponse['Result']['Origin'] = $originName;
+            $standardizedBlockResponse['Result']['Destination'] = $destinationName;
+            $standardizedBlockResponse['Result']['OriginId'] = $originId;
+            $standardizedBlockResponse['Result']['DestinationId'] = $destinationId;
+        }
+        $bookedTicket->api_response = json_encode($standardizedBlockResponse);
+
+        // Fix: Save bus_details - construct from available data
+        $busDetailsData = [];
+        
+        // Try to get from blockResponse first
         if (isset($blockResponse['Result']['BusDetails'])) {
-            $bookedTicket->bus_details = json_encode($blockResponse['Result']['BusDetails']);
+            $busDetailsData = $blockResponse['Result']['BusDetails'];
+        } else {
+            // Construct bus_details from blockResponse and cached data
+            $dateOfJourney = $requestData['DateOfJourney'] ?? $requestData['date_of_journey'] ?? now()->format('Y-m-d');
+            $busDetailsData = [
+                'departure_time' => $departureTime 
+                    ? Carbon::parse($departureTime)->format('m/d/Y H:i:s') 
+                    : ($bookedTicket->departure_time ? Carbon::parse($dateOfJourney . ' ' . $bookedTicket->departure_time)->format('m/d/Y H:i:s') : null),
+                'arrival_time' => $arrivalTime 
+                    ? Carbon::parse($arrivalTime)->format('m/d/Y H:i:s') 
+                    : ($bookedTicket->arrival_time ? Carbon::parse($dateOfJourney . ' ' . $bookedTicket->arrival_time)->format('m/d/Y H:i:s') : null),
+                'bus_type' => $blockResponse['Result']['BusType'] ?? $bookedTicket->bus_type,
+                'travel_name' => $blockResponse['Result']['TravelName'] ?? $bookedTicket->travel_name,
+            ];
+            
+            // Add more details from cached bus data if available
+            if ($searchTokenId) {
+                $cachedBuses = Cache::get('bus_search_results_' . $searchTokenId);
+                if ($cachedBuses && isset($cachedBuses['CombinedBuses'])) {
+                    $busData = collect($cachedBuses['CombinedBuses'])->firstWhere('ResultIndex', $resultIndex);
+                    if ($busData) {
+                        $busDetailsData = array_merge($busDetailsData, [
+                            'Duration' => $busData['Duration'] ?? null,
+                            'AvailableSeats' => $busData['AvailableSeats'] ?? null,
+                            'BusName' => $busData['BusName'] ?? null,
+                        ]);
+                    }
+                }
+            }
+        }
+        
+        if (!empty($busDetailsData)) {
+            $bookedTicket->bus_details = json_encode($busDetailsData);
+            Log::info('Saving bus_details', ['bus_details' => $busDetailsData]);
         }
 
         if (isset($blockResponse['Result']['CancelPolicy'])) {
@@ -499,6 +875,22 @@ class BookingService
         }
 
         $bookedTicket->status = 0; // Pending
+        
+        // Log fee calculation for debugging
+        Log::info('BookingService: Ticket created with fee calculation', [
+            'ticket_id' => 'pending',
+            'base_fare' => $feeCalculation['base_fare'],
+            'service_charge' => $feeCalculation['service_charge'],
+            'platform_fee' => $feeCalculation['platform_fee'],
+            'gst' => $feeCalculation['gst'],
+            'total_amount' => $feeCalculation['total_amount'],
+            'is_operator_bus' => $isOperatorBus,
+            'origin_id' => $originId,
+            'destination_id' => $destinationId,
+            'origin_name' => $originName,
+            'destination_name' => $destinationName
+        ]);
+        
         $bookedTicket->save();
 
         return $bookedTicket;
@@ -534,7 +926,8 @@ class BookingService
             'boarding_point_id' => $requestData['BoardingPointId'] ?? $requestData['boarding_point_index'],
             'dropping_point_id' => $requestData['DroppingPointId'] ?? $requestData['dropping_point_index'],
             'passengers' => $this->preparePassengerData($requestData),
-            'block_response' => $blockResponse
+            'block_response' => $blockResponse,
+            'ticket_id' => $ticketId // Include ticket ID for bookOperatorBusTicket
         ];
 
         Cache::put('booking_data_' . $ticketId, $bookingData, now()->addMinutes(15));
@@ -582,6 +975,26 @@ class BookingService
     {
         $operatorBusId = (int) str_replace('OP_', '', $bookingData['result_index']);
         $bookingId = 'OP_BOOK_' . time() . '_' . $operatorBusId;
+        
+        // Get ticket ID from cached booking data
+        $ticketId = $bookingData['ticket_id'] ?? null;
+        $bookedTicket = null;
+        
+        if ($ticketId) {
+            $bookedTicket = BookedTicket::find($ticketId);
+        }
+        
+        // Get origin and destination from booked ticket or operator bus
+        $originName = $bookedTicket->origin_city ?? null;
+        $destinationName = $bookedTicket->destination_city ?? null;
+        
+        if (!$originName || !$destinationName) {
+            $operatorBus = OperatorBus::with('currentRoute.originCity', 'currentRoute.destinationCity')->find($operatorBusId);
+            if ($operatorBus && $operatorBus->currentRoute) {
+                $originName = $originName ?? $operatorBus->currentRoute->originCity->city_name ?? 'Origin City';
+                $destinationName = $destinationName ?? $operatorBus->currentRoute->destinationCity->city_name ?? 'Destination City';
+            }
+        }
 
         return [
             'Result' => [
@@ -589,14 +1002,14 @@ class BookingService
                 'TravelOperatorPNR' => $bookingId,
                 'BookingStatus' => 'Confirmed',
                 'InvoiceNumber' => 'OP_INV_' . time(),
-                'InvoiceAmount' => 1000, // Mock amount
+                'InvoiceAmount' => $bookedTicket->total_amount ?? 1000, // Use actual total amount
                 'InvoiceCreatedOn' => now()->toISOString(),
                 'TicketNo' => 'OP_TKT_' . time(),
-                'Origin' => 'Origin City',
-                'Destination' => 'Destination City',
+                'Origin' => $originName ?? 'Origin City',
+                'Destination' => $destinationName ?? 'Destination City',
                 'Price' => [
-                    'AgentCommission' => 50,
-                    'TDS' => 10
+                    'AgentCommission' => $bookedTicket->agent_commission_amount ?? 0,
+                    'TDS' => 0
                 ]
             ]
         ];
@@ -608,18 +1021,68 @@ class BookingService
     private function updateTicketWithBookingDetails(BookedTicket $bookedTicket, array $apiResponse, array $bookingData)
     {
         // Update ticket status to confirmed and save operator PNR
-        $bookedTicket->operator_pnr = $apiResponse['Result']['TravelOperatorPNR'] ?? null;
+        $bookedTicket->operator_pnr = $apiResponse['Result']['TravelOperatorPNR'] ?? $apiResponse['Result']['BookingId'] ?? null;
 
         // Merge block response with booking response
         $blockResponse = json_decode($bookedTicket->api_response, true);
         $completeApiResponse = array_merge($blockResponse ?? [], $apiResponse);
 
-        $bookedTicket->update([
+        // Fix: Extract and set departure_time and arrival_time if missing
+        $updateData = [
             'status' => 1, // Confirmed
             'api_response' => json_encode($completeApiResponse)
-        ]);
+        ];
+        
+        // Fix: Set departure_time and arrival_time if missing (from api_response or bus_details)
+        if (!$bookedTicket->departure_time || !$bookedTicket->arrival_time) {
+            // Try to extract from api_response first
+            $result = $apiResponse['Result'] ?? [];
+            
+            if (!$bookedTicket->departure_time && isset($result['DepartureTime'])) {
+                try {
+                    $updateData['departure_time'] = Carbon::parse($result['DepartureTime'])->format('H:i:s');
+                } catch (\Exception $e) {
+                    Log::warning('Failed to parse departure_time from api_response', ['time' => $result['DepartureTime']]);
+                }
+            }
+            
+            if (!$bookedTicket->arrival_time && isset($result['ArrivalTime'])) {
+                try {
+                    $updateData['arrival_time'] = Carbon::parse($result['ArrivalTime'])->format('H:i:s');
+                } catch (\Exception $e) {
+                    Log::warning('Failed to parse arrival_time from api_response', ['time' => $result['ArrivalTime']]);
+                }
+            }
+            
+            // If still missing, try bus_details JSON
+            if ((!$bookedTicket->departure_time || !$bookedTicket->arrival_time) && $bookedTicket->bus_details) {
+                $busDetails = json_decode($bookedTicket->bus_details, true);
+                if ($busDetails) {
+                    if (!$bookedTicket->departure_time && isset($busDetails['departure_time'])) {
+                        try {
+                            $updateData['departure_time'] = Carbon::parse($busDetails['departure_time'])->format('H:i:s');
+                        } catch (\Exception $e) {
+                            Log::warning('Failed to parse departure_time from bus_details', ['time' => $busDetails['departure_time']]);
+                        }
+                    }
+                    if (!$bookedTicket->arrival_time && isset($busDetails['arrival_time'])) {
+                        try {
+                            $updateData['arrival_time'] = Carbon::parse($busDetails['arrival_time'])->format('H:i:s');
+                        } catch (\Exception $e) {
+                            Log::warning('Failed to parse arrival_time from bus_details', ['time' => $busDetails['arrival_time']]);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fix: Set payment_status and paid_amount when booking is confirmed
+        $updateData['payment_status'] = 'paid';
+        $updateData['paid_amount'] = $bookedTicket->total_amount ?? 0;
+        
+        $bookedTicket->update($updateData);
 
-        $bookingApiId = $apiResponse['Result']['BookingID'] ?? null;
+        $bookingApiId = $apiResponse['Result']['BookingID'] ?? $apiResponse['Result']['BookingId'] ?? null;
 
         // Update additional fields from the booking response
         $this->updateAdditionalFields($bookedTicket, $apiResponse);
@@ -657,6 +1120,21 @@ class BookingService
 
         if (isset($result['TicketNo'])) {
             $updateData['api_ticket_no'] = $result['TicketNo'];
+            // Fix: Also set ticket_no field (not just api_ticket_no)
+            $updateData['ticket_no'] = $result['TicketNo'];
+        }
+        
+        // Fix: Set booking_id if not already set
+        if (isset($result['BookingId']) && !$bookedTicket->booking_id) {
+            $updateData['booking_id'] = $result['BookingId'];
+        }
+        
+        // Fix: Set payment_status and paid_amount when booking is confirmed
+        if (!isset($updateData['payment_status'])) {
+            $updateData['payment_status'] = 'paid'; // Payment was verified before reaching here
+        }
+        if (!isset($updateData['paid_amount']) && $bookedTicket->total_amount > 0) {
+            $updateData['paid_amount'] = $bookedTicket->total_amount;
         }
 
         // Update pricing details if available
@@ -668,12 +1146,13 @@ class BookingService
             $updateData['tds_from_api'] = $result['Price']['TDS'];
         }
 
-        // Update city information if available
-        if (isset($result['Origin'])) {
+        // Update city information if available (only if not already set correctly)
+        // Don't overwrite if we already have correct city names from createPendingTicket
+        if (isset($result['Origin']) && !$bookedTicket->origin_city) {
             $updateData['origin_city'] = $result['Origin'];
         }
 
-        if (isset($result['Destination'])) {
+        if (isset($result['Destination']) && !$bookedTicket->destination_city) {
             $updateData['destination_city'] = $result['Destination'];
         }
 
@@ -727,6 +1206,13 @@ class BookingService
 
                 if (isset($result['TicketNo'])) {
                     $updateData['api_ticket_no'] = $result['TicketNo'];
+                    // Fix: Also set ticket_no field
+                    $updateData['ticket_no'] = $result['TicketNo'];
+                }
+                
+                // Fix: Set booking_id if not already set
+                if (isset($result['BookingId']) && !$bookedTicket->booking_id) {
+                    $updateData['booking_id'] = $result['BookingId'];
                 }
 
                 // Update pricing details
@@ -738,12 +1224,12 @@ class BookingService
                     $updateData['tds_from_api'] = $result['Price']['TDS'];
                 }
 
-                // Update city information
-                if (isset($result['Origin'])) {
+                // Update city information (only if not already set correctly)
+                if (isset($result['Origin']) && !$bookedTicket->origin_city) {
                     $updateData['origin_city'] = $result['Origin'];
                 }
 
-                if (isset($result['Destination'])) {
+                if (isset($result['Destination']) && !$bookedTicket->destination_city) {
                     $updateData['destination_city'] = $result['Destination'];
                 }
 

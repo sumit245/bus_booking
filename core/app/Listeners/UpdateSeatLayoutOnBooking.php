@@ -6,6 +6,19 @@ use App\Services\SeatLayoutUpdater;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
+/**
+ * DISABLED: This listener is no longer used.
+ * 
+ * Seat availability is now calculated dynamically using SeatAvailabilityService
+ * which queries bookings in real-time per schedule/date/route segment.
+ * 
+ * The old approach of modifying HTML layout in the database was incorrect because:
+ * - Seat availability is dynamic per schedule and date
+ * - Route segments can overlap (e.g., Patna->Delhi vs Patna->Intermediate)
+ * - A single HTML layout cannot represent all possible booking states
+ * 
+ * If you need to re-enable this, register it in EventServiceProvider.
+ */
 class UpdateSeatLayoutOnBooking implements ShouldQueue
 {
     /**

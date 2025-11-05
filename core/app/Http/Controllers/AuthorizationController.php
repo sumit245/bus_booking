@@ -31,6 +31,11 @@ class AuthorizationController extends Controller
             if (!$user->status) {
                 Auth::logout();
             }elseif (!$user->ev) {
+                // Skip email verification if user verified via WhatsApp (sv=1 means they verified via WhatsApp OTP)
+                if ($user->sv) {
+                    // User verified via WhatsApp OTP, skip email verification
+                    return redirect()->route('user.home');
+                }
                 if (!$this->checkValidCode($user, $user->ver_code)) {
                     $user->ver_code = verificationCode(6);
                     $user->ver_code_send_at = Carbon::now();

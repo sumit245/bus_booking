@@ -1,0 +1,330 @@
+{
+	"info": {
+		"_postman_id": "a41a8aa7-54d6-49c5-9eee-d5f930bbfd77",
+		"name": "tRAVEL TECHNOLOGY bUS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13108992",
+		"_collection_link": "https://lunar-zodiac-975705.postman.co/workspace/5391f325-89e0-4668-8ae2-933b7d7831e6/collection/13108992-a41a8aa7-54d6-49c5-9eee-d5f930bbfd77?action=share&source=collection_link&creator=13108992"
+	},
+	"item": [
+		{
+			"name": "Bus",
+			"item": [
+				{
+					"name": "Search",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {}
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Username",
+								"value": "{{Username}}",
+								"type": "text"
+							},
+							{
+								"key": "Password",
+								"value": "{{Password}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"UserIp\": \"103.209.223.52\",\n    \"DateOfJourney\": \"2025-10-06\",\n    \"OriginId\": \"6664\",\n    \"DestinationId\": \"249\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{TTS_BASEURL}}/busservice/rest/search",
+							"host": [
+								"{{TTS_BASEURL}}"
+							],
+							"path": [
+								"busservice",
+								"rest",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "SeatLayOut",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Username",
+								"value": "AAJCV8818M",
+								"type": "text"
+							},
+							{
+								"key": "Password",
+								"value": "7321198",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"UserIp\": \"103.209.223.52\",\n    \"SearchTokenId\": \"532c509711b7ae17e51769b4d9b701c7f1a89ed9\",\n    \"ResultIndex\": \"TB-3\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{TTS_BASEURL}}/busservice/rest/seatlayout",
+							"host": [
+								"{{TTS_BASEURL}}"
+							],
+							"path": [
+								"busservice",
+								"rest",
+								"seatlayout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "BoardingPoint",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Username",
+								"value": "AAJCV8818M",
+								"type": "text"
+							},
+							{
+								"key": "Password",
+								"value": "7321198",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"UserIp\": \"192.168.56.1\",\n    \"SearchTokenId\": \"85f9089b699222fe67ea198a1df493f302ba7c7e\",\n    \"ResultIndex\": \"TB-51\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{TTS_BASEURL}}/busservice/rest/boardingpoint",
+							"host": [
+								"{{TTS_BASEURL}}"
+							],
+							"path": [
+								"busservice",
+								"rest",
+								"boardingpoint"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "BlockSeat",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Username",
+								"value": "AAJCV8818M",
+								"type": "text"
+							},
+							{
+								"key": "Password",
+								"value": "7321198",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "    {\n        \"UserIp\": \"223.177.107.156\",\n        \"SearchTokenId\": \"f1691b440fdd8b0b7edc4f659fe2b3d459c93751\",\n        \"ResultIndex\": \"TB-52\",\n        \"BoardingPointId\": 1,\n        \"DroppingPointId\": 1,\n        \"Passenger\": [\n            {\n                \"LeadPassenger\": true,\n                \"Title\": \"Mr\",\n                \"FirstName\": \"Anoop\",\n                \"LastName\": \"Jain\",\n                \"Email\": \"abcd@xyz.com\",\n                \"Phoneno\": \"9650032111\",\n                \"Gender\": \"1\",\n                \"IdType\": null,\n                \"IdNumber\": null,\n                \"Address\": \"avc\",\n                \"Age\": \"29\",\n                \"SeatName\": \"4\"\n            }\n        ]\n    }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{TTS_BASEURL}}/busservice/rest/blockseat",
+							"host": [
+								"{{TTS_BASEURL}}"
+							],
+							"path": [
+								"busservice",
+								"rest",
+								"blockseat"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Book",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Username",
+								"value": "AAJCV8818M",
+								"type": "text"
+							},
+							{
+								"key": "Password",
+								"value": "7321198",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"UserIp\": \"223.177.107.156\",\n    \"SearchTokenId\": \"e27c7eecaa9370cc9c66dc309918b6a7a651a067\",\n    \"ResultIndex\": \"TB-2\",\n    \"BoardingPointId\": 1,\n    \"DroppingPointId\": 1,\n    \"Passenger\": [\n         {\n            \"LeadPassenger\": true,\n            \"Title\": \"Mr\",\n            \"FirstName\": \"Anoop\",\n            \"LastName\": \"Jain\",\n            \"Email\": \"anoop@traveltechnologysolution.com\",\n            \"Phoneno\": \"9650032111\",\n            \"Gender\": \"1\",\n            \"IdType\": null,\n            \"IdNumber\": null,\n            \"Address\": \"406, 4th Floor, Suncity Trade Tower, Sector 21 Gurgaon\",\n            \"Age\": \"29\",\n            \"SeatName\": \"3\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{TTS_BASEURL}}/busservice/rest/book",
+							"host": [
+								"{{TTS_BASEURL}}"
+							],
+							"path": [
+								"busservice",
+								"rest",
+								"book"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetBookingDetail",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Username",
+								"value": "AAJCV8818M",
+								"type": "text"
+							},
+							{
+								"key": "Password",
+								"value": "7321198",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"UserIp\": \"192.168.1.5\",\n    \"SearchTokenId\": \"98a23018d584f27fbccd05a046c42b0133595d4b\",\n    \"BookingId\": 161\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{TTS_BASEURL}}/busservice/rest/getbookingdetail",
+							"host": [
+								"{{TTS_BASEURL}}"
+							],
+							"path": [
+								"busservice",
+								"rest",
+								"getbookingdetail"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CancelRequest",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Username",
+								"value": "AAJCV8818M",
+								"type": "text"
+							},
+							{
+								"key": "Password",
+								"value": "7321198",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"UserIp\": \"192.168.1.11\",\n    \"SearchTokenId\": \"98a23018d584f27fbccd05a046c42b0133595d4b\",\n    \"BookingId\": 162,\n    \"SeatId\":\"1\",\n    \"Remarks\":\"Cancel Bus Ticket\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{TTS_BASEURL}}/busservice/rest/cancelrequest",
+							"host": [
+								"{{TTS_BASEURL}}"
+							],
+							"path": [
+								"busservice",
+								"rest",
+								"cancelrequest"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "TTS_BASEURL",
+			"value": "https://api.bdsd.technology/api",
+			"type": "string"
+		},
+		{
+			"key": "Username",
+			"value": "AAJCV8818M"
+		},
+		{
+			"key": "Password",
+			"value": "7321198"
+		}
+	]
+}

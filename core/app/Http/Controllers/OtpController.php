@@ -105,6 +105,27 @@ class OtpController extends Controller
 
             // If user exists, log them in
             if ($user) {
+                // Set email and SMS as verified since they verified via WhatsApp OTP
+                $user->ev = 1; // Email verified
+                $user->sv = 1; // SMS verified
+                $user->save();
+                
+                Auth::login($user);
+                $userLoggedIn = true;
+            } else {
+                // Create new user if doesn't exist
+                $fullPhone = '91' . $phone;
+                $user = User::create([
+                    'firstname' => 'User',
+                    'lastname' => '',
+                    'mobile' => $fullPhone,
+                    'email' => $fullPhone . '@mobile.user',
+                    'password' => Hash::make($fullPhone . '123'),
+                    'status' => 1,
+                    'ev' => 1, // Email verified (via WhatsApp)
+                    'sv' => 1, // SMS verified (via WhatsApp)
+                    'ts' => 1
+                ]);
                 Auth::login($user);
                 $userLoggedIn = true;
             }

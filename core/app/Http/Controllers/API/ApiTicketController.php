@@ -74,6 +74,34 @@ class ApiTicketController extends Controller
 
 
             $result = $this->busService->searchBuses($validatedData);
+
+            // Store date_of_journey with searchTokenId for later retrieval
+            // Generate a search token if not provided (for operator-only searches)
+            $searchTokenId = $result['SearchTokenId'] ?? null;
+            if (empty($searchTokenId)) {
+                // Generate a unique token for operator-only searches
+                $searchTokenId = hash('sha256', $validatedData['OriginId'] . '_' . $validatedData['DestinationId'] . '_' . $validatedData['DateOfJourney'] . '_' . time());
+                $result['SearchTokenId'] = $searchTokenId;
+            }
+
+            // Store search metadata with searchTokenId
+            Cache::put(
+                'bus_search_results_' . $searchTokenId,
+                [
+                    'date_of_journey' => $validatedData['DateOfJourney'],
+                    'origin_id' => $validatedData['OriginId'],
+                    'destination_id' => $validatedData['DestinationId']
+                ],
+                now()->addMinutes(60) // Cache for 1 hour
+            );
+
+            Log::info('API ticketSearch: Stored search metadata', [
+                'search_token_id' => $searchTokenId,
+                'date_of_journey' => $validatedData['DateOfJourney'],
+                'origin_id' => $validatedData['OriginId'],
+                'destination_id' => $validatedData['DestinationId']
+            ]);
+
             return response()->json($result);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -145,10 +173,16 @@ class ApiTicketController extends Controller
             $validated = $request->validate([
                 'SearchTokenId' => 'required|string',
                 'ResultIndex' => 'required|string',
+                'DateOfJourney' => 'sometimes|date_format:Y-m-d', // Accept date as parameter
             ]);
 
             $searchTokenId = $validated['SearchTokenId'];
             $resultIndex = $validated['ResultIndex'];
+
+            // Store DateOfJourney in request if provided, so getDateFromSearchToken can use it
+            if (isset($validated['DateOfJourney'])) {
+                $request->merge(['DateOfJourney' => $validated['DateOfJourney']]);
+            }
 
             // Check if this is an operator bus (ResultIndex starts with 'OP_')
             if (str_starts_with($resultIndex, 'OP_')) {
@@ -477,11 +511,14 @@ class ApiTicketController extends Controller
                 'is_operator_bus_request' => true
             ]);
 
-            // Extract operator bus ID from ResultIndex (OP_1 -> 1)
-            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+            // Extract operator bus ID and schedule ID from ResultIndex (OP_{bus_id}_{schedule_id})
+            $parts = explode('_', str_replace('OP_', '', $resultIndex));
+            $operatorBusId = !empty($parts) ? (int) $parts[0] : 0;
+            $scheduleId = count($parts) > 1 ? (int) end($parts) : null;
 
-            Log::info('API handleOperatorBusSeatLayout: Extracted bus ID', [
+            Log::info('API handleOperatorBusSeatLayout: Extracted IDs', [
                 'operator_bus_id' => $operatorBusId,
+                'schedule_id' => $scheduleId,
                 'original_result_index' => $resultIndex,
                 'extraction_successful' => $operatorBusId > 0
             ]);
@@ -491,119 +528,99 @@ class ApiTicketController extends Controller
                     'result_index' => $resultIndex,
                     'extracted_id' => $operatorBusId
                 ]);
-                return response()->json(['error' => 'Invalid operator bus ID in ResultIndex'], 400);
+                return response()->json([
+                    'Error' => [
+                        'ErrorCode' => 400,
+                        'ErrorMessage' => 'Invalid operator bus ID in ResultIndex'
+                    ]
+                ], 400);
             }
 
-            // Find the operator bus with error handling
-            $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout'])->find($operatorBusId);
+            // Get date from search token cache
+            $dateOfJourney = $this->getDateFromSearchToken($searchTokenId);
 
-            Log::info('API handleOperatorBusSeatLayout: Database query result', [
-                'operator_bus_found' => $operatorBus ? true : false,
-                'operator_bus_id' => $operatorBusId,
-                'query_executed' => true,
-                'bus_details' => $operatorBus ? [
-                    'id' => $operatorBus->id,
-                    'travel_name' => $operatorBus->travel_name,
-                    'bus_type' => $operatorBus->bus_type,
-                    'status' => $operatorBus->status ?? 'unknown',
-                    'has_active_seat_layout' => $operatorBus->activeSeatLayout ? true : false
-                ] : null
-            ]);
-
-            if (!$operatorBus) {
-                Log::error('API handleOperatorBusSeatLayout: Operator bus not found in database', [
-                    'operator_bus_id' => $operatorBusId,
-                    'result_index' => $resultIndex,
-                    'possible_causes' => [
-                        'Bus ID does not exist',
-                        'Bus was deleted',
-                        'Bus is inactive',
-                        'Database connection issue'
-                    ]
+            if (!$dateOfJourney) {
+                Log::error('API handleOperatorBusSeatLayout: Could not extract date from search token', [
+                    'search_token_id' => $searchTokenId
                 ]);
                 return response()->json([
-                    'error' => 'Operator bus not found',
-                    'bus_id' => $operatorBusId
+                    'Error' => [
+                        'ErrorCode' => 400,
+                        'ErrorMessage' => 'Invalid or expired search token'
+                    ]
+                ], 400);
+            }
+
+            // Find the operator bus with schedule
+            $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout'])->find($operatorBusId);
+
+            if (!$operatorBus) {
+                Log::error('API handleOperatorBusSeatLayout: Operator bus not found', [
+                    'operator_bus_id' => $operatorBusId,
+                    'result_index' => $resultIndex
+                ]);
+                return response()->json([
+                    'Error' => [
+                        'ErrorCode' => 404,
+                        'ErrorMessage' => 'Operator bus not found'
+                    ]
                 ], 404);
             }
 
             $seatLayout = $operatorBus->activeSeatLayout;
 
-            Log::info('API handleOperatorBusSeatLayout: Seat layout validation', [
-                'seat_layout_exists' => $seatLayout ? true : false,
-                'has_html_layout' => $seatLayout && $seatLayout->html_layout ? true : false,
-                'seat_layout_id' => $seatLayout ? $seatLayout->id : null,
-                'layout_is_active' => $seatLayout ? $seatLayout->is_active : false,
-                'html_layout_length' => $seatLayout && $seatLayout->html_layout ? strlen($seatLayout->html_layout) : 0,
-                'total_seats' => $seatLayout ? $seatLayout->total_seats : 0
-            ]);
-
             if (!$seatLayout || !$seatLayout->html_layout) {
                 Log::error('API handleOperatorBusSeatLayout: No valid seat layout available', [
-                    'operator_bus_id' => $operatorBusId,
-                    'seat_layout_exists' => $seatLayout ? true : false,
-                    'html_layout_exists' => $seatLayout && $seatLayout->html_layout ? true : false,
-                    'layout_is_active' => $seatLayout ? $seatLayout->is_active : false,
-                    'possible_causes' => [
-                        'No seat layout assigned to bus',
-                        'Seat layout HTML is empty',
-                        'Seat layout is inactive',
-                        'Seat layout was deleted'
-                    ]
+                    'operator_bus_id' => $operatorBusId
                 ]);
                 return response()->json([
-                    'error' => 'No seat layout available for this bus',
-                    'bus_id' => $operatorBusId,
-                    'details' => 'Seat layout not configured or inactive'
+                    'Error' => [
+                        'ErrorCode' => 404,
+                        'ErrorMessage' => 'No seat layout available for this bus'
+                    ]
                 ], 404);
             }
 
-            Log::info('API handleOperatorBusSeatLayout: Starting HTML layout parsing', [
-                'html_layout_preview' => substr($seatLayout->html_layout, 0, 200) . '...',
-                'parsing_function' => 'parseSeatHtmlToJson'
-            ]);
+            // Get booked seats using SeatAvailabilityService
+            $availabilityService = new \App\Services\SeatAvailabilityService();
+            $bookedSeats = $availabilityService->getBookedSeats(
+                $operatorBusId,
+                $scheduleId ?? 0,
+                $dateOfJourney,
+                null, // boardingPointIndex - will be calculated for all segments
+                null  // droppingPointIndex - will be calculated for all segments
+            );
 
-            // Parse the HTML layout using the existing helper with error handling
-            try {
-                $parsedLayout = parseSeatHtmlToJson($seatLayout->html_layout);
-            } catch (\Exception $parseException) {
-                Log::error('API handleOperatorBusSeatLayout: HTML parsing failed', [
-                    'operator_bus_id' => $operatorBusId,
-                    'parse_error' => $parseException->getMessage(),
-                    'html_length' => strlen($seatLayout->html_layout)
-                ]);
-                return response()->json([
-                    'error' => 'Failed to parse seat layout',
-                    'details' => 'Seat layout HTML format is invalid'
-                ], 500);
-            }
-
-            Log::info('API handleOperatorBusSeatLayout: HTML layout parsed successfully', [
+            Log::info('API handleOperatorBusSeatLayout: Booked seats calculated', [
                 'operator_bus_id' => $operatorBusId,
-                'result_index' => $resultIndex,
-                'parsed_layout_type' => gettype($parsedLayout),
-                'parsed_layout_keys' => is_array($parsedLayout) ? array_keys($parsedLayout) : [],
-                'available_seats' => $operatorBus->available_seats ?? $seatLayout->total_seats,
-                'total_seats' => $seatLayout->total_seats,
-                'parsing_successful' => true
+                'schedule_id' => $scheduleId,
+                'date_of_journey' => $dateOfJourney,
+                'booked_seats_count' => count($bookedSeats),
+                'booked_seats' => $bookedSeats
             ]);
 
+            // Modify HTML on-the-fly: change nseat→bseat, hseat→bhseat, vseat→bvseat
+            $modifiedHtml = $this->modifyHtmlLayoutForBookedSeats($seatLayout->html_layout, $bookedSeats);
+
+            // Parse the modified HTML layout to match third-party API response format
+            $parsedLayout = parseSeatHtmlToJson($modifiedHtml);
+
+            // Calculate available seats count
+            $availableSeatsCount = $seatLayout->total_seats - count($bookedSeats);
+
+            // Return response in the SAME format as third-party buses for consistency
+            // This matches what the React Native app expects
             $responseData = [
                 'html' => $parsedLayout,
-                'availableSeats' => $operatorBus->available_seats ?? $seatLayout->total_seats,
-                'busDetails' => [
-                    'busId' => $operatorBusId,
-                    'travelName' => $operatorBus->travel_name,
-                    'busType' => $operatorBus->bus_type,
-                    'totalSeats' => $seatLayout->total_seats
-                ]
+                'availableSeats' => (string) max(0, $availableSeatsCount)
             ];
 
-            Log::info('API handleOperatorBusSeatLayout: Sending successful response', [
-                'response_data_keys' => array_keys($responseData),
-                'html_is_array' => is_array($responseData['html']),
+            Log::info('API handleOperatorBusSeatLayout: Response built successfully', [
                 'available_seats' => $responseData['availableSeats'],
-                'response_size_estimate' => strlen(json_encode($responseData)) . ' characters'
+                'booked_seats_count' => count($bookedSeats),
+                'total_seats' => $seatLayout->total_seats,
+                'parsed_layout_upper_rows' => count($parsedLayout['seat']['upper_deck']['rows'] ?? []),
+                'parsed_layout_lower_rows' => count($parsedLayout['seat']['lower_deck']['rows'] ?? [])
             ]);
 
             return response()->json($responseData, 200);
@@ -618,8 +635,350 @@ class ApiTicketController extends Controller
                 'stack_trace' => $e->getTraceAsString()
             ]);
 
-            return response()->json(['error' => 'Failed to retrieve seat layout: ' . $e->getMessage()], 500);
+            return response()->json([
+                'Error' => [
+                    'ErrorCode' => 500,
+                    'ErrorMessage' => 'Failed to retrieve seat layout: ' . $e->getMessage()
+                ]
+            ], 500);
         }
+    }
+
+    /**
+     * Get date from search token cache or request
+     */
+    private function getDateFromSearchToken(string $searchTokenId): ?string
+    {
+        // Priority 1: Try to get from request first (if passed as parameter)
+        $request = request();
+        if ($request->has('DateOfJourney')) {
+            $date = $request->input('DateOfJourney');
+            Log::info('API getDateFromSearchToken: Using DateOfJourney from request', [
+                'search_token_id' => $searchTokenId,
+                'date' => $date
+            ]);
+            return $this->normalizeDate($date);
+        }
+        if ($request->has('date_of_journey')) {
+            $date = $request->input('date_of_journey');
+            Log::info('API getDateFromSearchToken: Using date_of_journey from request', [
+                'search_token_id' => $searchTokenId,
+                'date' => $date
+            ]);
+            return $this->normalizeDate($date);
+        }
+
+        // Priority 2: Try to get from cache (stored when searching)
+        $cachedBuses = \Illuminate\Support\Facades\Cache::get('bus_search_results_' . $searchTokenId);
+        if ($cachedBuses && isset($cachedBuses['date_of_journey'])) {
+            Log::info('API getDateFromSearchToken: Using date from cache', [
+                'search_token_id' => $searchTokenId,
+                'date' => $cachedBuses['date_of_journey']
+            ]);
+            return $this->normalizeDate($cachedBuses['date_of_journey']);
+        }
+
+        // Priority 3: Try session (for web requests)
+        if (session()->has('date_of_journey')) {
+            $date = session()->get('date_of_journey');
+            Log::info('API getDateFromSearchToken: Using date from session', [
+                'search_token_id' => $searchTokenId,
+                'date' => $date
+            ]);
+            return $this->normalizeDate($date);
+        }
+
+        // Priority 4: Try to extract from cache key pattern
+        // The cache key pattern is: bus_search:{origin}_{destination}_{date}
+        // We'll try to find a matching cache key
+        try {
+            $cachePrefix = 'bus_search:';
+            // Note: Laravel cache doesn't support wildcard search easily
+            // For now, we'll skip this and use fallback
+        } catch (\Exception $e) {
+            // Ignore cache key search errors
+        }
+
+        // Last resort: log warning and use today's date
+        Log::warning('API handleOperatorBusSeatLayout: Could not extract date, using today', [
+            'search_token_id' => $searchTokenId,
+            'cache_exists' => $cachedBuses !== null,
+            'cache_keys' => $cachedBuses ? array_keys($cachedBuses) : []
+        ]);
+
+        return now()->format('Y-m-d');
+    }
+
+    /**
+     * Normalize date to Y-m-d format
+     */
+    private function normalizeDate(?string $date): string
+    {
+        if (!$date) {
+            return now()->format('Y-m-d');
+        }
+
+        // Already in Y-m-d format
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return $date;
+        }
+
+        // Try m/d/Y format (from session)
+        if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $date)) {
+            try {
+                return \Carbon\Carbon::createFromFormat('m/d/Y', $date)->format('Y-m-d');
+            } catch (\Exception $e) {
+                Log::warning('API: Failed to parse date (m/d/Y)', ['date' => $date, 'error' => $e->getMessage()]);
+            }
+        }
+
+        // Try Carbon's flexible parsing
+        try {
+            return \Carbon\Carbon::parse($date)->format('Y-m-d');
+        } catch (\Exception $e) {
+            Log::warning('API: Failed to parse date', ['date' => $date, 'error' => $e->getMessage()]);
+            return now()->format('Y-m-d');
+        }
+    }
+
+    /**
+     * Modify HTML layout to mark booked seats
+     */
+    private function modifyHtmlLayoutForBookedSeats(string $htmlLayout, array $bookedSeats): string
+    {
+        if (empty($bookedSeats)) {
+            return $htmlLayout; // No modifications needed
+        }
+
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<?xml encoding="UTF-8">' . $htmlLayout, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $xpath = new \DOMXPath($dom);
+
+        foreach ($bookedSeats as $seatName) {
+            // CRITICAL FIX: Match by @id attribute, not text content or onclick
+            // This prevents "1" from matching "U1", "11", "21", etc.
+            // Seat IDs are stored in the id attribute: <div id="U1" class="nseat"> or <div id="1" class="nseat">
+            $nodes = $xpath->query("//*[@id='{$seatName}' and (contains(@class, 'nseat') or contains(@class, 'hseat') or contains(@class, 'vseat'))]");
+
+            foreach ($nodes as $node) {
+                $class = $node->getAttribute('class');
+                // Replace nseat with bseat, hseat with bhseat, vseat with bvseat
+                $class = str_replace(['nseat', 'hseat', 'vseat'], ['bseat', 'bhseat', 'bvseat'], $class);
+                $node->setAttribute('class', $class);
+            }
+        }
+
+        return $dom->saveHTML();
+    }
+
+    /**
+     * Build SeatLayout structure matching third-party API format
+     */
+    private function buildSeatLayoutStructure($seatLayout, array $bookedSeats, $operatorBus): array
+    {
+        // Parse the HTML layout to get seat details
+        $parsedLayout = parseSeatHtmlToJson($seatLayout->html_layout);
+
+        // Build SeatLayout structure
+        $seatDetails = [];
+        $maxColumns = 0;
+        $maxRows = 0;
+
+        // Process upper deck
+        if (isset($parsedLayout['seat']['upper_deck']['rows']) && is_array($parsedLayout['seat']['upper_deck']['rows'])) {
+            foreach ($parsedLayout['seat']['upper_deck']['rows'] as $rowNum => $rowSeats) {
+                if (!is_array($rowSeats)) {
+                    continue;
+                }
+
+                $rowSeatDetails = [];
+                foreach ($rowSeats as $seat) {
+                    // Validate seat structure
+                    if (!is_array($seat) || empty($seat['seat_id'])) {
+                        Log::warning('API buildSeatLayoutStructure: Invalid seat structure in upper deck', [
+                            'seat' => $seat,
+                            'row_num' => $rowNum
+                        ]);
+                        continue;
+                    }
+
+                    $seatName = $seat['seat_id'];
+                    $isBooked = in_array($seatName, $bookedSeats);
+
+                    try {
+                        $seatDetail = $this->buildSeatDetail($seat, $seatName, $isBooked, true, $operatorBus);
+
+                        // Validate seat detail structure
+                        if (is_array($seatDetail) && !empty($seatDetail['SeatName'])) {
+                            $rowSeatDetails[] = $seatDetail;
+                        } else {
+                            Log::warning('API buildSeatLayoutStructure: Invalid seat detail returned', [
+                                'seat_name' => $seatName,
+                                'seat_detail' => $seatDetail
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('API buildSeatLayoutStructure: Error building seat detail', [
+                            'seat_name' => $seatName,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                        continue;
+                    }
+                }
+
+                if (!empty($rowSeatDetails)) {
+                    $seatDetails[] = $rowSeatDetails;
+                    $maxRows = max($maxRows, $rowNum + 1);
+                    $maxColumns = max($maxColumns, count($rowSeatDetails));
+                }
+            }
+        }
+
+        // Process lower deck
+        if (isset($parsedLayout['seat']['lower_deck']['rows']) && is_array($parsedLayout['seat']['lower_deck']['rows'])) {
+            foreach ($parsedLayout['seat']['lower_deck']['rows'] as $rowNum => $rowSeats) {
+                if (!is_array($rowSeats)) {
+                    continue;
+                }
+
+                $rowSeatDetails = [];
+                foreach ($rowSeats as $seat) {
+                    // Validate seat structure
+                    if (!is_array($seat) || empty($seat['seat_id'])) {
+                        Log::warning('API buildSeatLayoutStructure: Invalid seat structure in lower deck', [
+                            'seat' => $seat,
+                            'row_num' => $rowNum
+                        ]);
+                        continue;
+                    }
+
+                    $seatName = $seat['seat_id'];
+                    $isBooked = in_array($seatName, $bookedSeats);
+
+                    try {
+                        $seatDetail = $this->buildSeatDetail($seat, $seatName, $isBooked, false, $operatorBus);
+
+                        // Validate seat detail structure
+                        if (is_array($seatDetail) && !empty($seatDetail['SeatName'])) {
+                            $rowSeatDetails[] = $seatDetail;
+                        } else {
+                            Log::warning('API buildSeatLayoutStructure: Invalid seat detail returned', [
+                                'seat_name' => $seatName,
+                                'seat_detail' => $seatDetail
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('API buildSeatLayoutStructure: Error building seat detail', [
+                            'seat_name' => $seatName,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                        continue;
+                    }
+                }
+
+                if (!empty($rowSeatDetails)) {
+                    $seatDetails[] = $rowSeatDetails;
+                    $maxRows = max($maxRows, $rowNum + 1);
+                    $maxColumns = max($maxColumns, count($rowSeatDetails));
+                }
+            }
+        }
+
+        // Ensure NoOfColumns is at least 1 if we have seats
+        if ($maxColumns === 0 && !empty($seatDetails)) {
+            $maxColumns = 1;
+        }
+
+        Log::info('API buildSeatLayoutStructure: Completed', [
+            'total_rows' => $maxRows,
+            'max_columns' => $maxColumns,
+            'total_seat_details_rows' => count($seatDetails)
+        ]);
+
+        return [
+            'NoOfColumns' => $maxColumns,
+            'NoOfRows' => $maxRows,
+            'SeatDetails' => $seatDetails
+        ];
+    }
+
+    /**
+     * Build individual seat detail matching third-party API format
+     */
+    private function buildSeatDetail(array $seat, string $seatName, bool $isBooked, bool $isUpper, $operatorBus): array
+    {
+        // Ensure seatName is not empty
+        if (empty($seatName)) {
+            $seatName = $seat['seat_id'] ?? 'UNKNOWN';
+        }
+
+        $seatType = $seat['type'] ?? 'nseat';
+        $price = $seat['price'] ?? ($operatorBus->base_price ?? 0);
+
+        // Determine SeatType: 1 = seater, 2 = sleeper
+        $seatTypeCode = (strpos($seatType, 'hseat') !== false || strpos($seatType, 'vseat') !== false) ? 2 : 1;
+
+        // Determine Height: 1 = single, 2 = double
+        $height = (strpos($seatType, 'hseat') !== false || strpos($seatType, 'vseat') !== false) ? 2 : 1;
+
+        // Calculate column and row numbers - use 0-based index if not provided
+        $columnIndex = isset($seat['column']) ? (int) $seat['column'] : 0;
+        $rowIndex = isset($seat['row']) ? (int) $seat['row'] : 0;
+
+        // For SeatIndex, try to extract from seat name or use a sequential index
+        $seatIndex = isset($seat['seat_index']) ? (int) $seat['seat_index'] : 0;
+        if ($seatIndex === 0 && preg_match('/\d+$/', $seatName, $matches)) {
+            $seatIndex = (int) $matches[0];
+        }
+
+        $columnNo = str_pad($columnIndex, 3, '0', STR_PAD_LEFT);
+        $rowNo = str_pad($rowIndex, 3, '0', STR_PAD_LEFT);
+
+        // Build price structure matching third-party API
+        $basePrice = (float) $price;
+        $offeredPrice = max(0, $basePrice * 0.95); // 5% discount (adjust as needed)
+        $agentCommission = max(0, $basePrice * 0.05); // 5% commission (adjust as needed)
+        $tds = max(0, $agentCommission * 0.05); // 5% TDS on commission
+        $igstAmount = 0; // Adjust based on your tax logic
+        $igstRate = 18; // Adjust based on your tax logic
+
+        // Ensure all required fields are present and valid
+        return [
+            'ColumnNo' => $columnNo,
+            'Height' => (int) $height,
+            'IsLadiesSeat' => false,
+            'IsMalesSeat' => false,
+            'IsUpper' => (bool) $isUpper,
+            'RowNo' => $rowNo,
+            'SeatFare' => round($basePrice, 2),
+            'SeatIndex' => (int) $seatIndex,
+            'SeatName' => (string) $seatName,
+            'SeatStatus' => !$isBooked, // true = available, false = booked
+            'SeatType' => (int) $seatTypeCode,
+            'Width' => 1,
+            'Price' => [
+                'BasePrice' => round($basePrice, 2),
+                'Tax' => 0,
+                'OtherCharges' => 0,
+                'Discount' => 0,
+                'PublishedPrice' => round($basePrice, 2),
+                'OfferedPrice' => round($offeredPrice, 2),
+                'AgentCommission' => round($agentCommission, 2),
+                'ServiceCharges' => 0,
+                'TDS' => round($tds, 2),
+                'GST' => [
+                    'CGSTAmount' => 0,
+                    'CGSTRate' => 0,
+                    'IGSTAmount' => (float) $igstAmount,
+                    'IGSTRate' => (int) $igstRate,
+                    'SGSTAmount' => 0,
+                    'SGSTRate' => 0,
+                    'TaxableAmount' => 0
+                ]
+            ]
+        ];
     }
 
     public function getCancellationPolicy(Request $request)

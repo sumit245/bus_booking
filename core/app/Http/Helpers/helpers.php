@@ -1654,8 +1654,12 @@ if (!function_exists("processDeckSeatNodes")) {
                 $seatId = $m[1];
                 // remove comma thousand separators if any and coerce to float
                 $price = (float) str_replace(",", "", $m[2]);
-                // mark available if AddRemoveSeat exists
-                $seatDetails["is_available"] = true;
+                // Only mark as available if AddRemoveSeat exists AND seat is not booked
+                // Booked seats (bseat, bhseat, bvseat) should remain is_available = false
+                if (!str_starts_with($seatType, 'b')) {
+                    $seatDetails["is_available"] = true;
+                }
+                // If seat type starts with 'b' (booked), keep is_available = false from seatTypeMap
             }
 
             $seatsByRow[$rowNumber][] = [

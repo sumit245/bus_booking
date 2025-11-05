@@ -364,7 +364,16 @@ class SiteController extends Controller
         // Check if this is an operator bus (ResultIndex starts with 'OP_')
         if (str_starts_with($resultIndex, 'OP_')) {
             // Handle operator bus seat layout
-            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+            // ResultIndex format: OP_{bus_id}_{schedule_id}
+            $parts = explode('_', $resultIndex);
+            if (count($parts) >= 3) {
+                $operatorBusId = (int) $parts[1];
+                $scheduleId = (int) $parts[2];
+            } else {
+                // Fallback for old format: OP_{bus_id}
+                $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+                $scheduleId = null;
+            }
             $operatorBus = \App\Models\OperatorBus::with(['activeSeatLayout'])->find($operatorBusId);
 
             if (!$operatorBus || !$operatorBus->activeSeatLayout) {
@@ -372,7 +381,51 @@ class SiteController extends Controller
             }
 
             $seatLayout = $operatorBus->activeSeatLayout;
-            $seatHtml = $seatLayout->html_layout;
+            
+            // Get date from session and normalize to Y-m-d format
+            $dateOfJourney = session()->get('date_of_journey') ?? request()->get('date') ?? date('Y-m-d');
+            
+            // Normalize date format (handle m/d/Y from session)
+            if ($dateOfJourney && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateOfJourney)) {
+                try {
+                    if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $dateOfJourney)) {
+                        $dateOfJourney = \Carbon\Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+                    } else {
+                        $dateOfJourney = \Carbon\Carbon::parse($dateOfJourney)->format('Y-m-d');
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('SiteController@selectSeat: Failed to parse date', [
+                        'original_date' => $dateOfJourney,
+                        'error' => $e->getMessage()
+                    ]);
+                    $dateOfJourney = date('Y-m-d');
+                }
+            }
+            
+            Log::info('SiteController@selectSeat: Getting booked seats', [
+                'operator_bus_id' => $operatorBusId,
+                'schedule_id' => $scheduleId,
+                'date_of_journey' => $dateOfJourney,
+                'session_date' => session()->get('date_of_journey')
+            ]);
+            
+            // Use SeatAvailabilityService to get real-time booked seats
+            $availabilityService = new \App\Services\SeatAvailabilityService();
+            $bookedSeats = $availabilityService->getBookedSeats(
+                $operatorBusId,
+                $scheduleId ?? 0,
+                $dateOfJourney,
+                null, // boardingPointIndex - will be calculated for all segments
+                null  // droppingPointIndex - will be calculated for all segments
+            );
+            
+            Log::info('SiteController@selectSeat: Booked seats found', [
+                'booked_seats' => $bookedSeats,
+                'count' => count($bookedSeats)
+            ]);
+            
+            // Modify HTML on-the-fly: change nseat→bseat, hseat→bhseat, vseat→bvseat
+            $seatHtml = $this->modifyHtmlLayoutForBookedSeats($seatLayout->html_layout, $bookedSeats);
             $parsedLayout = parseSeatHtmlToJson($seatHtml);
             $isOperatorBus = true;
 
@@ -444,32 +497,57 @@ class SiteController extends Controller
             $destinationCity = DB::table("cities")->where("city_name", "Delhi")->first();
         }
 
-        // Check if accessed by agent
-        if (auth('agent')->check()) {
-            Log::info('Agent seat selection - Variables:', [
-                'seatHtml' => $seatHtml ? 'Present' : 'Empty',
-                'parsedLayout' => $parsedLayout ? 'Present' : 'Empty',
-                'isOperatorBus' => $isOperatorBus,
-                'result_index' => $resultIndex
-            ]);
-
-            return view('agent.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
-        }
-
-        // Check if accessed by admin
-        if (auth('admin')->check()) {
+        // Determine which view to show based on the route accessed, not just auth status
+        // Check route name to determine if this is admin/agent/operator booking or frontend booking
+        $routeName = $request->route()->getName();
+        
+        // Check if accessed via admin booking route
+        if (str_contains($routeName, 'admin.booking') || str_contains($request->path(), 'admin/booking')) {
             Log::info('Admin seat selection - Variables:', [
                 'seatHtml' => $seatHtml ? 'Present' : 'Empty',
                 'parsedLayout' => $parsedLayout ? 'Present' : 'Empty',
                 'isOperatorBus' => $isOperatorBus,
-                'result_index' => $resultIndex
+                'result_index' => $resultIndex,
+                'route_name' => $routeName
             ]);
-
-            // Use admin booking seats view with admin layout
             return view('admin.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
         }
 
-        // Regular user flow
+        // Check if accessed via agent booking route
+        if (str_contains($routeName, 'agent.booking') || str_contains($routeName, 'booking.seats') || str_contains($request->path(), 'agent/booking')) {
+            Log::info('Agent seat selection - Variables:', [
+                'seatHtml' => $seatHtml ? 'Present' : 'Empty',
+                'parsedLayout' => $parsedLayout ? 'Present' : 'Empty',
+                'isOperatorBus' => $isOperatorBus,
+                'result_index' => $resultIndex,
+                'route_name' => $routeName
+            ]);
+            return view('agent.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
+        }
+
+        // Check if accessed via operator booking route
+        // Note: Operator booking might use a different flow, so we'll default to frontend view
+        // If operator has their own booking view, add it here
+        if (str_contains($routeName, 'operator.booking') || str_contains($request->path(), 'operator/booking')) {
+            // For now, operator uses the same flow as frontend
+            // If you have operator.booking.seats view, uncomment below:
+            // return view('operator.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
+            Log::info('Operator seat selection - Using frontend view', [
+                'route_name' => $routeName,
+                'path' => $request->path()
+            ]);
+        }
+
+        // Frontend booking route (ticket.seats) - always show book_ticket.blade.php
+        // This is the default for public users accessing /ticket/{id}/{slug}
+        Log::info('Frontend seat selection - Variables:', [
+            'seatHtml' => $seatHtml ? 'Present' : 'Empty',
+            'parsedLayout' => $parsedLayout ? 'Present' : 'Empty',
+            'isOperatorBus' => $isOperatorBus,
+            'result_index' => $resultIndex,
+            'route_name' => $routeName
+        ]);
+
         if (auth()->user()) {
             $layout = 'layouts.master';
         } else {
@@ -520,7 +598,16 @@ class SiteController extends Controller
         // Check if this is an operator bus
         if (str_starts_with($ResultIndex, 'OP_')) {
             // Handle operator bus boarding/dropping points
-            $operatorBusId = (int) str_replace('OP_', '', $ResultIndex);
+            // ResultIndex format: OP_{bus_id}_{schedule_id}
+            $parts = explode('_', $ResultIndex);
+            if (count($parts) >= 3) {
+                $operatorBusId = (int) $parts[1];
+                $scheduleId = (int) $parts[2];
+            } else {
+                // Fallback for old format: OP_{bus_id}
+                $operatorBusId = (int) str_replace('OP_', '', $ResultIndex);
+                $scheduleId = null;
+            }
             $operatorBus = \App\Models\OperatorBus::with(['currentRoute.boardingPoints', 'currentRoute.droppingPoints'])->find($operatorBusId);
 
             if (!$operatorBus || !$operatorBus->currentRoute) {
@@ -588,44 +675,99 @@ class SiteController extends Controller
         ]);
     }
 
+    /**
+     * Modify HTML layout to mark booked seats
+     */
+    private function modifyHtmlLayoutForBookedSeats(string $htmlLayout, array $bookedSeats): string
+    {
+        if (empty($bookedSeats)) {
+            return $htmlLayout;
+        }
+
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<?xml encoding="UTF-8">' . $htmlLayout, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $xpath = new \DOMXPath($dom);
+
+        foreach ($bookedSeats as $seatName) {
+            // CRITICAL FIX: Match by @id attribute, not text content
+            // This prevents "1" from matching "U1", "11", "21", etc.
+            // Seat IDs are stored in the id attribute: <div id="U1" class="nseat"> or <div id="1" class="nseat">
+            $nodes = $xpath->query("//*[@id='{$seatName}' and (contains(@class, 'nseat') or contains(@class, 'hseat') or contains(@class, 'vseat'))]");
+            
+            foreach ($nodes as $node) {
+                $class = $node->getAttribute('class');
+                // Replace nseat with bseat, hseat with bhseat, vseat with bvseat
+                $class = str_replace(['nseat', 'hseat', 'vseat'], ['bseat', 'bhseat', 'bvseat'], $class);
+                $node->setAttribute('class', $class);
+            }
+        }
+
+        return $dom->saveHTML();
+    }
+
     // 4. Apply api for seat block and create payment order
     public function blockSeat(Request $request)
     {
         Log::info('Block Seat Request:', ['request' => $request->all()]);
 
-        // Check if this is an agent or admin booking (both use multiple passengers)
-        $isAgentOrAdmin = auth('agent')->check() || auth('admin')->check();
+        // Determine booking type based on route, not just auth status
+        // Frontend booking (ticket.seats route) always uses single passenger format
+        // Agent/Admin booking pages use multiple passenger format
+        $routeName = $request->route()->getName();
+        $isAgentOrAdminBooking = str_contains($routeName, 'agent.booking') 
+            || str_contains($routeName, 'admin.booking')
+            || str_contains($request->path(), 'agent/booking')
+            || str_contains($request->path(), 'admin/booking');
         
-        // Different validation for agent/admin vs regular booking
-        if ($isAgentOrAdmin) {
-            $request->validate([
-                'boarding_point_index' => 'required',
-                'dropping_point_index' => 'required',
-                'seats' => 'required',
-                'passenger_phone' => 'required',
-                'passenger_email' => 'required|email',
-                'passenger_names' => 'required|array|min:1',
-                'passenger_names.*' => 'required|string|max:255',
-                'passenger_ages' => 'required|array|min:1',
-                'passenger_ages.*' => 'required|integer|min:1|max:120',
-                'passenger_genders' => 'required|array|min:1',
-                'passenger_genders.*' => 'required|in:1,2,3',
+        // Different validation for agent/admin booking pages vs regular frontend booking
+        try {
+            if ($isAgentOrAdminBooking) {
+                // Agent/Admin booking page - expects multiple passengers (arrays)
+                $request->validate([
+                    'boarding_point_index' => 'required',
+                    'dropping_point_index' => 'required',
+                    'seats' => 'required',
+                    'passenger_phone' => 'required',
+                    'passenger_email' => 'required|email',
+                    'passenger_names' => 'required|array|min:1',
+                    'passenger_names.*' => 'required|string|max:255',
+                    'passenger_ages' => 'required|array|min:1',
+                    'passenger_ages.*' => 'required|integer|min:1|max:120',
+                    'passenger_genders' => 'required|array|min:1',
+                    'passenger_genders.*' => 'required|in:1,2,3',
+                ]);
+            } else {
+                // Frontend booking (ticket.seats route) - expects single passenger format
+                $request->validate([
+                    'boarding_point_index' => 'required',
+                    'dropping_point_index' => 'required',
+                    'gender' => 'required',
+                    'seats' => 'required',
+                    'passenger_phone' => 'required',
+                    'passenger_firstname' => 'required',
+                    'passenger_lastname' => 'required',
+                    'passenger_email' => 'required|email',
+                ]);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Block Seat Validation Failed:', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all(),
+                'is_agent_or_admin_booking' => $isAgentOrAdminBooking,
+                'route_name' => $routeName,
+                'path' => $request->path()
             ]);
-        } else {
-            $request->validate([
-                'boarding_point_index' => 'required',
-                'dropping_point_index' => 'required',
-                'gender' => 'required',
-                'seats' => 'required',
-                'passenger_phone' => 'required',
-                'passenger_firstname' => 'required',
-                'passenger_lastname' => 'required',
-                'passenger_email' => 'required|email',
-            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . implode(', ', array_map(function($errors) {
+                    return implode(', ', $errors);
+                }, $e->errors())),
+                'errors' => $e->errors()
+            ], 422);
         }
 
         // Prepare request data for BookingService
-        if ($isAgentOrAdmin) {
+        if ($isAgentOrAdminBooking) {
             // Agent/Admin booking - handle multiple passengers
             $passengerNames = $request->passenger_names;
             $passengerAges = $request->passenger_ages;
@@ -699,8 +841,8 @@ class SiteController extends Controller
             ];
         }
 
-        // Add agent-specific data if accessed by agent
-        if (auth('agent')->check()) {
+        // Add agent-specific data if accessed by agent (only for agent booking pages, not frontend)
+        if ($isAgentOrAdminBooking && auth('agent')->check()) {
             $requestData['agent_id'] = auth('agent')->id();
             $requestData['booking_source'] = 'agent';
 
@@ -714,8 +856,8 @@ class SiteController extends Controller
             ]);
         }
 
-        // Add admin-specific data if accessed by admin
-        if (auth('admin')->check()) {
+        // Add admin-specific data if accessed by admin (only for admin booking pages, not frontend)
+        if ($isAgentOrAdminBooking && auth('admin')->check()) {
             $requestData['admin_id'] = auth('admin')->id();
             $requestData['booking_source'] = 'admin';
 
@@ -922,3 +1064,4 @@ class SiteController extends Controller
         }
     }
 }
+

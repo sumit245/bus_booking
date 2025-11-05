@@ -784,7 +784,54 @@ class BookingService
         $bookedTicket->dropping_point = $droppingPointId;
         
         $bookedTicket->search_token_id = $requestData['SearchTokenId'] ?? $requestData['search_token_id'] ?? null;
-        $bookedTicket->date_of_journey = $requestData['DateOfJourney'] ?? $requestData['date_of_journey'] ?? now()->format('Y-m-d');
+        // Get date of journey from multiple sources, ensuring it's in Y-m-d format
+        $dateOfJourney = $requestData['DateOfJourney'] ?? $requestData['date_of_journey'] ?? null;
+        
+        // Try to get from session if not in request (session stores it from ticketSearch)
+        if (!$dateOfJourney) {
+            $dateOfJourney = session()->get('date_of_journey');
+        }
+        
+        // Normalize date format (handle M/d/Y, d/m/Y, Y-m-d, etc.)
+        if ($dateOfJourney) {
+            // Session stores date in m/d/Y format (e.g., "11/27/2025")
+            // Try to parse it correctly
+            try {
+                // First try m/d/Y format (session format from ticketSearch)
+                if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $dateOfJourney)) {
+                    $parsedDate = \Carbon\Carbon::createFromFormat('m/d/Y', $dateOfJourney);
+                    $dateOfJourney = $parsedDate->format('Y-m-d');
+                } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateOfJourney)) {
+                    // Already in Y-m-d format
+                    $parsedDate = \Carbon\Carbon::createFromFormat('Y-m-d', $dateOfJourney);
+                    $dateOfJourney = $parsedDate->format('Y-m-d');
+                } else {
+                    // Try Carbon's flexible parsing as fallback
+                    $parsedDate = \Carbon\Carbon::parse($dateOfJourney);
+                    $dateOfJourney = $parsedDate->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                Log::warning('BookingService: Failed to parse date_of_journey', [
+                    'original_date' => $dateOfJourney,
+                    'error' => $e->getMessage(),
+                    'session_date' => session()->get('date_of_journey')
+                ]);
+                // Fallback to today if parsing fails
+                $dateOfJourney = now()->format('Y-m-d');
+            }
+        } else {
+            // Last resort: use today
+            $dateOfJourney = now()->format('Y-m-d');
+        }
+        
+        $bookedTicket->date_of_journey = $dateOfJourney;
+        
+        Log::info('BookingService: Set date_of_journey for ticket', [
+            'ticket_id' => 'pending',
+            'date_of_journey' => $dateOfJourney,
+            'original_request' => $requestData['DateOfJourney'] ?? $requestData['date_of_journey'] ?? 'not provided',
+            'session_date' => session()->get('date_of_journey')
+        ]);
 
         $leadPassenger = collect($blockResponse['Result']['Passenger'])->firstWhere('LeadPassenger', true)
             ?? $blockResponse['Result']['Passenger'][0] ?? null;
@@ -922,7 +969,16 @@ class BookingService
         }
 
         if (isset($blockResponse['Result']['CancelPolicy'])) {
-            $bookedTicket->cancellation_policy = json_encode(formatCancelPolicy($blockResponse['Result']['CancelPolicy']));
+            $cancelPolicy = $blockResponse['Result']['CancelPolicy'];
+            
+            // Check if this is operator bus format (has TimeBeforeDept) or third-party API format (has FromDate)
+            if (!empty($cancelPolicy) && isset($cancelPolicy[0]['TimeBeforeDept'])) {
+                // Operator bus format - already has PolicyString, just store as-is
+                $bookedTicket->cancellation_policy = json_encode($cancelPolicy);
+            } else {
+                // Third-party API format - use formatCancelPolicy
+                $bookedTicket->cancellation_policy = json_encode(formatCancelPolicy($cancelPolicy));
+            }
         }
 
         $bookedTicket->status = 0; // Pending
@@ -1071,6 +1127,47 @@ class BookingService
      */
     private function updateTicketWithBookingDetails(BookedTicket $bookedTicket, array $apiResponse, array $bookingData)
     {
+        // Invalidate seat availability cache for this booking
+        if ($bookedTicket->bus_id && $bookedTicket->schedule_id && $bookedTicket->date_of_journey) {
+            $availabilityService = new \App\Services\SeatAvailabilityService();
+            
+            // Ensure date is in Y-m-d format
+            $dateOfJourney = $bookedTicket->date_of_journey;
+            if ($dateOfJourney instanceof \Carbon\Carbon) {
+                $dateOfJourney = $dateOfJourney->format('Y-m-d');
+            } elseif (is_string($dateOfJourney)) {
+                // Try to parse and reformat if needed
+                try {
+                    $dateOfJourney = \Carbon\Carbon::parse($dateOfJourney)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    Log::warning('BookingService: Invalid date format for cache invalidation', [
+                        'date_of_journey' => $dateOfJourney
+                    ]);
+                }
+            }
+            
+            $availabilityService->invalidateCache(
+                $bookedTicket->bus_id,
+                $bookedTicket->schedule_id,
+                $dateOfJourney
+            );
+            Log::info('BookingService: Invalidated seat availability cache', [
+                'bus_id' => $bookedTicket->bus_id,
+                'schedule_id' => $bookedTicket->schedule_id,
+                'date_of_journey' => $dateOfJourney,
+                'original_date' => $bookedTicket->date_of_journey,
+                'ticket_id' => $bookedTicket->id,
+                'seats' => is_array($bookedTicket->seats) ? implode(',', $bookedTicket->seats) : $bookedTicket->seats
+            ]);
+        } else {
+            Log::warning('BookingService: Cannot invalidate cache - missing required fields', [
+                'bus_id' => $bookedTicket->bus_id,
+                'schedule_id' => $bookedTicket->schedule_id,
+                'date_of_journey' => $bookedTicket->date_of_journey,
+                'ticket_id' => $bookedTicket->id
+            ]);
+        }
+
         // Update ticket status to confirmed and save operator PNR
         $bookedTicket->operator_pnr = $apiResponse['Result']['TravelOperatorPNR'] ?? $apiResponse['Result']['BookingId'] ?? null;
 
@@ -1291,7 +1388,16 @@ class BookingService
 
                 // Update cancellation policy
                 if (isset($result['CancelPolicy'])) {
-                    $updateData['cancellation_policy'] = json_encode(formatCancelPolicy($result['CancelPolicy']));
+                    $cancelPolicy = $result['CancelPolicy'];
+                    
+                    // Check if this is operator bus format (has TimeBeforeDept) or third-party API format (has FromDate)
+                    if (!empty($cancelPolicy) && isset($cancelPolicy[0]['TimeBeforeDept'])) {
+                        // Operator bus format - already has PolicyString, just store as-is
+                        $updateData['cancellation_policy'] = json_encode($cancelPolicy);
+                    } else {
+                        // Third-party API format - use formatCancelPolicy
+                        $updateData['cancellation_policy'] = json_encode(formatCancelPolicy($cancelPolicy));
+                    }
                 }
 
                 // Update the ticket with all the detailed information
@@ -1523,9 +1629,17 @@ class BookingService
 
     /**
      * Format cancellation policy
+     * Handles both operator bus format (TimeBeforeDept) and third-party API format (FromDate/ToDate)
      */
     private function formatCancellationPolicy(array $cancelPolicy)
     {
-        return formatCancelPolicy($cancelPolicy);
+        // Check if this is operator bus format (has TimeBeforeDept) or third-party API format (has FromDate)
+        if (!empty($cancelPolicy) && isset($cancelPolicy[0]['TimeBeforeDept'])) {
+            // Operator bus format - already has PolicyString, return as-is
+            return $cancelPolicy;
+        } else {
+            // Third-party API format - use formatCancelPolicy helper
+            return formatCancelPolicy($cancelPolicy);
+        }
     }
 }

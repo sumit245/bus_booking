@@ -305,11 +305,14 @@
                                         </label>
                                         <div class="input-group">
                                             <input type="tel" class="form--control my-2" id="passenger_phone"
-                                                name="passenger_phone" placeholder="@lang('Enter your WhatsApp mobile number')" value="">
+                                                name="passenger_phone" placeholder="@lang('Enter your WhatsApp mobile number')" 
+                                                value="{{ auth()->check() && auth()->user()->mobile ? (str_replace('91', '', auth()->user()->mobile)) : '' }}">
+                                            @if(!auth()->check())
                                             <button type="button" class="btn btn-primary btn-sm otp-btn"
                                                 id="sendOtpBtn">
                                                 @lang('Send OTP to WhatsApp')
                                             </button>
+                                            @endif
                                         </div>
                                         <div class="invalid-feedback">This field is required!</div>
                                     </div>
@@ -333,7 +336,7 @@
                                     </div>
                                 </div>
                                 <!-- Add hidden field to track OTP verification status -->
-                                <input type="hidden" name="is_otp_verified" id="is_otp_verified" value="0">
+                                <input type="hidden" name="is_otp_verified" id="is_otp_verified" value="{{ auth()->check() ? '1' : '0' }}">
                                 <div class="col-12">
                                     <div class="form-group">
                                         <label class="form-label">@lang('Address')
@@ -725,12 +728,15 @@
 
         // Handle passenger details form submission
         $('#confirmPassengerBtn').on('click', function(e) {
+            // Skip OTP verification if user is already logged in
+            @if(!auth()->check())
             if ($('#is_otp_verified').val() !== '1') {
                 e.preventDefault();
                 e.stopPropagation();
                 alert('Please verify your phone number with OTP before proceeding');
                 return false;
             }
+            @endif
 
             $('#payment-tab').tab('show');
 
@@ -829,6 +835,33 @@
         // Old Razorpay functions removed - now using direct booking
 
         $(document).ready(function() {
+            // If user is logged in, mark OTP as verified and hide OTP section
+            @if(auth()->check())
+            $('#is_otp_verified').val('1');
+            $('#otpVerificationContainer').addClass('d-none');
+            @endif
+            
+            // Show "Send OTP" button if user changes phone number (and they're not logged in, or changed to different number)
+            @if(auth()->check())
+            let originalPhone = $('#passenger_phone').val();
+            $('#passenger_phone').on('input change', function() {
+                const currentPhone = $(this).val().trim();
+                // If logged in but phone changed, show OTP button again
+                if (currentPhone !== originalPhone && currentPhone.length >= 10) {
+                    // Create and show OTP button if it doesn't exist
+                    if ($('#sendOtpBtn').length === 0) {
+                        $('#passenger_phone').parent().append('<button type="button" class="btn btn-primary btn-sm otp-btn" id="sendOtpBtn">@lang('Send OTP to WhatsApp')</button>');
+                    }
+                    $('#sendOtpBtn').show();
+                    $('#is_otp_verified').val('0');
+                } else if (currentPhone === originalPhone) {
+                    // Phone back to original, hide OTP button
+                    $('#sendOtpBtn').hide();
+                    $('#is_otp_verified').val('1');
+                }
+            });
+            @endif
+            
             // Send OTP button click handler
             $('#sendOtpBtn').on('click', function() {
                 const phoneNumber = $('#passenger_phone').val().trim();
@@ -852,9 +885,11 @@
                     success: function(response) {
                         console.log(response);
                         if (response.status === 200) {
-                            // Show OTP verification field
+                            // Show OTP verification field only if user is not logged in
+                            @if(!auth()->check())
                             $('#otpVerificationContainer').removeClass('d-none').addClass(
                                 'd-block');
+                            @endif
                             alert('OTP sent to your WhatsApp number');
                         } else {
                             alert(response.message || 'Failed to send OTP. Please try again.');

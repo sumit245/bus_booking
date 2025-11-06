@@ -14,7 +14,7 @@
 
                         <div class="row">
                             <!-- Left Panel - Controls -->
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="card">
                                     <div class="card-header">
                                         <h5 class="card-title mb-0">Layout Configuration</h5>
@@ -153,59 +153,41 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Seat Properties Panel -->
-                                <div class="card mt-3" id="seatPropertiesPanel" style="display: none;">
-                                    <div class="card-header">
-                                        <h6 class="card-title mb-0">Seat Properties</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-3">
-                                            <label for="seatId" class="form-label">Seat ID</label>
-                                            <input type="text" class="form-control" id="seatId" readonly>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="seatPrice" class="form-label">Price (₹)</label>
-                                            <input type="number" class="form-control" id="seatPrice" step="0.01"
-                                                min="0">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="seatType" class="form-label">Seat Type</label>
-                                            <select class="form-control" id="seatType">
-                                                <option value="nseat">Seater</option>
-                                                <option value="hseat">Horizontal Sleeper</option>
-                                                <option value="vseat">Vertical Sleeper</option>
-                                            </select>
-                                        </div>
-                                        <div class="d-grid">
-                                            <button type="button" class="btn btn-primary" id="updateSeatBtn">Update
-                                                Seat</button>
-                                            <button type="button" class="btn btn-outline-danger"
-                                                id="deleteSeatBtn">Delete Seat</button>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
-                            <!-- Right Panel - Layout Editor -->
-                            <div class="col-md-8">
+                            <!-- Right Panel - Layout Editor with Inline Properties -->
+                            <div class="col-md-9">
                                 <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="card-title mb-0">Seat Layout Editor</h5>
-                                        <small class="text-muted">
-                                            <strong>Instructions:</strong>
-                                            <ul>
-                                                <li class="list-type-none">1. Select bus type (Single/Double Decker)
-                                                </li>
-                                                <li class="list-type-none">2. Drag seat types from the left panel to
-                                                    the
-                                                    deck areas below</li>
-                                                <li class="list-type-none">3. Click on placed seats to edit their
-                                                    properties</li>
-                                                <li class="list-type-none">4. Use Preview to see the generated layout
-                                                </li>
-                                            </ul>
-                                        </small>
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="card-title mb-0">Seat Layout Editor</h5>
+                                            <small class="text-muted">Drag seat types from the left panel to create your layout</small>
+                                        </div>
+                                        <!-- Inline Seat Properties Panel -->
+                                        <div id="seatPropertiesPanel" style="display: none;" class="d-flex align-items-center gap-2">
+                                            <div class="input-group input-group-sm" style="width: auto;">
+                                                <span class="input-group-text">Seat ID</span>
+                                                <input type="text" class="form-control form-control-sm" id="seatId" readonly style="width: 80px;">
+                                            </div>
+                                            <div class="input-group input-group-sm" style="width: auto;">
+                                                <span class="input-group-text">Price (₹)</span>
+                                                <input type="number" class="form-control form-control-sm" id="seatPrice" step="0.01" min="0" style="width: 100px;">
+                                            </div>
+                                            <div class="input-group input-group-sm" style="width: auto;">
+                                                <span class="input-group-text">Type</span>
+                                                <select class="form-select form-select-sm" id="seatType" style="width: auto;">
+                                                    <option value="nseat">Seater</option>
+                                                    <option value="hseat">Horizontal Sleeper</option>
+                                                    <option value="vseat">Vertical Sleeper</option>
+                                                </select>
+                                            </div>
+                                            <button type="button" class="btn btn-primary btn-sm" id="updateSeatBtn">
+                                                <i class="las la-save"></i> Update
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" id="deleteSeatBtn">
+                                                <i class="las la-trash"></i> Delete
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="card-body p-0">
                                         <div id="layoutEditor" class="layout-editor">
@@ -373,6 +355,7 @@
             font-weight: bold;
             transition: all 0.2s ease;
             user-select: none;
+            margin: 4px;
         }
 
         .seat-item:hover {
@@ -391,6 +374,7 @@
             background-color: #fff;
             border-color: #666;
             color: #333;
+            box-sizing: border-box;
         }
 
         .seat-item.hseat {
@@ -399,6 +383,7 @@
             background-color: #e3f2fd;
             border-color: #1976d2;
             color: #1976d2;
+            box-sizing: border-box;
         }
 
         .seat-item.vseat {
@@ -407,6 +392,7 @@
             background-color: #f3e5f5;
             border-color: #7b1fa2;
             color: #7b1fa2;
+            box-sizing: border-box;
         }
 
         /* Simple Grid System CSS */

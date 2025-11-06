@@ -302,13 +302,15 @@ class SeatLayoutEditor {
     busStructure.className = deckClass;
     busStructure.style.display = "flex";
     busStructure.style.width = "100%";
-    busStructure.style.height = "100%";
+    busStructure.style.height = "auto";
+    busStructure.style.minHeight = "250px";
 
     // Create busSeatlft (driver/cabin area)
     const busSeatlft = document.createElement("div");
     busSeatlft.className = "busSeatlft";
     busSeatlft.style.width = "80px";
-    busSeatlft.style.height = "100%";
+    busSeatlft.style.height = "auto";
+    busSeatlft.style.minHeight = "250px";
     busSeatlft.style.backgroundColor = "#f0f0f0";
     busSeatlft.style.border = "1px solid #ccc";
     busSeatlft.style.display = "flex";
@@ -327,22 +329,28 @@ class SeatLayoutEditor {
     const busSeatrgt = document.createElement("div");
     busSeatrgt.className = "busSeatrgt";
     busSeatrgt.style.width = this.columnsPerRow * this.cellWidth + "px";
-    busSeatrgt.style.height = "100%";
+    busSeatrgt.style.height = "auto";
+    busSeatrgt.style.minHeight = "250px";
     busSeatrgt.style.position = "relative";
 
     // Create busSeat container
     const busSeat = document.createElement("div");
     busSeat.className = "busSeat";
     busSeat.style.width = "100%";
-    busSeat.style.height = "100%";
+    busSeat.style.height = "auto";
+    busSeat.style.minHeight = "250px";
     busSeat.style.position = "relative";
 
     // Create seatcontainer
     const seatcontainer = document.createElement("div");
     seatcontainer.className = "seatcontainer clearfix";
     seatcontainer.style.width = this.columnsPerRow * this.cellWidth + "px";
-    seatcontainer.style.height = "100%";
     seatcontainer.style.position = "relative";
+    // Calculate height dynamically based on rows and aisle
+    const totalRows = leftSeats + rightSeats;
+    const calculatedHeight = (totalRows * this.cellHeight) + this.aisleHeight + 20; // +20 for padding
+    seatcontainer.style.minHeight = calculatedHeight + "px";
+    seatcontainer.style.height = "auto";
 
     // Generate seat positions based on layout
     this.generateSeatPositions(
@@ -351,6 +359,16 @@ class SeatLayoutEditor {
       rightSeats,
       aisleColumns,
     );
+
+    // Sync busSeatlft height with seatcontainer height after positions are generated
+    // Wait for next frame to ensure positions are rendered
+    setTimeout(() => {
+      const seatcontainerHeight = seatcontainer.offsetHeight;
+      if (seatcontainerHeight > 250) {
+        busSeatlft.style.minHeight = seatcontainerHeight + "px";
+        busSeatlft.style.height = seatcontainerHeight + "px";
+      }
+    }, 0);
 
     // Create clr div for proper structure
     const clrDiv = document.createElement("div");
@@ -1329,18 +1347,18 @@ class SeatLayoutEditor {
                         <div class="border p-3 bg-white" style="max-height: 300px; overflow-y: auto;">
                             <div class="preview-bus-layout">
                                 ${result.html_layout
-                                  .replace(
-                                    /class="nseat"/g,
-                                    'class="preview-seat-item nseat"',
-                                  )
-                                  .replace(
-                                    /class="hseat"/g,
-                                    'class="preview-seat-item hseat"',
-                                  )
-                                  .replace(
-                                    /class="vseat"/g,
-                                    'class="preview-seat-item vseat"',
-                                  )}
+            .replace(
+              /class="nseat"/g,
+              'class="preview-seat-item nseat"',
+            )
+            .replace(
+              /class="hseat"/g,
+              'class="preview-seat-item hseat"',
+            )
+            .replace(
+              /class="vseat"/g,
+              'class="preview-seat-item vseat"',
+            )}
                             </div>
                         </div>
                     </div>

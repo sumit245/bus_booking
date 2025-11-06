@@ -310,14 +310,14 @@
             border-radius: 8px;
             min-height: 250px;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .deck-grid {
             position: relative;
             width: 100%;
-            height: 100%;
             min-height: 250px;
+            height: auto;
         }
 
         .seat-item {
@@ -383,10 +383,12 @@
         }
 
         /* Bus Seat Structure CSS */
-        .outerseat {
+        .outerseat,
+        .outerlowerseat {
             display: flex;
             width: 100%;
-            height: 100%;
+            min-height: 250px;
+            height: auto;
         }
 
         .busSeatlft {
@@ -397,6 +399,8 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            min-height: 250px;
+            height: auto;
         }
 
         .busSeatlft .lower {
@@ -420,19 +424,22 @@
         .busSeatrgt {
             flex: 1;
             position: relative;
+            min-height: 250px;
+            height: auto;
         }
 
         .busSeat {
             width: 100%;
-            height: 100%;
+            min-height: 250px;
+            height: auto;
             position: relative;
         }
 
         .seatcontainer {
             position: relative;
             width: 100%;
-            height: 100%;
             min-height: 250px;
+            height: auto;
             padding: 10px;
         }
 

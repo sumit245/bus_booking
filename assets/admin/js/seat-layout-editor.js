@@ -1459,13 +1459,34 @@ class SeatLayoutEditor {
           }
         } else {
           // Try to infer configuration from existing seats (fallback)
-          const hasUpperSeats = layoutData.upper_deck?.seats?.length > 0;
-          const hasLowerSeats = layoutData.lower_deck?.seats?.length > 0;
+          // BUT: First check if deck_type is already set in the UI (from database)
+          // Don't override the actual database value!
+          const uiDeckType = this.deckTypeSelect ? this.deckTypeSelect.value : null;
+          if (uiDeckType) {
+            // Use the value from the UI (which comes from database)
+            this.deckType = uiDeckType;
+            console.log("Using deck_type from UI/database:", this.deckType);
+          } else {
+            // Only infer if UI doesn't have a value (shouldn't happen, but safety check)
+            const hasUpperSeats = layoutData.upper_deck?.seats?.length > 0;
+            const hasLowerSeats = layoutData.lower_deck?.seats?.length > 0;
 
-          if (hasLowerSeats) {
-            this.deckType = "double";
-            if (this.deckTypeSelect) {
-              this.deckTypeSelect.value = "double";
+            if (hasUpperSeats) {
+              // If there are upper deck seats, it must be double decker
+              this.deckType = "double";
+              if (this.deckTypeSelect) {
+                this.deckTypeSelect.value = "double";
+              }
+              console.log("Inferred deck_type = 'double' from upper deck seats");
+            } else if (hasLowerSeats && !hasUpperSeats) {
+              // Lower deck seats exist but no upper deck seats
+              // This could be either single or double decker
+              // Default to single if no upper deck seats
+              this.deckType = "single";
+              if (this.deckTypeSelect) {
+                this.deckTypeSelect.value = "single";
+              }
+              console.log("Inferred deck_type = 'single' (lower deck only, no upper deck)");
             }
           }
 

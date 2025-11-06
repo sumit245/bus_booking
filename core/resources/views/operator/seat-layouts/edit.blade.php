@@ -452,7 +452,7 @@
 @endpush
 
 @push('script')
-    <script src="{{ asset('assets/admin/js/seat-layout-editor.js') }}"></script>
+    <script src="{{ asset('assets/admin/js/seat-layout-editor.js') }}?v={{ time() }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing seat layout editor...');

@@ -56,7 +56,7 @@ class SeatLayoutEditor {
     // First, load existing configuration if it exists
     this.loadExistingConfiguration();
 
-    // Create the bus layout with the loaded configuration
+    // Create the bus layout with the loaded configuration (this must happen after loadExistingConfiguration)
     this.createBusLayout();
 
     // Apply deck type settings after layout is created
@@ -78,6 +78,9 @@ class SeatLayoutEditor {
       "Lower deck grid children:",
       this.lowerDeckGrid?.children.length,
     );
+    console.log("Current seat layout:", this.seatLayout);
+    console.log("Current deck type:", this.deckType);
+    console.log("Current columns per row:", this.columnsPerRow);
   }
 
   setupEventListeners() {
@@ -1457,10 +1460,59 @@ class SeatLayoutEditor {
             }
           }
 
+          // Infer seat layout from maximum row number in existing seats
+          let maxRow = 0;
+          if (layoutData.lower_deck?.seats) {
+            layoutData.lower_deck.seats.forEach(seat => {
+              if (seat.row !== undefined && seat.row > maxRow) {
+                maxRow = seat.row;
+              }
+            });
+          }
+          if (layoutData.upper_deck?.seats) {
+            layoutData.upper_deck.seats.forEach(seat => {
+              if (seat.row !== undefined && seat.row > maxRow) {
+                maxRow = seat.row;
+              }
+            });
+          }
+
+          // Calculate seat layout based on max row (rows are 0-indexed, so maxRow+1 = total rows)
+          // For 2x2: rows 0,1 above aisle (2 rows), aisle, rows 2,3 below aisle (2 rows) = 4 total rows
+          // For 2x3: rows 0,1 above aisle (2 rows), aisle, rows 2,3,4 below aisle (3 rows) = 5 total rows
+          if (maxRow >= 0) {
+            const totalRows = maxRow + 1;
+            // Try to infer layout: if totalRows is 4, likely 2x2; if 5, likely 2x3; if 3, likely 2x1
+            if (totalRows === 4) {
+              this.seatLayout = "2x2";
+            } else if (totalRows === 5) {
+              this.seatLayout = "2x3";
+            } else if (totalRows === 3) {
+              this.seatLayout = "2x1";
+            } else {
+              // Default: try to split rows evenly
+              const leftRows = Math.ceil(totalRows / 2);
+              const rightRows = totalRows - leftRows;
+              this.seatLayout = `${leftRows}x${rightRows}`;
+            }
+
+            if (this.seatLayoutSelect) {
+              this.seatLayoutSelect.value = this.seatLayout;
+            }
+
+            console.log("Inferred seat layout from max row:", {
+              maxRow,
+              totalRows,
+              seatLayout: this.seatLayout
+            });
+          }
+
           console.log("Inferred configuration from seats:", {
             deckType: this.deckType,
             hasUpperSeats,
             hasLowerSeats,
+            maxRow,
+            seatLayout: this.seatLayout
           });
         }
       } catch (error) {
@@ -1519,6 +1571,57 @@ class SeatLayoutEditor {
       "Lower deck grid children before clear:",
       this.lowerDeckGrid?.children.length,
     );
+
+    // Check if we have enough rows for all seats
+    let maxLowerRow = -1;
+    let maxUpperRow = -1;
+
+    if (this.layoutData.lower_deck?.seats) {
+      this.layoutData.lower_deck.seats.forEach(seat => {
+        if (seat.row !== undefined && seat.row > maxLowerRow) {
+          maxLowerRow = seat.row;
+        }
+      });
+    }
+
+    if (this.layoutData.upper_deck?.seats) {
+      this.layoutData.upper_deck.seats.forEach(seat => {
+        if (seat.row !== undefined && seat.row > maxUpperRow) {
+          maxUpperRow = seat.row;
+        }
+      });
+    }
+
+    console.log("Max rows found in seats:", {
+      maxLowerRow,
+      maxUpperRow,
+      currentSeatLayout: this.seatLayout
+    });
+
+    // If we don't have enough rows, recreate the layout with correct configuration
+    const [leftSeats, rightSeats] = this.seatLayout.split("x").map(Number);
+    const totalRows = leftSeats + rightSeats;
+    const maxRowNeeded = Math.max(maxLowerRow, maxUpperRow) + 1; // +1 because rows are 0-indexed
+
+    if (maxRowNeeded > totalRows) {
+      console.warn(`Not enough rows! Need ${maxRowNeeded} but have ${totalRows}. Recreating layout...`);
+      // Calculate new layout
+      const newLeftRows = Math.ceil(maxRowNeeded / 2);
+      const newRightRows = maxRowNeeded - newLeftRows;
+      this.seatLayout = `${newLeftRows}x${newRightRows}`;
+
+      if (this.seatLayoutSelect) {
+        this.seatLayoutSelect.value = this.seatLayout;
+      }
+
+      // Recreate the bus layout with correct number of rows
+      this.createBusLayout();
+
+      console.log("Recreated layout with:", {
+        newSeatLayout: this.seatLayout,
+        totalRows: maxRowNeeded
+      });
+    }
 
     // Clear existing seats but keep positions
     this.upperDeckGrid.querySelectorAll(".seat-item").forEach((seat) => {

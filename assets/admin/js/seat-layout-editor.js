@@ -144,22 +144,11 @@ class SeatLayoutEditor {
     document.addEventListener("click", (e) => {
       if (
         !this.seatPropertiesPanel.contains(e.target) &&
-        !e.target.closest(".seat-item") &&
-        !e.target.closest("#seatPropertiesPanel")
+        !e.target.closest(".seat-item")
       ) {
         this.hideSeatProperties();
       }
     });
-
-    // Allow Enter key to update seat from price input
-    if (this.seatPriceInput) {
-      this.seatPriceInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          this.updateSelectedSeat();
-        }
-      });
-    }
   }
 
   setupDragAndDrop() {
@@ -293,16 +282,101 @@ class SeatLayoutEditor {
 
     console.log("Grid children before clear:", grid.children.length);
 
-    // Find the parent outerseat container (the structure already exists in HTML)
-    // The grid is inside: outerseat > busSeatrgt > busSeat > seatcontainer (grid)
-    const seatcontainer = grid; // grid IS the seatcontainer
-    const busSeat = grid.parentElement; // busSeat
-    const busSeatrgt = busSeat?.parentElement; // busSeatrgt
-    const outerseat = busSeatrgt?.parentElement; // outerseat
-    const busSeatlft = outerseat?.querySelector('.busSeatlft'); // existing busSeatlft
+    // Check if the structure already exists (edit page) or needs to be created (create page)
+    const parent = grid.parentElement;
+    const hasExistingStructure = parent && parent.classList.contains('busSeat');
 
-    // Clear existing seat positions in the grid
-    grid.innerHTML = "";
+    let seatcontainer, busSeat, busSeatrgt, outerseat, busSeatlft;
+
+    if (hasExistingStructure) {
+      // EDIT PAGE: Structure exists, work with it - don't create new structure
+      seatcontainer = grid; // grid IS the seatcontainer
+      busSeat = parent; // busSeat
+      busSeatrgt = busSeat.parentElement; // busSeatrgt
+      outerseat = busSeatrgt?.parentElement; // outerseat
+      busSeatlft = outerseat?.querySelector('.busSeatlft'); // existing busSeatlft
+
+      // Clear existing seat positions in the grid only
+      grid.innerHTML = "";
+
+      console.log("Using existing structure (edit page)");
+    } else {
+      // CREATE PAGE: Structure doesn't exist, need to create it
+      // Clear the grid first
+      grid.innerHTML = "";
+
+      // Create bus structure with correct class
+      const isUpperDeck = grid.id === "upperDeckGrid";
+      const deckClass = isUpperDeck ? "outerseat" : "outerlowerseat";
+      const driverClass = isUpperDeck ? "upper" : "lower";
+
+      outerseat = document.createElement("div");
+      outerseat.className = deckClass;
+      outerseat.style.display = "flex";
+      outerseat.style.width = "100%";
+      outerseat.style.height = "auto";
+      outerseat.style.minHeight = "250px";
+
+      // Create busSeatlft (driver/cabin area)
+      busSeatlft = document.createElement("div");
+      busSeatlft.className = "busSeatlft";
+      busSeatlft.style.width = "80px";
+      busSeatlft.style.height = "auto";
+      busSeatlft.style.minHeight = "250px";
+      busSeatlft.style.backgroundColor = "#f0f0f0";
+      busSeatlft.style.border = "1px solid #ccc";
+      busSeatlft.style.display = "flex";
+      busSeatlft.style.alignItems = "center";
+      busSeatlft.style.justifyContent = "center";
+      busSeatlft.style.fontSize = "12px";
+      busSeatlft.style.color = "#666";
+
+      // Create the inner div with correct class (upper/lower)
+      const driverInner = document.createElement("div");
+      driverInner.className = driverClass;
+      busSeatlft.appendChild(driverInner);
+
+      // Create busSeatrgt (seat area)
+      busSeatrgt = document.createElement("div");
+      busSeatrgt.className = "busSeatrgt";
+      busSeatrgt.style.width = this.columnsPerRow * this.cellWidth + "px";
+      busSeatrgt.style.height = "auto";
+      busSeatrgt.style.minHeight = "250px";
+      busSeatrgt.style.position = "relative";
+
+      // Create busSeat container
+      busSeat = document.createElement("div");
+      busSeat.className = "busSeat";
+      busSeat.style.width = "100%";
+      busSeat.style.height = "auto";
+      busSeat.style.minHeight = "250px";
+      busSeat.style.position = "relative";
+
+      // Create seatcontainer
+      seatcontainer = document.createElement("div");
+      seatcontainer.className = "seatcontainer clearfix";
+      seatcontainer.id = grid.id; // Preserve the grid ID
+
+      // Move grid's attributes to seatcontainer if any
+      if (grid.className) {
+        seatcontainer.className += " " + grid.className;
+      }
+
+      // Assemble structure
+      busSeat.appendChild(seatcontainer);
+      busSeatrgt.appendChild(busSeat);
+      outerseat.appendChild(busSeatlft);
+      outerseat.appendChild(busSeatrgt);
+
+      // Replace grid with the new structure
+      grid.parentElement.replaceChild(outerseat, grid);
+
+      // Update grid reference to seatcontainer
+      grid = seatcontainer;
+
+      console.log("Created new structure (create page)");
+    }
+
     console.log("Grid children after clear:", grid.children.length);
 
     // Parse seat layout to determine structure
@@ -316,18 +390,7 @@ class SeatLayoutEditor {
       columnsPerRow: this.columnsPerRow,
     });
 
-    // Determine the correct class based on deck type
-    const isUpperDeck = grid.id === "upperDeckGrid";
-    const driverClass = isUpperDeck ? "upper" : "lower";
-
-    console.log(
-      "Working with existing structure. Driver class:",
-      driverClass,
-      "Is upper deck:",
-      isUpperDeck
-    );
-
-    // Work with existing structure - update seatcontainer dimensions
+    // Work with seatcontainer - update dimensions
     seatcontainer.style.width = this.columnsPerRow * this.cellWidth + "px";
     seatcontainer.style.position = "relative";
     // Calculate height dynamically based on rows and aisle
@@ -368,20 +431,27 @@ class SeatLayoutEditor {
       }, 0);
     }
 
+    // Update the grid reference in the class if we created new structure
+    if (!hasExistingStructure) {
+      if (grid.id === "upperDeckGrid") {
+        this.upperDeckGrid = seatcontainer;
+      } else if (grid.id === "lowerDeckGrid") {
+        this.lowerDeckGrid = seatcontainer;
+      }
+    }
+
     console.log(
       "Deck layout created for",
-      grid.id,
-      "with class:",
-      deckClass,
+      seatcontainer.id,
       "Children count:",
-      grid.children.length,
+      seatcontainer.children.length,
     );
     console.log(
       "Seat positions created:",
-      grid.querySelectorAll(".seat-position").length,
+      seatcontainer.querySelectorAll(".seat-position").length,
     );
     console.log("All seat positions in grid:");
-    const allPositions = grid.querySelectorAll(".seat-position");
+    const allPositions = seatcontainer.querySelectorAll(".seat-position");
     allPositions.forEach((pos, i) => {
       console.log(`Position ${i}:`, {
         row: pos.dataset.row,
@@ -902,13 +972,7 @@ class SeatLayoutEditor {
     this.seatIdInput.value = seatData.seat_id;
     this.seatPriceInput.value = seatData.price;
     this.seatTypeSelect.value = seatData.type;
-    this.seatPropertiesPanel.style.display = "flex";
-
-    // Focus on price input for quick editing
-    setTimeout(() => {
-      this.seatPriceInput.focus();
-      this.seatPriceInput.select();
-    }, 100);
+    this.seatPropertiesPanel.style.display = "block";
   }
 
   hideSeatProperties() {

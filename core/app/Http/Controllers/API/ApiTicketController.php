@@ -1113,29 +1113,79 @@ class ApiTicketController extends Controller
 
             $route = $operatorBus->currentRoute;
 
-            // Transform boarding points to match API format
-            $boardingPoints = $route->boardingPoints->map(function ($point) {
+            // Get date of journey from cache if available (same format as ticketSearch)
+            $dateOfJourney = now()->format('Y-m-d');
+            if ($searchTokenId) {
+                $cachedData = Cache::get('bus_search_results_' . $searchTokenId);
+                if ($cachedData && isset($cachedData['date_of_journey'])) {
+                    $dateOfJourney = $cachedData['date_of_journey'];
+                    // Normalize date format
+                    try {
+                        $dateOfJourney = \Carbon\Carbon::parse($dateOfJourney)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // Keep original if parsing fails
+                    }
+                }
+            }
+
+            // Transform boarding points to match third-party API format exactly
+            $boardingPoints = $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
+                // Format time: combine date with point_time (H:i format)
+                $timeString = null;
+                if ($point->point_time) {
+                    try {
+                        $time = \Carbon\Carbon::parse($point->point_time)->format('H:i:s');
+                        $timeString = "{$dateOfJourney}T{$time}";
+                    } catch (\Exception $e) {
+                        // If point_time is null or invalid, use default time
+                        $timeString = "{$dateOfJourney}T00:00:00";
+                    }
+                } else {
+                    $timeString = "{$dateOfJourney}T00:00:00";
+                }
+
                 return [
-                    'CityPointIndex' => $point->id,
+                    'CityPointIndex' => $point->point_index ?? $point->id,
                     'CityPointName' => $point->point_name,
-                    'CityPointLocation' => $point->address ?? $point->point_name,
-                    'CityPointTime' => $point->departure_time,
+                    'CityPointLocation' => $point->point_location ?? $point->point_address ?? $point->point_name,
+                    'CityPointAddress' => $point->point_address ?? $point->point_location ?? $point->point_name,
+                    'CityPointLandmark' => $point->point_landmark ?? '',
+                    'CityPointContactNumber' => $point->contact_number ?? '',
+                    'CityPointTime' => $timeString,
                 ];
             })->toArray();
 
-            // Transform dropping points to match API format
-            $droppingPoints = $route->droppingPoints->map(function ($point) {
+            // Transform dropping points to match third-party API format exactly
+            $droppingPoints = $route->droppingPoints->map(function ($point) use ($dateOfJourney) {
+                // Format time: combine date with point_time (H:i format)
+                $timeString = null;
+                if ($point->point_time) {
+                    try {
+                        $time = \Carbon\Carbon::parse($point->point_time)->format('H:i:s');
+                        $timeString = "{$dateOfJourney}T{$time}";
+                    } catch (\Exception $e) {
+                        // If point_time is null or invalid, use default time
+                        $timeString = "{$dateOfJourney}T00:00:00";
+                    }
+                } else {
+                    $timeString = "{$dateOfJourney}T00:00:00";
+                }
+
                 return [
-                    'CityPointIndex' => $point->id,
+                    'CityPointIndex' => $point->point_index ?? $point->id,
                     'CityPointName' => $point->point_name,
-                    'CityPointLocation' => $point->address ?? $point->point_name,
-                    'CityPointTime' => $point->arrival_time,
+                    'CityPointLocation' => $point->point_location ?? $point->point_address ?? $point->point_name,
+                    'CityPointAddress' => $point->point_address ?? $point->point_location ?? $point->point_name,
+                    'CityPointLandmark' => $point->point_landmark ?? '',
+                    'CityPointContactNumber' => $point->contact_number ?? '',
+                    'CityPointTime' => $timeString,
                 ];
             })->toArray();
 
             Log::info('Operator bus counters retrieved successfully', [
                 'operator_bus_id' => $operatorBusId,
                 'result_index' => $resultIndex,
+                'date_of_journey' => $dateOfJourney,
                 'boarding_points_count' => count($boardingPoints),
                 'dropping_points_count' => count($droppingPoints)
             ]);
@@ -1148,7 +1198,8 @@ class ApiTicketController extends Controller
         } catch (\Exception $e) {
             Log::error('Error handling operator bus counters:', [
                 'result_index' => $resultIndex,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json(['error' => 'Failed to retrieve boarding/dropping points'], 500);
@@ -1267,11 +1318,28 @@ class ApiTicketController extends Controller
             ]);
 
             if ($result['success']) {
+                // Fetch the complete ticket details to build block_details for mobile app
+                $bookedTicket = BookedTicket::find($result['ticket_id']);
+
+                if (!$bookedTicket) {
+                    Log::error('API confirmPayment: Ticket not found after payment confirmation', [
+                        'ticket_id' => $result['ticket_id']
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ticket not found after payment confirmation'
+                    ], 404);
+                }
+
+                // Build block_details matching mobile app expectations
+                $blockDetails = $this->buildBlockDetailsForMobile($bookedTicket);
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Payment successful. Ticket booked successfully.',
                     'ticket_id' => $result['ticket_id'],
                     'pnr' => $result['pnr'],
+                    'block_details' => $blockDetails,
                     'status' => 201
                 ]);
             }
@@ -1288,6 +1356,10 @@ class ApiTicketController extends Controller
                 'message' => $e->getMessage(),
             ], 400);
         } catch (\Exception $e) {
+            Log::error('API confirmPayment: Exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'error' => 'An unexpected error occurred',
                 'message' => $e->getMessage(),
@@ -1295,9 +1367,78 @@ class ApiTicketController extends Controller
         }
     }
 
-    // TODO:Deprecated code nothing inside
-    public function getCombinedBuses(Request $request)
+    /**
+     * Build block_details object for mobile app compatibility
+     */
+    private function buildBlockDetailsForMobile(BookedTicket $bookedTicket): array
     {
-        // Your existing getCombinedBuses logic...
+        // Decode boarding and dropping point details
+        $boardingDetails = json_decode($bookedTicket->boarding_point_details, true);
+        $droppingDetails = json_decode($bookedTicket->dropping_point_details, true);
+
+        // Format boarding details as string (mobile app expects string)
+        $boardingDetailsString = 'Not Available';
+        if ($boardingDetails) {
+            // Handle both array of points and single point object
+            $boardingPoint = is_array($boardingDetails) && isset($boardingDetails[0])
+                ? $boardingDetails[0]
+                : $boardingDetails;
+
+            if (is_array($boardingPoint)) {
+                $boardingDetailsString = ($boardingPoint['CityPointName'] ?? '') .
+                    (isset($boardingPoint['CityPointLocation']) && $boardingPoint['CityPointLocation'] !== ($boardingPoint['CityPointName'] ?? '')
+                        ? ', ' . $boardingPoint['CityPointLocation']
+                        : '');
+            }
+        }
+
+        // Format dropping details as string (mobile app expects string)
+        $dropOffDetailsString = 'Not Available';
+        if ($droppingDetails) {
+            // Handle both array of points and single point object
+            $droppingPoint = is_array($droppingDetails) && isset($droppingDetails[0])
+                ? $droppingDetails[0]
+                : $droppingDetails;
+
+            if (is_array($droppingPoint)) {
+                $dropOffDetailsString = ($droppingPoint['CityPointName'] ?? '') .
+                    (isset($droppingPoint['CityPointLocation']) && $droppingPoint['CityPointLocation'] !== ($droppingPoint['CityPointName'] ?? '')
+                        ? ', ' . $droppingPoint['CityPointLocation']
+                        : '');
+            }
+        }
+
+        // Get seats as array
+        $seats = is_array($bookedTicket->seats) ? $bookedTicket->seats : [];
+        if (is_string($bookedTicket->seats)) {
+            // Try to decode if it's a JSON string
+            $decoded = json_decode($bookedTicket->seats, true);
+            $seats = is_array($decoded) ? $decoded : explode(',', $bookedTicket->seats);
+        }
+
+        // Get passenger name (first passenger if multiple)
+        $passengerName = $bookedTicket->passenger_name ?? 'Guest';
+        if (is_array($bookedTicket->passenger_names) && !empty($bookedTicket->passenger_names)) {
+            $passengerName = $bookedTicket->passenger_names[0];
+        }
+
+        // Format date of journey
+        $dateOfJourney = $bookedTicket->date_of_journey;
+        if ($dateOfJourney) {
+            try {
+                $dateOfJourney = Carbon::parse($dateOfJourney)->format('Y-m-d');
+            } catch (\Exception $e) {
+                // Keep original format if parsing fails
+            }
+        }
+
+        return [
+            'boarding_details' => $boardingDetailsString,
+            'date_of_journey' => $dateOfJourney,
+            'drop_off_details' => $dropOffDetailsString,
+            'passenger_name' => $passengerName,
+            'pnr' => $bookedTicket->pnr_number,
+            'seats' => $seats,
+        ];
     }
 }

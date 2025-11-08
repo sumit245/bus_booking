@@ -25,7 +25,7 @@ Route::prefix('bus')->group(function () {
     Route::post('/block-seat', [ApiTicketController::class, 'blockSeatApi']);
     // Seat blocking & payment
     Route::post('/confirm-payment', [ApiTicketController::class, 'confirmPayment']);
-    Route::post('/cancellation-policy', [ApiTicketController::class,'getCancellationPolicy']);
+    Route::post('/cancellation-policy', [ApiTicketController::class, 'getCancellationPolicy']);
 });
 
 // Boarding/drop points
@@ -47,4 +47,3 @@ Route::name('trip.')->prefix('manage')->group(function () {
     Route::get('assigned-vehicle', [ManageTripController::class, 'assignedVehicleLists'])->name('vehicle.assign');
 });
 
-Route::get('/buses/combined-search', [ApiTicketController::class, 'getCombinedBuses']);

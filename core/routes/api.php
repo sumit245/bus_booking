@@ -11,7 +11,9 @@ use App\Http\Controllers\Admin\VehicleTicketController;
 Route::post('/send-otp', [UserController::class, 'sendOTP'])->name('user.send-otp');
 Route::post('/verify-otp', [UserController::class, 'verifyOtp'])->name('user.verify-otp');
 Route::post('/users/get-my-tickets', [UserController::class, 'userHistoryByPhone']);
-Route::post('/users/cancel-ticket', action: [UserController::class, 'cancelTicketApi']);
+Route::post('/users/get-ticket-by-booking-id', [UserController::class, 'getTicketByBookingId']);
+Route::post('/users/cancel-ticket', [ApiTicketController::class, 'cancelTicketApi']);
+Route::get('/users/print-ticket/{id}', [\App\Http\Controllers\TicketController::class, 'printTicket'])->name('api.print.ticket');
 
 // Autocomplete
 Route::get('/autocomplete-city', [ApiTicketController::class, 'autocompleteCity']);

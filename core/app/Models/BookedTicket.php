@@ -13,7 +13,8 @@ class BookedTicket extends Model
     protected $casts = [
         // Note: source_destination removed from casts - manually json_encoded to match old format
         'seats' => 'array',
-        'passenger_names' => 'array'
+        'passenger_names' => 'array',
+        'cancellation_details' => 'array'
     ];
 
     protected $appends = ['photo'];
@@ -77,6 +78,7 @@ class BookedTicket extends Model
         'cancellation_policy',
         'cancellation_remarks',
         'cancelled_at',
+        'cancellation_details',
         'bus_details',
     ];
 

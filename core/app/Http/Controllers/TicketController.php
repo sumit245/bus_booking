@@ -21,50 +21,199 @@ class TicketController extends Controller
         $this->activeTemplate = activeTemplate();
     }
 
-    // Add this new method for printing bus tickets
-    public function printTicket($id)
+    /**
+     * Print ticket - supports both web and API routes
+     * Can return HTML view or JSON response based on request type
+     */
+    public function printTicket($id, Request $request = null)
     {
-        $pageTitle = 'Print Ticket';
+        // Get request if not provided
+        if (!$request) {
+            $request = request();
+        }
+
+        // Find ticket by ID, PNR, booking_id, api_booking_id, or operator_pnr
         $ticket = \App\Models\BookedTicket::where('id', $id)
             ->orWhere('pnr_number', $id)
-            ->with(['trip', 'user'])
+            ->orWhere('booking_id', $id)
+            ->orWhere('api_booking_id', $id)
+            ->orWhere('operator_pnr', $id)
+            ->with(['trip.fleetType', 'user'])
             ->firstOrFail();
 
-        // Get pickup and drop counters
-        $ticket->pickup = \App\Models\Counter::find($ticket->pickup_point);
-        $ticket->drop = \App\Models\Counter::find($ticket->dropping_point);
+        // Format ticket data for printing
+        $formattedTicket = $this->formatTicketForPrint($ticket);
 
-        // Format journey date
-        if ($ticket->date_of_journey) {
-            $journeyDate = \Carbon\Carbon::parse($ticket->date_of_journey);
-            $ticket->formatted_date = $journeyDate->format('F d, Y');
-            $ticket->journey_day = $journeyDate->format('l');
+        // Check if this is an API request
+        $isApiRequest = $request->wantsJson() || $request->expectsJson() || $request->is('api/*');
+
+        if ($isApiRequest) {
+            return response()->json([
+                'success' => true,
+                'ticket' => $formattedTicket,
+                'print_html' => view($this->activeTemplate . 'ticket.print_only', [
+                    'ticket' => (object) $formattedTicket,
+                    'companyName' => $this->getCompanyName(),
+                    'logoUrl' => $this->getLogoUrl(),
+                ])->render()
+            ]);
         }
 
-        // Extract and update bus details if not already set
-        if ((!$ticket->travel_name || !$ticket->bus_type || $ticket->departure_time == '00:00:00' || $ticket->arrival_time == '00:00:00') && !empty($ticket->bus_details)) {
-            $busDetails = json_decode($ticket->bus_details, true);
-            if ($busDetails) {
-                // Update the ticket with bus details
-                $this->updateTicketWithBusDetails($ticket, $busDetails);
+        // Web request - return HTML view
+        $pageTitle = 'Print Ticket';
+
+        // Use the new clean print template
+        return view($this->activeTemplate . 'ticket.print_only', [
+            'ticket' => (object) $formattedTicket,
+            'companyName' => $this->getCompanyName(),
+            'logoUrl' => $this->getLogoUrl(),
+            'pageTitle' => $pageTitle
+        ]);
+    }
+
+    /**
+     * Format ticket data for printing
+     */
+    private function formatTicketForPrint($ticket)
+    {
+        // Get seats
+        $seats = is_array($ticket->seats) ? $ticket->seats : (is_string($ticket->seats) ? explode(',', $ticket->seats) : []);
+
+        // Parse passenger names
+        $nameParts = explode(' ', $ticket->passenger_name ?? '', 2);
+        $firstName = $nameParts[0] ?? '';
+        $lastName = $nameParts[1] ?? '';
+
+        // Parse boarding and dropping point details
+        $boardingPointDetails = null;
+        if ($ticket->boarding_point_details) {
+            $boardingDetails = is_string($ticket->boarding_point_details)
+                ? json_decode($ticket->boarding_point_details, true)
+                : $ticket->boarding_point_details;
+
+            if (is_array($boardingDetails)) {
+                if (isset($boardingDetails[0]) && is_array($boardingDetails[0])) {
+                    $boardingPointDetails = $boardingDetails;
+                } elseif (isset($boardingDetails['CityPointName']) || isset($boardingDetails['CityPointIndex'])) {
+                    $boardingPointDetails = [$boardingDetails];
+                }
             }
         }
 
-        // Extract boarding and dropping point details from API response if not already set
-        if ((!$ticket->boarding_point_details || !$ticket->dropping_point_details) && !empty($ticket->api_response)) {
-            $apiResponse = json_decode($ticket->api_response, true);
-            if ($apiResponse) {
-                $this->extractAndUpdatePointDetails($ticket, $apiResponse);
+        $droppingPointDetails = null;
+        if ($ticket->dropping_point_details) {
+            $droppingDetails = is_string($ticket->dropping_point_details)
+                ? json_decode($ticket->dropping_point_details, true)
+                : $ticket->dropping_point_details;
+
+            if (is_array($droppingDetails)) {
+                if (isset($droppingDetails[0]) && is_array($droppingDetails[0])) {
+                    $droppingPointDetails = $droppingDetails;
+                } elseif (isset($droppingDetails['CityPointName']) || isset($droppingDetails['CityPointIndex'])) {
+                    $droppingPointDetails = [$droppingDetails];
+                }
             }
         }
 
-        if (auth()->user()) {
-            $layout = 'layouts.master';
-        } else {
-            $layout = 'layouts.frontend';
+        // Format boarding and dropping points as strings
+        $boardingPointString = $ticket->origin_city ?? '';
+        if ($boardingPointDetails && isset($boardingPointDetails[0])) {
+            $bp = $boardingPointDetails[0];
+            $boardingPointString = ($bp['CityPointName'] ?? '') .
+                (isset($bp['CityPointLocation']) && $bp['CityPointLocation'] !== ($bp['CityPointName'] ?? '')
+                    ? ', ' . $bp['CityPointLocation']
+                    : '');
         }
 
-        return view($this->activeTemplate . 'user.print_ticket', compact('pageTitle', 'ticket', 'layout'));
+        $droppingPointString = $ticket->destination_city ?? '';
+        if ($droppingPointDetails && isset($droppingPointDetails[0])) {
+            $dp = $droppingPointDetails[0];
+            $droppingPointString = ($dp['CityPointName'] ?? '') .
+                (isset($dp['CityPointLocation']) && $dp['CityPointLocation'] !== ($dp['CityPointName'] ?? '')
+                    ? ', ' . $dp['CityPointLocation']
+                    : '');
+        }
+
+        // Format times
+        $departureTime = $ticket->departure_time && $ticket->departure_time != '00:00:00'
+            ? \Carbon\Carbon::parse($ticket->departure_time)->format('h:i A')
+            : 'N/A';
+
+        $arrivalTime = $ticket->arrival_time && $ticket->arrival_time != '00:00:00'
+            ? \Carbon\Carbon::parse($ticket->arrival_time)->format('h:i A')
+            : 'N/A';
+
+        // Calculate duration
+        $duration = 'N/A';
+        if ($ticket->arrival_time && $ticket->departure_time && $ticket->arrival_time != '00:00:00' && $ticket->departure_time != '00:00:00') {
+            $duration = \Carbon\Carbon::parse($ticket->arrival_time)
+                ->diff(\Carbon\Carbon::parse($ticket->departure_time))
+                ->format('%H:%I');
+        }
+
+        // Build passengers array
+        $passengers = [];
+        foreach ($seats as $index => $seat) {
+            $isLead = ($index === 0);
+            $passengers[] = [
+                'LeadPassenger' => $isLead,
+                'FirstName' => $firstName,
+                'LastName' => $lastName,
+                'Age' => $isLead ? $ticket->passenger_age : null,
+                'Gender' => $ticket->passenger_gender ?? 1,
+                'Phoneno' => $isLead ? $ticket->passenger_phone : null,
+                'Email' => $isLead ? $ticket->passenger_email : null,
+                'Seat' => [
+                    'SeatName' => $seat,
+                ],
+            ];
+        }
+
+        return [
+            'pnr_number' => $ticket->pnr_number,
+            'passenger_name' => $ticket->passenger_name ?? ($firstName . ' ' . $lastName),
+            'passenger_phone' => $ticket->passenger_phone ?? null,
+            'passenger_email' => $ticket->passenger_email ?? null,
+            'travel_name' => $ticket->travel_name ?? ($ticket->trip && $ticket->trip->fleetType ? $ticket->trip->fleetType->name : 'N/A'),
+            'bus_type' => $ticket->bus_type ?? 'N/A',
+            'date_of_journey' => $ticket->date_of_journey ? \Carbon\Carbon::parse($ticket->date_of_journey)->format('Y-m-d') : null,
+            'departure_time' => $departureTime,
+            'arrival_time' => $arrivalTime,
+            'duration' => $duration,
+            'boarding_point' => $boardingPointString,
+            'dropping_point' => $droppingPointString,
+            'seats' => $seats,
+            'passengers' => $passengers,
+            'sub_total' => $ticket->sub_total ?? 0,
+            'total_fare' => $ticket->sub_total ?? 0,
+            'status' => $ticket->status,
+            'created_at' => $ticket->created_at,
+        ];
+    }
+
+    /**
+     * Get company name from general settings
+     */
+    private function getCompanyName()
+    {
+        try {
+            $general = \App\Models\GeneralSetting::first();
+            return $general && method_exists($general, 'sitename') ? $general->sitename('') : 'Bus Booking';
+        } catch (\Exception $e) {
+            return 'Bus Booking';
+        }
+    }
+
+    /**
+     * Get logo URL
+     */
+    private function getLogoUrl()
+    {
+        try {
+            return getImage(imagePath()['logoIcon']['path'] . '/logo.png');
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -385,7 +534,7 @@ class TicketController extends Controller
         $adminNotification = new AdminNotification();
         $adminNotification->user_id = $user->id;
         $adminNotification->title = 'New support ticket has opened';
-        $adminNotification->click_url = urlPath('admin.ticket.view', $ticket->id);
+        $adminNotification->click_url = urlPath('admin.ticket.view', routeParam: $ticket->id);
         $adminNotification->save();
         $path = imagePath()['ticket']['path'];
         if ($request->hasFile('attachments')) {

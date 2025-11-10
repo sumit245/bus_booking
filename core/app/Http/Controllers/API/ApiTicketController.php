@@ -1231,6 +1231,24 @@ class ApiTicketController extends Controller
                 'age' => 'nullable|integer',
             ]);
 
+            // Get DateOfJourney from cache using SearchTokenId (same as getCounters)
+            $dateOfJourney = $request->DateOfJourney ?? null;
+            if (!$dateOfJourney && $request->SearchTokenId) {
+                $cachedData = Cache::get('bus_search_results_' . $request->SearchTokenId);
+                if ($cachedData && isset($cachedData['date_of_journey'])) {
+                    $dateOfJourney = $cachedData['date_of_journey'];
+                    // Normalize date format
+                    try {
+                        $dateOfJourney = \Carbon\Carbon::parse($dateOfJourney)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        Log::warning('BlockSeat API: Failed to parse date from cache', [
+                            'date' => $cachedData['date_of_journey'],
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            }
+
             // Prepare request data for BookingService
             $requestData = [
                 'OriginCity' => $request->OriginCity ?? '',
@@ -1247,8 +1265,15 @@ class ApiTicketController extends Controller
                 'Email' => $request->Email,
                 'Phoneno' => $request->Phoneno,
                 'age' => $request->age ?? 0,
-                'Address' => $request->Address ?? ''
+                'Address' => $request->Address ?? '',
+                'DateOfJourney' => $dateOfJourney // Add DateOfJourney to request data
             ];
+
+            Log::info('BlockSeat API: Prepared request data with DateOfJourney', [
+                'date_of_journey' => $dateOfJourney,
+                'search_token_id' => $request->SearchTokenId,
+                'has_cached_data' => !empty($cachedData)
+            ]);
 
             // Use BookingService to block seats and create payment order
             $result = $this->bookingService->blockSeatsAndCreateOrder($requestData);
@@ -1409,8 +1434,10 @@ class ApiTicketController extends Controller
         }
 
         // Get seats as array
-        $seats = is_array($bookedTicket->seats) ? $bookedTicket->seats : [];
-        if (is_string($bookedTicket->seats)) {
+        $seats = [];
+        if (is_array($bookedTicket->seats)) {
+            $seats = $bookedTicket->seats;
+        } elseif (is_string($bookedTicket->seats) && !empty($bookedTicket->seats)) {
             // Try to decode if it's a JSON string
             $decoded = json_decode($bookedTicket->seats, true);
             $seats = is_array($decoded) ? $decoded : explode(',', $bookedTicket->seats);
@@ -1432,6 +1459,10 @@ class ApiTicketController extends Controller
             }
         }
 
+        // Get booking_id (api_booking_id for third-party, operator_booking_id or booking_id for operator)
+        $bookingId = $bookedTicket->api_booking_id
+            ?? $bookedTicket->booking_id;
+
         return [
             'boarding_details' => $boardingDetailsString,
             'date_of_journey' => $dateOfJourney,
@@ -1439,6 +1470,93 @@ class ApiTicketController extends Controller
             'passenger_name' => $passengerName,
             'pnr' => $bookedTicket->pnr_number,
             'seats' => $seats,
+            'booking_id' => $bookingId,
+            'UserIp' => $this->getUserIpFromTicket($bookedTicket),
+            'SearchTokenId' => $bookedTicket->search_token_id ?? '',
         ];
+    }
+
+    /**
+     * Get UserIp from ticket (from api_response or request)
+     */
+    private function getUserIpFromTicket(BookedTicket $bookedTicket): string
+    {
+        // Try to get from api_response first
+        if ($bookedTicket->api_response) {
+            $apiResponse = json_decode($bookedTicket->api_response, true);
+            if (is_array($apiResponse) && isset($apiResponse['UserIp'])) {
+                return $apiResponse['UserIp'];
+            }
+        }
+
+        // Fallback to request IP
+        return request()->ip();
+    }
+
+    /**
+     * Cancel ticket API endpoint
+     * Handles cancellation for both third-party and operator buses
+     */
+    public function cancelTicketApi(Request $request)
+    {
+        try {
+            Log::info('CancelTicket API request received', [
+                'request_data' => $request->all()
+            ]);
+
+            $request->validate([
+                'UserIp' => 'nullable|string',
+                'SearchTokenId' => 'required|string',
+                'BookingId' => 'required',
+                'SeatId' => 'required|string',
+                'Remarks' => 'nullable|string|max:500',
+            ]);
+
+            // Use BookingService to cancel the ticket
+            $result = $this->bookingService->cancelTicket([
+                'UserIp' => $request->UserIp ?? request()->ip(),
+                'SearchTokenId' => $request->SearchTokenId,
+                'BookingId' => $request->BookingId,
+                'SeatId' => $request->SeatId,
+                'Remarks' => $request->Remarks ?? 'Cancelled by customer',
+            ]);
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $result['message'] ?? 'Ticket cancelled successfully',
+                    'ticket_id' => $result['ticket_id'] ?? null,
+                    'cancellation_details' => $result['cancellation_details'] ?? null,
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to cancel ticket',
+                'error' => $result['error'] ?? null,
+            ], $result['status_code'] ?? 400);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('CancelTicket API validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('CancelTicket API exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unexpected error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

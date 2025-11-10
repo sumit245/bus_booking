@@ -1190,11 +1190,6 @@ function searchAPIBuses($source, $destination, $date, $userIp = "::1")
 
         $responseData = $response->json();
 
-        Log::info("Third-party API response received", [
-            "status" => $response->status(),
-            "response_data" => $responseData,
-        ]);
-
         return $responseData;
     } catch (\Exception $e) {
         Log::error("Third-party API request failed", [
@@ -1495,7 +1490,7 @@ if (!function_exists("parseSeatHtmlToJson")) {
 
             Log::info(
                 "[parseSeatHtmlToJson] deck containers found: " .
-                    ($deckNodes ? $deckNodes->length : 0),
+                ($deckNodes ? $deckNodes->length : 0),
             );
 
             foreach ($deckNodes as $idx => $deckNode) {
@@ -1515,21 +1510,21 @@ if (!function_exists("parseSeatHtmlToJson")) {
                     $deckHtml = $dom->saveHTML($deckNode);
                     Log::info(
                         "[parseSeatHtmlToJson] deckIdx={$idx} key={$deckKey} classes='{$classes}' htmlSnippet(length)=" .
-                            strlen($deckHtml),
+                        strlen($deckHtml),
                     );
                 }
 
                 // SCOPED inner query (dot starts search from $deckNode)
                 $seatNodes = $xpath->query(
                     './/div[contains(concat(" ", normalize-space(@class), " "), " busSeatrgt ")]' .
-                        '//div[contains(concat(" ", normalize-space(@class), " "), " busSeat ")]' .
-                        '//div[contains(concat(" ", normalize-space(@class), " "), " seatcontainer ")]/div',
+                    '//div[contains(concat(" ", normalize-space(@class), " "), " busSeat ")]' .
+                    '//div[contains(concat(" ", normalize-space(@class), " "), " seatcontainer ")]/div',
                     $deckNode,
                 );
 
                 Log::info(
                     "[parseSeatHtmlToJson] deck={$deckKey} seatNodes=" .
-                        ($seatNodes ? $seatNodes->length : 0),
+                    ($seatNodes ? $seatNodes->length : 0),
                 );
 
                 if ($seatNodes && $seatNodes->length > 0) {
@@ -1556,9 +1551,9 @@ if (!function_exists("parseSeatHtmlToJson")) {
 
             Log::info(
                 "[parseSeatHtmlToJson] finished parsing. upper_rows=" .
-                    count($result["seat"]["upper_deck"]["rows"]) .
-                    ", lower_rows=" .
-                    count($result["seat"]["lower_deck"]["rows"]),
+                count($result["seat"]["upper_deck"]["rows"]) .
+                ", lower_rows=" .
+                count($result["seat"]["lower_deck"]["rows"]),
             );
             return $result;
         } catch (\Throwable $e) {
@@ -1686,8 +1681,8 @@ if (!function_exists("processDeckSeatNodes")) {
         ksort($seatsByRow);
         Log::info(
             " -> Finished processDeckSeatNodes for '{$deckName}' deck. Processed into " .
-                count($seatsByRow) .
-                " rows.",
+            count($seatsByRow) .
+            " rows.",
         );
         return $seatsByRow;
     }

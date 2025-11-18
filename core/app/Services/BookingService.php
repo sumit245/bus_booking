@@ -171,19 +171,26 @@ class BookingService
 
     /**
      * Register or login user
+     * Always creates/updates user profile during booking, even without mobile verification (sv=0)
      */
     private function registerOrLoginUser(array $requestData)
     {
         if (!Auth::check()) {
             $fullPhone = $requestData['Phoneno'] ?? $requestData['passenger_phone'];
 
-            // Normalize phone number
+            // Normalize to 10-digit mobile number (remove country code)
             if (strpos($fullPhone, '+91') === 0) {
-                $fullPhone = substr($fullPhone, 3);
+                $fullPhone = substr($fullPhone, 3); // Remove +91
             } elseif (strpos($fullPhone, '91') === 0 && strlen($fullPhone) > 10) {
-                $fullPhone = substr($fullPhone, 2);
+                $fullPhone = substr($fullPhone, 2); // Remove 91 prefix
             }
-            $fullPhone = '91' . $fullPhone;
+            // Ensure we have exactly 10 digits
+            $fullPhone = substr($fullPhone, -10); // Take last 10 digits only
+
+            Log::info('BookingService: Normalized phone number', [
+                'original' => $requestData['Phoneno'] ?? $requestData['passenger_phone'],
+                'normalized' => $fullPhone
+            ]);
 
             // Handle firstname and lastname - support both single passenger and multiple passengers (agent/admin)
             $firstName = $requestData['FirstName']
@@ -196,27 +203,76 @@ class BookingService
                     ? ($requestData['passenger_lastnames'][0] ?? '')
                     : ($requestData['passenger_lastname'] ?? ''));
 
-            $user = User::firstOrCreate(
-                ['mobile' => $fullPhone],
-                [
+            $email = $requestData['Email'] ?? $requestData['passenger_email'] ?? null;
+            $address = $requestData['Address'] ?? $requestData['passenger_address'] ?? '';
+
+            // Find existing user by 10-digit mobile or create new
+            $user = User::where('mobile', $fullPhone)->first();
+
+            if ($user) {
+                // User exists - UPDATE their profile with latest checkout data
+                Log::info('BookingService: Updating existing user profile', [
+                    'user_id' => $user->id,
+                    'mobile' => $fullPhone,
+                    'updating_fields' => ['firstname', 'lastname', 'email', 'address']
+                ]);
+
+                // Update profile with checkout data (keep existing values if new data is empty)
+                $updateData = [];
+
+                if (!empty($firstName)) {
+                    $updateData['firstname'] = $firstName;
+                }
+                if (!empty($lastName)) {
+                    $updateData['lastname'] = $lastName;
+                }
+                if (!empty($email)) {
+                    $updateData['email'] = $email;
+                }
+                if (!empty($address)) {
+                    $updateData['address'] = [
+                        'address' => $address,
+                        'state' => $user->address->state ?? '',
+                        'zip' => $user->address->zip ?? '',
+                        'country' => $user->address->country ?? 'India',
+                        'city' => $user->address->city ?? ''
+                    ];
+                }
+
+                // Only update if we have data to update
+                if (!empty($updateData)) {
+                    $user->update($updateData);
+                    Log::info('BookingService: User profile updated', $updateData);
+                }
+            } else {
+                // User doesn't exist - CREATE new user with sv=0 (not verified)
+                Log::info('BookingService: Creating new user profile', [
+                    'mobile' => $fullPhone,
+                    'firstname' => $firstName,
+                    'lastname' => $lastName
+                ]);
+
+                $user = User::create([
+                    'mobile' => $fullPhone,
                     'firstname' => $firstName,
                     'lastname' => $lastName,
-                    'email' => $requestData['Email'] ?? $requestData['passenger_email'],
-                    'username' => 'user' . time(),
+                    'email' => $email,
+                    'username' => 'user' . time() . rand(100, 999), // Ensure uniqueness
                     'password' => Hash::make(Str::random(8)),
                     'country_code' => '91',
                     'address' => [
-                        'address' => $requestData['Address'] ?? $requestData['passenger_address'] ?? '',
+                        'address' => $address,
                         'state' => '',
                         'zip' => '',
                         'country' => 'India',
                         'city' => ''
                     ],
-                    'status' => 1,
-                    'ev' => 1,
-                    'sv' => 1,
-                ]
-            );
+                    'status' => 1,   // Active
+                    'ev' => 0,       // Email not verified
+                    'sv' => 0,       // Mobile not verified (will be verified through OTP)
+                ]);
+            }
+
             Auth::login($user);
             return $user;
         }
@@ -2056,13 +2112,13 @@ class BookingService
 
             // Parse the response structure: SendChangeRequestResult
             $sendChangeRequestResult = $cancelResponse['SendChangeRequestResult'] ?? null;
-            
+
             if (!$sendChangeRequestResult) {
                 // Fallback: Check for Error directly in response (old format)
                 if (isset($cancelResponse['Error']) && $cancelResponse['Error']['ErrorCode'] != 0) {
                     $errorCode = $cancelResponse['Error']['ErrorCode'];
                     $errorMessage = $cancelResponse['Error']['ErrorMessage'] ?? 'Failed to cancel ticket with provider';
-                    
+
                     Log::error('BookingService: Third-party cancellation failed (old format)', [
                         'ticket_id' => $bookedTicket->id,
                         'error_code' => $errorCode,
@@ -2135,14 +2191,14 @@ class BookingService
             // ErrorCode is 0 - cancellation successful
             // Extract cancellation details from BusCRInfo[0]
             $busCRInfo = $sendChangeRequestResult['BusCRInfo'] ?? [];
-            
+
             Log::info('BookingService: Parsing BusCRInfo', [
                 'ticket_id' => $bookedTicket->id,
                 'bus_cr_info' => $busCRInfo,
                 'bus_cr_info_count' => is_array($busCRInfo) ? count($busCRInfo) : 0,
                 'send_change_request_result' => $sendChangeRequestResult
             ]);
-            
+
             $cancellationDetails = !empty($busCRInfo) && isset($busCRInfo[0]) && is_array($busCRInfo[0]) ? $busCRInfo[0] : null;
 
             if (!$cancellationDetails) {
@@ -2163,14 +2219,14 @@ class BookingService
             $bookedTicket->status = 3; // Cancelled
             $bookedTicket->cancellation_remarks = $remarks;
             $bookedTicket->cancelled_at = now();
-            
+
             // Store cancellation details in cancellation_details column
             // Always save TraceId and ResponseStatus, and add BusCRInfo details if available
             $cancellationDetailsToSave = [
                 'TraceId' => $sendChangeRequestResult['TraceId'] ?? null,
                 'ResponseStatus' => $sendChangeRequestResult['ResponseStatus'] ?? null
             ];
-            
+
             // Add BusCRInfo details if available
             if ($cancellationDetails && is_array($cancellationDetails)) {
                 $cancellationDetailsToSave = array_merge($cancellationDetailsToSave, [
@@ -2188,28 +2244,28 @@ class BookingService
                     'GST' => $cancellationDetails['GST'] ?? []
                 ]);
             }
-            
+
             $bookedTicket->cancellation_details = $cancellationDetailsToSave;
-            
+
             Log::info('BookingService: Saving cancellation_details', [
                 'ticket_id' => $bookedTicket->id,
                 'cancellation_details' => $cancellationDetailsToSave
             ]);
-            
+
             $bookedTicket->save();
 
             $logData = [
                 'ticket_id' => $bookedTicket->id,
                 'booking_id' => $bookingId
             ];
-            
+
             if ($cancellationDetails) {
                 $logData['change_request_id'] = $cancellationDetails['ChangeRequestId'] ?? null;
                 $logData['refunded_amount'] = isset($cancellationDetails['RefundedAmount']) ? (float) $cancellationDetails['RefundedAmount'] : 0;
                 $logData['credit_note_no'] = $cancellationDetails['CreditNoteNo'] ?? null;
                 $logData['cancellation_charge'] = isset($cancellationDetails['CancellationCharge']) ? (float) $cancellationDetails['CancellationCharge'] : 0;
             }
-            
+
             Log::info('BookingService: Third-party ticket cancelled successfully', $logData);
 
             // Build cancellation details for response

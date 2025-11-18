@@ -8,7 +8,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use App\Models\BookedTicket;
 
 class UserController extends Controller
@@ -62,6 +64,21 @@ class UserController extends Controller
             'otp' => 'required|digits:6',
         ]);
 
+        // Normalize mobile number to 10 digits (same logic as BookingService)
+        $mobileNumber = $request->mobile_number;
+        if (strpos($mobileNumber, '+91') === 0) {
+            $mobileNumber = substr($mobileNumber, 3); // Remove +91
+        } elseif (strpos($mobileNumber, '91') === 0 && strlen($mobileNumber) > 10) {
+            $mobileNumber = substr($mobileNumber, 2); // Remove 91 prefix
+        }
+        // Ensure we have exactly 10 digits
+        $mobileNumber = substr($mobileNumber, -10);
+
+        Log::info('UserController: Verifying OTP for normalized mobile', [
+            'original' => $request->mobile_number,
+            'normalized' => $mobileNumber
+        ]);
+
         $otpRecord = Otp::where('mobile_number', $request->mobile_number)->first();
 
         if (!$otpRecord) {
@@ -85,17 +102,43 @@ class UserController extends Controller
             ], 400);
         }
 
+        // OTP is verified - find or create user with 10-digit mobile
+        $user = User::where('mobile', $mobileNumber)->first();
 
-        // OTP is verified, create or fetch the user
-        $user = User::firstOrCreate(
-            ['mobile' => $request->mobile_number],
-            ['username' => $request->user_name]
-        );
+        if ($user) {
+            // User exists - UPDATE sv=1 (mobile verified)
+            Log::info('UserController: User exists, marking mobile as verified', [
+                'user_id' => $user->id,
+                'mobile' => $mobileNumber
+            ]);
+
+            $user->update([
+                'sv' => 1, // Mark mobile as verified
+            ]);
+        } else {
+            // User doesn't exist - CREATE new user with sv=1 (verified through OTP)
+            Log::info('UserController: Creating new user via OTP verification', [
+                'mobile' => $mobileNumber,
+                'username' => $request->user_name
+            ]);
+
+            $user = User::create([
+                'mobile' => $mobileNumber,
+                'username' => $request->user_name ?? ('user' . time() . rand(100, 999)),
+                'password' => Hash::make(Str::random(8)),
+                'country_code' => '91',
+                'status' => 1,   // Active
+                'ev' => 0,       // Email not verified yet
+                'sv' => 1,       // Mobile verified (OTP success)
+            ]);
+        }
+
         // Log in the user
         Auth::login($user);
 
-        // Delete OTP record
+        // Delete OTP record (single-use)
         $otpRecord->delete();
+
         return response()->json([
             'message' => 'Logged in successfully.',
             'status' => 200,

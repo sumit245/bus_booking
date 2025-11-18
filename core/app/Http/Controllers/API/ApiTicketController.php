@@ -5,23 +5,17 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\BookedTicket;
 use App\Models\City;
-use App\Models\Counter;
 use App\Models\FleetType;
-use App\Models\MarkupTable;
 use App\Models\Schedule;
 use App\Models\TicketPrice;
 use App\Models\Trip;
-use App\Models\User;
 use App\Models\VehicleRoute;
 use App\Services\BusService;
 use App\Services\BookingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Razorpay\Api\Api;
 use Illuminate\Validation\ValidationException;
 
@@ -1215,7 +1209,7 @@ class ApiTicketController extends Controller
             ]);
 
             $request->validate([
-                'OriginCity' => 'nullable',
+                'OriginCity' => 'nullable', 
                 'DestinationCity' => 'nullable',
                 'SearchTokenId' => 'required',
                 'ResultIndex' => 'required',
@@ -1225,7 +1219,7 @@ class ApiTicketController extends Controller
                 'Seats' => 'required|string',
                 'FirstName' => 'required',
                 'LastName' => 'required',
-                'Gender' => 'required|in:0,1',
+                'Gender' => 'required|in:0,1,2',
                 'Email' => 'required|email',
                 'Phoneno' => 'required',
                 'age' => 'nullable|integer',

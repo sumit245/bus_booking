@@ -553,18 +553,22 @@ class BusService
         ]);
 
         $filteredTrips = array_filter($trips, function ($trip) use ($filters) {
-            // IMPORTANT: Filter out buses with passed departure times
+            // IMPORTANT: Filter out buses with passed departure times ONLY for today's searches
             if (isset($trip['DepartureTime'])) {
                 $departureTime = Carbon::parse($trip['DepartureTime']);
                 $now = Carbon::now();
+                $searchDate = $departureTime->copy()->startOfDay();
+                $today = $now->copy()->startOfDay();
 
-                // If departure time has already passed, exclude this bus
-                if ($departureTime->lessThan($now)) {
-                    Log::info('Bus filtered out - departure time passed', [
+                // Only filter out if the search is for TODAY and departure time has passed
+                if ($searchDate->equalTo($today) && $departureTime->lessThan($now)) {
+                    Log::info('Bus filtered out - departure time passed TODAY', [
                         'bus' => $trip['TravelName'] ?? 'Unknown',
                         'departure_time' => $departureTime->toDateTimeString(),
                         'current_time' => $now->toDateTimeString(),
-                        'result_index' => $trip['ResultIndex'] ?? 'N/A'
+                        'result_index' => $trip['ResultIndex'] ?? 'N/A',
+                        'search_date' => $searchDate->toDateString(),
+                        'today' => $today->toDateString()
                     ]);
                     return false;
                 }

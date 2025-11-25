@@ -242,91 +242,82 @@
             </div>
         </div>
     </div>
-
-    <!-- Cancel Booking Modal -->
-    <div class="modal fade" id="cancelBookingModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Cancel Booking</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to cancel this booking?</p>
-                    <div class="mb-3">
-                        <label for="cancellationReason" class="form-label">Reason for cancellation (optional)</label>
-                        <textarea class="form-control" id="cancellationReason" rows="3"
-                            placeholder="Enter reason for cancellation..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Booking</button>
-                    <button type="button" class="btn btn-danger" id="confirmCancelBtn">Yes, Cancel Booking</button>
-                </div>
-            </div>
-        </div>
-    </div>
 @endsection
 
 @push('script')
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Simple and clean JavaScript
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cancel booking function
-            window.cancelBooking = function(bookingId) {
-                const modal = document.getElementById('cancelBookingModal');
-                if (modal) {
-                    modal.style.display = 'block';
-                }
-            };
+        // Cancel booking function with SweetAlert
+        window.cancelBooking = function(bookingId) {
+            Swal.fire({
+                title: 'Cancel Booking?',
+                text: 'Are you sure you want to cancel this booking? This action cannot be undone.',
+                icon: 'warning',
+                input: 'textarea',
+                inputLabel: 'Cancellation Reason (Optional)',
+                inputPlaceholder: 'Enter reason for cancellation...',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Cancel Booking',
+                cancelButtonText: 'No, Keep Booking',
+                showLoaderOnConfirm: true,
+                preConfirm: (reason) => {
+                    // Prepare the data
+                    const booking = @json($booking);
+                    const requestData = {
+                        UserIp: '{{ request()->ip() }}',
+                        SearchTokenId: booking.search_token_id || '',
+                        BookingId: booking.api_booking_id || booking.booking_id || '',
+                        SeatId: Array.isArray(booking.seats) ? booking.seats.join(',') : booking
+                            .seats || '',
+                        Remarks: reason || 'Cancelled by customer'
+                    };
 
-            // Cancel button handler
-            const cancelBtn = document.getElementById('confirmCancelBtn');
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', function() {
-                    const reason = document.getElementById('cancellationReason').value;
-                    const btn = this;
-
-                    btn.disabled = true;
-                    btn.innerHTML = 'Cancelling...';
-
-                    // Use fetch for AJAX
-                    fetch('{{ route('user.booking.cancel', $booking->id) }}', {
+                    // Call API
+                    return fetch('/api/users/cancel-ticket', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                'Accept': 'application/json'
                             },
-                            body: JSON.stringify({
-                                cancellation_reason: reason
-                            })
+                            body: JSON.stringify(requestData)
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                alert('Success: ' + data.message);
-                                const modal = document.getElementById('cancelBookingModal');
-                                if (modal) modal.style.display = 'none';
-                                setTimeout(() => {
-                                    window.location.href = '{{ route('user.dashboard') }}';
-                                }, 1000);
-                            } else {
-                                alert('Error: ' + data.message);
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => {
+                                    throw new Error(err.message || 'Failed to cancel booking');
+                                });
                             }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'Failed to cancel booking');
+                            }
+                            return data;
                         })
                         .catch(error => {
-                            alert('Error: Failed to cancel booking');
-                            console.error('Error:', error);
-                        })
-                        .finally(() => {
-                            btn.disabled = false;
-                            btn.innerHTML = 'Yes, Cancel Booking';
+                            Swal.showValidationMessage(
+                                `Request failed: ${error.message}`
+                            );
                         });
-                });
-            }
-        });
-
-        // Print function removed - now using dedicated print endpoint
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    Swal.fire({
+                        title: 'Cancelled!',
+                        text: result.value.message || 'Your booking has been cancelled successfully.',
+                        icon: 'success',
+                        confirmButtonColor: '#28a745'
+                    }).then(() => {
+                        window.location.href = '{{ route('user.dashboard') }}';
+                    });
+                }
+            });
+        };
     </script>
 @endpush
 

@@ -547,7 +547,11 @@ class BusService
 
     private function applyFilters(array $trips, array $filters): array
     {
-        // Log::info('Applying filters: ' . json_encode($filters));
+        Log::info('Applying filters', [
+            'total_trips_before_filter' => count($trips),
+            'filters' => $filters
+        ]);
+
         $filteredTrips = array_filter($trips, function ($trip) use ($filters) {
             // IMPORTANT: Filter out buses with passed departure times
             if (isset($trip['DepartureTime'])) {
@@ -556,6 +560,12 @@ class BusService
 
                 // If departure time has already passed, exclude this bus
                 if ($departureTime->lessThan($now)) {
+                    Log::info('Bus filtered out - departure time passed', [
+                        'bus' => $trip['TravelName'] ?? 'Unknown',
+                        'departure_time' => $departureTime->toDateTimeString(),
+                        'current_time' => $now->toDateTimeString(),
+                        'result_index' => $trip['ResultIndex'] ?? 'N/A'
+                    ]);
                     return false;
                 }
             }
@@ -646,6 +656,11 @@ class BusService
             }
             return true;
         });
+
+        Log::info('Filter results', [
+            'total_trips_after_filter' => count($filteredTrips),
+            'filtered_out_count' => count($trips) - count($filteredTrips)
+        ]);
 
         return array_values($filteredTrips);
     }

@@ -136,12 +136,13 @@ class BusService
     {
         $cacheKey = "operator_bus_search_v3:{$originId}_{$destinationId}_{$dateOfJourney}";
         // Temporarily bypass cache for testing
+        // TODO: Re-enable caching after debugging
         // return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney) {
-        // Log::info("CACHE MISS: Fetching operator schedules for {$originId}-{$destinationId} on {$dateOfJourney}");
+        Log::info("Fetching operator schedules for {$originId}-{$destinationId} on {$dateOfJourney}");
 
         try {
             // Find schedules that match the origin, destination, and date
-            // Log::info("Querying operator schedules for origin: {$originId}, destination: {$destinationId}, date: {$dateOfJourney}");
+            Log::info("Querying operator schedules for origin: {$originId}, destination: {$destinationId}, date: {$dateOfJourney}");
 
             $schedules = BusSchedule::active()
                 ->whereHas('operatorRoute.originCity', function ($query) use ($originId) {
@@ -159,24 +160,24 @@ class BusService
                 ->ordered()
                 ->get();
 
-            // Log::info("Found " . $schedules->count() . " operator schedules");
+            Log::info("Found " . $schedules->count() . " operator schedules");
 
             if ($schedules->isEmpty()) {
-                // Log::info("No operator schedules found for {$originId}-{$destinationId} on {$dateOfJourney}");
+                Log::info("No operator schedules found for {$originId}-{$destinationId} on {$dateOfJourney}");
                 return [];
             }
 
-            // Log::info("Processing " . $schedules->count() . " operator schedules", [
-            //     'schedule_ids' => $schedules->pluck('id')->toArray()
-            // ]);
+            Log::info("Processing " . $schedules->count() . " operator schedules", [
+                'schedule_ids' => $schedules->pluck('id')->toArray()
+            ]);
         } catch (\Exception $e) {
-            // Log::error("Error querying operator schedules", [
-            //     'error' => $e->getMessage(),
-            //     'trace' => $e->getTraceAsString(),
-            //     'origin_id' => $originId,
-            //     'destination_id' => $destinationId,
-            //     'date' => $dateOfJourney
-            // ]);
+            Log::error("Error querying operator schedules", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'origin_id' => $originId,
+                'destination_id' => $destinationId,
+                'date' => $dateOfJourney
+            ]);
             return [];
         }
 
@@ -185,32 +186,32 @@ class BusService
 
         try {
             foreach ($schedules as $schedule) {
-                // Log::info("Processing schedule ID: {$schedule->id}");
+                Log::info("Processing schedule ID: {$schedule->id}");
 
                 try {
-                    // Log::info("Transforming schedule ID: {$schedule->id} with result index: {$resultIndex}");
+                    Log::info("Transforming schedule ID: {$schedule->id} with result index: {$resultIndex}");
                     $operatorBuses[] = $this->transformScheduleToApiFormat($schedule, $dateOfJourney, $resultIndex++);
                 } catch (\Exception $e) {
-                    // Log::error("Error transforming schedule {$schedule->id}", [
-                    //     'error' => $e->getMessage(),
-                    //     'trace' => $e->getTraceAsString(),
-                    //     'schedule_id' => $schedule->id
-                    // ]);
+                    Log::error("Error transforming schedule {$schedule->id}", [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'schedule_id' => $schedule->id
+                    ]);
                     // Continue with other schedules
                 }
             }
         } catch (\Exception $e) {
-            // Log::error("Error processing operator schedules", [
-            //     'error' => $e->getMessage(),
-            //     'trace' => $e->getTraceAsString(),
-            //     'origin_id' => $originId,
-            //     'destination_id' => $destinationId,
-            //     'date' => $dateOfJourney
-            // ]);
+            Log::error("Error processing operator schedules", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'origin_id' => $originId,
+                'destination_id' => $destinationId,
+                'date' => $dateOfJourney
+            ]);
             return [];
         }
 
-        // Log::info("Found " . count($operatorBuses) . " operator schedules for route {$originId}-{$destinationId} on {$dateOfJourney}");
+        Log::info("Found " . count($operatorBuses) . " operator schedules for route {$originId}-{$destinationId} on {$dateOfJourney}");
         return $operatorBuses;
         // });
     }

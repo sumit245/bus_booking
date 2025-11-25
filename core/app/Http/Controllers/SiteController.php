@@ -709,8 +709,16 @@ class SiteController extends Controller
             // Transform boarding points to match API format, composing full datetime
             $boardingPoints = $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
                 $time = $point->point_time ?: '00:00:00';
-                if (is_string($time) && strpos($time, ' ') !== false) {
+                // Normalize time to H:i:s regardless of type
+                if ($time instanceof \Carbon\Carbon || $time instanceof \DateTimeInterface) {
                     $time = \Carbon\Carbon::parse($time)->format('H:i:s');
+                } elseif (is_string($time)) {
+                    if (preg_match('/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/', $time) || strpos($time, ' ') !== false) {
+                        $time = \Carbon\Carbon::parse($time)->format('H:i:s');
+                    } elseif (preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+                        // e.g. 06:40 -> add seconds
+                        $time = $time . ':00';
+                    }
                 }
                 return [
                     'CityPointIndex' => $point->id,
@@ -725,8 +733,15 @@ class SiteController extends Controller
             // Transform dropping points to match API format, composing full datetime
             $droppingPoints = $route->droppingPoints->map(function ($point) use ($dateOfJourney) {
                 $time = $point->point_time ?: '00:00:00';
-                if (is_string($time) && strpos($time, ' ') !== false) {
+                // Normalize time to H:i:s regardless of type
+                if ($time instanceof \Carbon\Carbon || $time instanceof \DateTimeInterface) {
                     $time = \Carbon\Carbon::parse($time)->format('H:i:s');
+                } elseif (is_string($time)) {
+                    if (preg_match('/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/', $time) || strpos($time, ' ') !== false) {
+                        $time = \Carbon\Carbon::parse($time)->format('H:i:s');
+                    } elseif (preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+                        $time = $time . ':00';
+                    }
                 }
                 return [
                     'CityPointIndex' => $point->id,

@@ -134,7 +134,7 @@
                         <input type="hidden" name="dropping_point_time" id="form_dropping_point_time">
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="book-bus-btn btn-primary">@lang('Continue to Booking')</button>
+                        <button type="submit" class="book-bus-btn btn-primary" disabled>@lang('Continue to Booking')</button>
                     </div>
                 </form>
             </div>
@@ -552,6 +552,11 @@
             } else {
                 $('.booked-seat-details').removeClass('d-block').addClass('d-none');
             }
+            // Toggle booking button enabled state based on seat selection
+            const bookBtn = document.querySelector('.book-bus-btn');
+            if (bookBtn) {
+                bookBtn.disabled = selectedSeats.length === 0;
+            }
             updatePriceDisplays(); // Update all displayed prices
         }
 
@@ -609,11 +614,11 @@
                             <span>${point.CityPointLocation || point.CityPointName}</span>
                         </div>
                         ${point.CityPointContactNumber ? `
-                                    <div class="point-contact">
-                                        <i class="las la-phone"></i>
-                                        <span>${point.CityPointContactNumber}</span>
-                                    </div>
-                                    ` : ''}
+                                        <div class="point-contact">
+                                            <i class="las la-phone"></i>
+                                            <span>${point.CityPointContactNumber}</span>
+                                        </div>
+                                        ` : ''}
                     </div>
                 </div>
                 `;
@@ -653,11 +658,11 @@
                             <span>${point.CityPointLocation || point.CityPointName}</span>
                         </div>
                         ${point.CityPointContactNumber ? `
-                                    <div class="point-contact">
-                                        <i class="las la-phone"></i>
-                                        <span>${point.CityPointContactNumber}</span>
-                                    </div>
-                                    ` : ''}
+                                        <div class="point-contact">
+                                            <i class="las la-phone"></i>
+                                            <span>${point.CityPointContactNumber}</span>
+                                        </div>
+                                        ` : ''}
                     </div>
                 </div>
                 `;

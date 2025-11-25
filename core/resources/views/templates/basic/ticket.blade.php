@@ -197,6 +197,62 @@
                                 <h5>{{ __($emptyMessage) }}</h5>
                             </div>
                         @endforelse
+
+                        {{-- Pagination Controls --}}
+                        @if (isset($pagination) && $pagination['total_results'] > $pagination['per_page'])
+                            <div class="pagination-wrapper mt-4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="pagination-info">
+                                        <p class="mb-0 text-muted">
+                                            Showing {{ ($pagination['current_page'] - 1) * $pagination['per_page'] + 1 }}
+                                            to
+                                            {{ min($pagination['current_page'] * $pagination['per_page'], $pagination['total_results']) }}
+                                            of {{ $pagination['total_results'] }} buses
+                                        </p>
+                                    </div>
+                                    <nav aria-label="Bus results pagination">
+                                        <ul class="pagination mb-0">
+                                            @if ($pagination['current_page'] > 1)
+                                                <li class="page-item">
+                                                    <a class="page-link"
+                                                        href="{{ request()->fullUrlWithQuery(['page' => $pagination['current_page'] - 1]) }}">
+                                                        <i class="las la-angle-left"></i> Previous
+                                                    </a>
+                                                </li>
+                                            @else
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">
+                                                        <i class="las la-angle-left"></i> Previous
+                                                    </span>
+                                                </li>
+                                            @endif
+
+                                            <li class="page-item active">
+                                                <span class="page-link">
+                                                    Page {{ $pagination['current_page'] }} of
+                                                    {{ ceil($pagination['total_results'] / $pagination['per_page']) }}
+                                                </span>
+                                            </li>
+
+                                            @if ($pagination['has_more_pages'])
+                                                <li class="page-item">
+                                                    <a class="page-link"
+                                                        href="{{ request()->fullUrlWithQuery(['page' => $pagination['current_page'] + 1]) }}">
+                                                        Next <i class="las la-angle-right"></i>
+                                                    </a>
+                                                </li>
+                                            @else
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">
+                                                        Next <i class="las la-angle-right"></i>
+                                                    </span>
+                                                </li>
+                                            @endif
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -641,6 +697,65 @@
 
         .coupon-display-banner p {
             margin: 0;
+        }
+
+        /* Pagination styles */
+        .pagination-wrapper {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .pagination {
+            margin: 0;
+        }
+
+        .pagination .page-link {
+            color: #e74c3c;
+            border: 1px solid #dee2e6;
+            padding: 8px 15px;
+            margin: 0 3px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .pagination .page-link:hover {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: #e74c3c;
+            border-color: #e74c3c;
+            color: white;
+        }
+
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d;
+            background-color: #fff;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .pagination-wrapper .d-flex {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .pagination-info {
+                text-align: center;
+            }
+
+            .pagination {
+                justify-content: center;
+            }
         }
     </style>
 @endpush

@@ -252,6 +252,7 @@ class SiteController extends Controller
                 'OriginId' => 'required|integer',
                 'DestinationId' => 'required|integer|different:OriginId',
                 'DateOfJourney' => 'required|after_or_equal:today',
+                'page' => 'sometimes|integer|min:1',
                 'sortBy' => 'sometimes|string|in:departure,price-low,price-high,duration',
                 'fleetType' => 'sometimes|array',
                 'fleetType.*' => 'string|in:A/c,Non-A/c,Seater,Sleeper',
@@ -275,7 +276,7 @@ class SiteController extends Controller
             // Store the search token ID
             session(['search_token_id' => $result['SearchTokenId']]);
 
-            $viewData = $this->prepareAndReturnView($result['trips']);
+            $viewData = $this->prepareAndReturnView($result['trips'], $result['pagination'] ?? null);
             $viewData['currentCoupon'] = BusService::getCurrentCoupon();
 
             return view($this->activeTemplate . 'ticket', $viewData);
@@ -289,7 +290,7 @@ class SiteController extends Controller
         }
     }
 
-    private function prepareAndReturnView($trips)
+    private function prepareAndReturnView($trips, $pagination = null)
     {
         try {
             $viewData = [
@@ -299,6 +300,7 @@ class SiteController extends Controller
                 'schedules' => Schedule::all(),
                 'routes' => VehicleRoute::active()->get(),
                 'trips' => $trips,
+                'pagination' => $pagination,
                 'layout' => auth()->user() ? 'layouts.master' : 'layouts.frontend'
             ];
             return $viewData;

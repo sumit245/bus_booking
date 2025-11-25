@@ -40,17 +40,17 @@ class BusService
         // Merge operator buses with third-party results
         $trips = array_merge($trips, $operatorBuses);
 
-        // Log::info("BusService::searchBuses - After merging", [
-        //     'third_party_count' => count($apiResponse['Result'] ?? []),
-        //     'operator_count' => count($operatorBuses),
-        //     'total_count' => count($trips),
-        //     'operator_buses' => array_map(function ($bus) {
-        //         return [
-        //             'ResultIndex' => $bus['ResultIndex'] ?? 'N/A',
-        //             'TravelName' => $bus['TravelName'] ?? 'N/A'
-        //         ];
-        //     }, $operatorBuses)
-        // ]);
+        Log::info("BusService::searchBuses - After merging", [
+            'third_party_count' => count($apiResponse['Result'] ?? []),
+            'operator_count' => count($operatorBuses),
+            'total_count' => count($trips),
+            'operator_buses' => array_map(function ($bus) {
+                return [
+                    'ResultIndex' => $bus['ResultIndex'] ?? 'N/A',
+                    'TravelName' => $bus['TravelName'] ?? 'N/A'
+                ];
+            }, $operatorBuses)
+        ]);
 
         // If no trips found, check if we have operator buses or third-party API error
         if (empty($trips)) {
@@ -82,7 +82,11 @@ class BusService
             'per_page' => $perPage,
             'offset' => $offset,
             'paginated_count' => count($paginatedTrips),
-            'has_more' => ($page * $perPage) < $totalTrips
+            'has_more' => ($page * $perPage) < $totalTrips,
+            'operator_buses_in_page' => array_values(array_filter($paginatedTrips, function ($trip) {
+                return isset($trip['IsOperatorBus']) && $trip['IsOperatorBus'];
+            })),
+            'first_5_result_indexes' => array_slice(array_column($paginatedTrips, 'ResultIndex'), 0, 5)
         ]);
 
         return [

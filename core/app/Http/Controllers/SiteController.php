@@ -644,7 +644,7 @@ class SiteController extends Controller
 
         // Check if this is an operator bus
         if (str_starts_with($ResultIndex, 'OP_')) {
-            // Handle operator bus boarding/dropping points
+            // Handle operator bus boarding/dropping points by schedule
             // ResultIndex format: OP_{bus_id}_{schedule_id}
             $parts = explode('_', $ResultIndex);
             if (count($parts) >= 3) {
@@ -655,36 +655,84 @@ class SiteController extends Controller
                 $operatorBusId = (int) str_replace('OP_', '', $ResultIndex);
                 $scheduleId = null;
             }
-            $operatorBus = \App\Models\OperatorBus::with(['currentRoute.boardingPoints', 'currentRoute.droppingPoints'])->find($operatorBusId);
 
-            if (!$operatorBus || !$operatorBus->currentRoute) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Operator bus or route not found'
-                ], 400);
+            // If scheduleId is present, use it to fetch the correct route for this direction
+            if ($scheduleId) {
+                $schedule = \App\Models\BusSchedule::with(['operatorRoute.boardingPoints', 'operatorRoute.droppingPoints'])->find($scheduleId);
+                if (!$schedule || !$schedule->operatorRoute) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Operator schedule or route not found'
+                    ], 400);
+                }
+                // Optional: ensure schedule belongs to the parsed bus
+                if ((int) $schedule->operator_bus_id !== $operatorBusId) {
+                    // Not fatal, but log a warning
+                    \Log::warning('getBoardingPoints: schedule bus mismatch', [
+                        'parsed_bus_id' => $operatorBusId,
+                        'schedule_bus_id' => $schedule->operator_bus_id,
+                        'schedule_id' => $scheduleId,
+                        'result_index' => $ResultIndex,
+                    ]);
+                }
+                $route = $schedule->operatorRoute;
+            } else {
+                // Legacy path: fall back to bus currentRoute
+                $operatorBus = \App\Models\OperatorBus::with(['currentRoute.boardingPoints', 'currentRoute.droppingPoints'])->find($operatorBusId);
+                if (!$operatorBus || !$operatorBus->currentRoute) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Operator bus or route not found'
+                    ], 400);
+                }
+                $route = $operatorBus->currentRoute;
             }
 
-            $route = $operatorBus->currentRoute;
+            // Normalize DateOfJourney to Y-m-d for time composition
+            $dateOfJourney = session()->get('date_of_journey') ?? $request->get('date') ?? date('Y-m-d');
+            if ($dateOfJourney && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateOfJourney)) {
+                try {
+                    if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $dateOfJourney)) {
+                        $dateOfJourney = \Carbon\Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+                    } else {
+                        $dateOfJourney = \Carbon\Carbon::parse($dateOfJourney)->format('Y-m-d');
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('getBoardingPoints: Failed to parse DateOfJourney', [
+                        'original_date' => $dateOfJourney,
+                        'error' => $e->getMessage()
+                    ]);
+                    $dateOfJourney = date('Y-m-d');
+                }
+            }
 
-            // Transform boarding points to match API format
-            $boardingPoints = $route->boardingPoints->map(function ($point) {
+            // Transform boarding points to match API format, composing full datetime
+            $boardingPoints = $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
+                $time = $point->point_time ?: '00:00:00';
+                if (is_string($time) && strpos($time, ' ') !== false) {
+                    $time = \Carbon\Carbon::parse($time)->format('H:i:s');
+                }
                 return [
                     'CityPointIndex' => $point->id,
                     'CityPointName' => $point->point_name,
                     'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
-                    'CityPointTime' => $point->point_time ?: '00:00:00',
+                    'CityPointTime' => \Carbon\Carbon::parse($dateOfJourney . ' ' . $time)->format('Y-m-d\TH:i:s'),
                     'CityPointLandmark' => $point->point_landmark,
                     'CityPointContactNumber' => $point->contact_number,
                 ];
             })->toArray();
 
-            // Transform dropping points to match API format
-            $droppingPoints = $route->droppingPoints->map(function ($point) {
+            // Transform dropping points to match API format, composing full datetime
+            $droppingPoints = $route->droppingPoints->map(function ($point) use ($dateOfJourney) {
+                $time = $point->point_time ?: '00:00:00';
+                if (is_string($time) && strpos($time, ' ') !== false) {
+                    $time = \Carbon\Carbon::parse($time)->format('H:i:s');
+                }
                 return [
                     'CityPointIndex' => $point->id,
                     'CityPointName' => $point->point_name,
                     'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
-                    'CityPointTime' => $point->point_time ?: '00:00:00',
+                    'CityPointTime' => \Carbon\Carbon::parse($dateOfJourney . ' ' . $time)->format('Y-m-d\TH:i:s'),
                     'CityPointLandmark' => $point->point_landmark,
                     'CityPointContactNumber' => $point->contact_number,
                 ];

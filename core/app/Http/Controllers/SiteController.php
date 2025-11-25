@@ -279,6 +279,31 @@ class SiteController extends Controller
             $viewData = $this->prepareAndReturnView($result['trips'], $result['pagination'] ?? null);
             $viewData['currentCoupon'] = BusService::getCurrentCoupon();
 
+            // Debug log what's being passed to the view
+            $operatorBusesInView = array_filter($result['trips'], function ($trip) {
+                return isset($trip['IsOperatorBus']) && $trip['IsOperatorBus'];
+            });
+
+            Log::info('SiteController@ticketSearch - Passing to view', [
+                'total_trips' => count($result['trips']),
+                'operator_buses' => count($operatorBusesInView),
+                'operator_bus_details' => array_map(function ($bus) {
+                    return [
+                        'TravelName' => $bus['TravelName'] ?? 'N/A',
+                        'ResultIndex' => $bus['ResultIndex'] ?? 'N/A',
+                        'DepartureTime' => $bus['DepartureTime'] ?? 'N/A'
+                    ];
+                }, array_values($operatorBusesInView)),
+                'pagination' => $result['pagination'] ?? null,
+                'first_5_buses' => array_slice(array_map(function ($bus) {
+                    return [
+                        'TravelName' => $bus['TravelName'] ?? 'N/A',
+                        'IsOperator' => isset($bus['IsOperatorBus']) && $bus['IsOperatorBus'],
+                        'DepartureTime' => $bus['DepartureTime'] ?? 'N/A'
+                    ];
+                }, $result['trips']), 0, 5)
+            ]);
+
             return view($this->activeTemplate . 'ticket', $viewData);
 
         } catch (\Illuminate\Validation\ValidationException $e) {

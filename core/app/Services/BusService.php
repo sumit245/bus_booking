@@ -9,6 +9,7 @@ use App\Models\OperatorRoute;
 use App\Models\OperatorBus;
 use App\Models\BusSchedule;
 use App\Models\OperatorBooking;
+use App\Models\BookedTicket;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -139,6 +140,9 @@ class BusService
     private function fetchOperatorBuses(int $originId, int $destinationId, string $dateOfJourney): array
     {
         $cacheKey = "operator_bus_search_v3:{$originId}_{$destinationId}_{$dateOfJourney}";
+        // $journeyDate = Carbon::parse($dateOfJourney);
+        // $nowTime     = now()->format('H:i:s'); // current time like '14:30:00'
+
         // Temporarily bypass cache for testing
         // TODO: Re-enable caching after debugging
         // return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney) {
@@ -155,7 +159,6 @@ class BusService
                 ->whereHas('operatorRoute.destinationCity', function ($query) use ($destinationId) {
                     $query->where('city_id', $destinationId);
                 })
-                ->forDate($dateOfJourney)
                 ->with([
                     'operatorRoute.originCity',
                     'operatorRoute.destinationCity',
@@ -163,6 +166,7 @@ class BusService
                 ])
                 ->ordered()
                 ->get();
+
 
             Log::info("Found " . $schedules->count() . " operator schedules");
 
@@ -220,6 +224,7 @@ class BusService
         // });
     }
 
+
     /**
      * Transforms schedule data to match third-party API format.
      */
@@ -257,7 +262,7 @@ class BusService
             'Origin' => $route->originCity->city_name,
             'Destination' => $route->destinationCity->city_name,
             'TotalSeats' => $bus->total_seats,
-            'AvailableSeats' => $this->calculateAvailableSeats($bus, $dateOfJourney),
+            'AvailableSeats' => $this->calculateAvailableSeats($bus, $dateOfJourney, $schedule->id),
             'LiveTrackingAvailable' => $bus->live_tracking_available ?? true,
             'MTicketEnabled' => $bus->m_ticket_enabled ?? true,
             'PartialCancellationAllowed' => $bus->partial_cancellation_allowed ?? true,
@@ -669,21 +674,35 @@ class BusService
     }
 
     /**
-     * Calculate available seats for a bus on a specific date, excluding operator-blocked seats.
+     * Calculate available seats for a bus on a specific date, excluding operator-blocked seats AND booked tickets.
+     * This returns real-time seat availability by checking:
+     * 1. OperatorBooking - blocks of seats reserved by operator
+     * 2. BookedTicket - individual seats booked by users/agents
      */
-    private function calculateAvailableSeats(OperatorBus $bus, string $dateOfJourney): int
+    private function calculateAvailableSeats(OperatorBus $bus, string $dateOfJourney, int $scheduleId = null): int
     {
         $totalSeats = $bus->total_seats;
 
-        // Get operator bookings that block seats on this date
+        // Normalize date format to Y-m-d for database comparison
+        try {
+            $normalizedDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
+        } catch (\Exception $e) {
+            Log::error('Invalid date format in calculateAvailableSeats', [
+                'date' => $dateOfJourney,
+                'error' => $e->getMessage()
+            ]);
+            $normalizedDate = $dateOfJourney;
+        }
+
+        // 1. Get operator bookings that block seats on this date
         $blockedSeats = OperatorBooking::active()
             ->where('operator_bus_id', $bus->id)
-            ->where(function ($query) use ($dateOfJourney) {
-                $query->where('journey_date', $dateOfJourney)
-                    ->orWhere(function ($q) use ($dateOfJourney) {
+            ->where(function ($query) use ($normalizedDate) {
+                $query->where('journey_date', $normalizedDate)
+                    ->orWhere(function ($q) use ($normalizedDate) {
                         $q->where('is_date_range', true)
-                            ->where('journey_date', '<=', $dateOfJourney)
-                            ->where('journey_date_end', '>=', $dateOfJourney);
+                            ->where('journey_date', '<=', $normalizedDate)
+                            ->where('journey_date_end', '>=', $normalizedDate);
                     });
             })
             ->get();
@@ -693,7 +712,64 @@ class BusService
             $totalBlockedSeats += $booking->total_seats_blocked;
         }
 
-        $availableSeats = $totalSeats - $totalBlockedSeats;
+        // 2. Get actual booked tickets for this bus/schedule on this date
+        $bookedTicketsQuery = BookedTicket::where('bus_id', $bus->id)
+            ->where('date_of_journey', $normalizedDate)
+            ->whereIn('status', [0, 1, 2]); // 1 = booked, 2 = pending
+
+        // If schedule ID is provided, filter by schedule
+        if ($scheduleId) {
+            $bookedTicketsQuery->where('schedule_id', $scheduleId);
+        }
+
+        $bookedTickets = $bookedTicketsQuery->get();
+
+        // Count individual booked seats
+        $bookedSeatsCount = 0;
+        $bookedSeatsDetails = [];
+        foreach ($bookedTickets as $ticket) {
+            $seatCount = 0;
+            $seatList = null;
+
+            if (is_array($ticket->seats)) {
+                $seatCount = count($ticket->seats);
+                $seatList = $ticket->seats;
+            } elseif (is_string($ticket->seats)) {
+                // Handle JSON string
+                $seats = json_decode($ticket->seats, true);
+                if (is_array($seats)) {
+                    $seatCount = count($seats);
+                    $seatList = $seats;
+                }
+            } elseif (isset($ticket->ticket_count)) {
+                // Fallback to ticket_count if seats array not available
+                $seatCount = $ticket->ticket_count;
+            }
+
+            $bookedSeatsCount += $seatCount;
+            $bookedSeatsDetails[] = [
+                'booking_id' => $ticket->id,
+                'status' => $ticket->status,
+                'seats' => $seatList,
+                'count' => $seatCount
+            ];
+        }
+
+        // Calculate available seats: total - operator blocks - booked tickets
+        $availableSeats = $totalSeats - $totalBlockedSeats - $bookedSeatsCount;
+
+        Log::info('Calculated available seats', [
+            'bus_id' => $bus->id,
+            'schedule_id' => $scheduleId,
+            'date_original' => $dateOfJourney,
+            'date_normalized' => $normalizedDate,
+            'total_seats' => $totalSeats,
+            'operator_blocked' => $totalBlockedSeats,
+            'bookings_found' => count($bookedTickets),
+            'booked_seats_count' => $bookedSeatsCount,
+            'booked_seats_details' => $bookedSeatsDetails,
+            'available' => max(0, $availableSeats)
+        ]);
 
         // Ensure we don't return negative seats
         return max(0, $availableSeats);

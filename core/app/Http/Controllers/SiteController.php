@@ -793,7 +793,7 @@ class SiteController extends Controller
                     'passenger_phone' => 'required',
                     'passenger_firstname' => 'required',
                     'passenger_lastname' => 'required',
-                    'passenger_email' => 'required|email',
+                    'passenger_email' => 'nullable|email',
                 ]);
             }
         } catch (\Illuminate\Validation\ValidationException $e) {

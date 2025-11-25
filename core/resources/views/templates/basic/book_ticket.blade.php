@@ -609,11 +609,11 @@
                             <span>${point.CityPointLocation || point.CityPointName}</span>
                         </div>
                         ${point.CityPointContactNumber ? `
-                                <div class="point-contact">
-                                    <i class="las la-phone"></i>
-                                    <span>${point.CityPointContactNumber}</span>
-                                </div>
-                                ` : ''}
+                                    <div class="point-contact">
+                                        <i class="las la-phone"></i>
+                                        <span>${point.CityPointContactNumber}</span>
+                                    </div>
+                                    ` : ''}
                     </div>
                 </div>
                 `;
@@ -653,11 +653,11 @@
                             <span>${point.CityPointLocation || point.CityPointName}</span>
                         </div>
                         ${point.CityPointContactNumber ? `
-                                <div class="point-contact">
-                                    <i class="las la-phone"></i>
-                                    <span>${point.CityPointContactNumber}</span>
-                                </div>
-                                ` : ''}
+                                    <div class="point-contact">
+                                        <i class="las la-phone"></i>
+                                        <span>${point.CityPointContactNumber}</span>
+                                    </div>
+                                    ` : ''}
                     </div>
                 </div>
                 `;
@@ -668,7 +668,7 @@
                 $('.dropping-point-card').removeClass('selected');
                 $(this).addClass('selected');
                 let selectedLocation = $(this).find('.point-location span').text().trim();
-                $('#passenger_address').val(selectedLocation);
+                // $('#passenger_address').val(selectedLocation);
                 $('#selected_dropping_point').val($(this).data('index'));
             });
         }
@@ -853,7 +853,7 @@
                         if ($('#sendOtpBtn').length === 0) {
                             $('#passenger_phone').parent().append(
                                 '<button type="button" class="btn btn-primary btn-sm otp-btn" id="sendOtpBtn">@lang('Send OTP to WhatsApp')</button>'
-                                );
+                            );
                         }
                         $('#sendOtpBtn').show();
                         $('#is_otp_verified').val('0');

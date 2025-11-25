@@ -275,30 +275,50 @@
                         Remarks: reason || 'Cancelled by customer'
                     };
 
-                    // Call API
-                    return fetch('/api/users/cancel-ticket', {
+                    console.log('Cancellation request data:', requestData);
+
+                    // Call API with correct base URL
+                    const apiUrl = '{{ url('/api/users/cancel-ticket') }}';
+                    console.log('API URL:', apiUrl);
+
+                    return fetch(apiUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Accept': 'application/json'
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
                             },
                             body: JSON.stringify(requestData)
                         })
                         .then(response => {
-                            if (!response.ok) {
-                                return response.json().then(err => {
-                                    throw new Error(err.message || 'Failed to cancel booking');
-                                });
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (!data.success) {
-                                throw new Error(data.message || 'Failed to cancel booking');
-                            }
-                            return data;
+                            console.log('Response status:', response.status);
+
+                            // First, try to get the text to see what we're receiving
+                            return response.text().then(text => {
+                                console.log('Response text:', text);
+
+                                try {
+                                    const data = JSON.parse(text);
+                                    if (!response.ok) {
+                                        throw new Error(data.message ||
+                                            'Failed to cancel booking');
+                                    }
+                                    if (!data.success) {
+                                        throw new Error(data.message ||
+                                            'Failed to cancel booking');
+                                    }
+                                    return data;
+                                } catch (e) {
+                                    console.error('JSON parse error:', e);
+                                    console.error('Response was:', text);
+                                    throw new Error(
+                                        'Server returned invalid response. Please check the console for details.'
+                                        );
+                                }
+                            });
                         })
                         .catch(error => {
+                            console.error('Cancellation error:', error);
                             Swal.showValidationMessage(
                                 `Request failed: ${error.message}`
                             );

@@ -21,7 +21,8 @@
                             </button>
                             <form method="POST" action="{{ route('user.logout') }}" style="display: inline;">
                                 @csrf
-                                <button type="submit" class="btn-link" style="background: none; border: none; padding: 0; color: inherit; cursor: pointer; text-decoration: none;">
+                                <button type="submit" class="btn-link"
+                                    style="background: none; border: none; padding: 0; color: inherit; cursor: pointer; text-decoration: none;">
                                     @lang('Logout')
                                 </button>
                             </form>
@@ -134,11 +135,28 @@
                                 <div class="detail-item">
                                     <i class="las la-chair"></i>
                                     <span>
-                                        @if (is_array($booking->seats))
-                                            {{ implode(', ', $booking->seats) }}
-                                        @else
-                                            {{ $booking->seats ?? 'N/A' }}
-                                        @endif
+                                        @php
+                                            $seats = $booking->seats;
+                                            $seatDisplay = 'N/A';
+
+                                            // Handle different data types for seats
+                                            if (is_string($seats)) {
+                                                $decoded = json_decode($seats, true);
+                                                if (is_array($decoded)) {
+                                                    $seatDisplay = implode(', ', $decoded);
+                                                } else {
+                                                    $seatDisplay = $seats; // Use the string as-is
+                                                }
+                                            } elseif (is_object($seats)) {
+                                                $converted = json_decode(json_encode($seats), true);
+                                                if (is_array($converted) && !empty($converted)) {
+                                                    $seatDisplay = implode(', ', $converted);
+                                                }
+                                            } elseif (is_array($seats) && !empty($seats)) {
+                                                $seatDisplay = implode(', ', $seats);
+                                            }
+                                        @endphp
+                                        {{ $seatDisplay }}
                                     </span>
                                 </div>
                                 <div class="detail-item">
@@ -273,7 +291,7 @@
                         </div>
                         <div class="form-group">
                             <label for="address" class="form-label">Address</label>
-                            <textarea class="form-control" id="address" name="address" rows="3" placeholder="Enter your address">{{ auth()->user()->address ?? '' }}</textarea>
+                            <textarea class="form-control" id="address" name="address" rows="3" placeholder="Enter your address">{{ is_string(auth()->user()->address) ? auth()->user()->address : (auth()->user()->address ? json_encode(auth()->user()->address) : '') }}</textarea>
                             <small class="text-muted">Your complete address</small>
                         </div>
                     </form>

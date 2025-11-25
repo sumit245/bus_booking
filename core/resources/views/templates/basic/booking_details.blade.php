@@ -15,10 +15,10 @@
                         Cancel Booking
                     </button>
                 @endif
-                <button type="button" class="btn-print" onclick="printTicket()">
+                <a href="{{ route('public.ticket.print', $booking->id) }}" target="_blank" class="btn-print">
                     <i class="las la-print"></i>
                     Print Ticket
-                </button>
+                </a>
             </div>
         </div>
 
@@ -140,13 +140,18 @@
                                     @if ($booking->boarding_point_details)
                                         @php
                                             $boardingDetails = json_decode($booking->boarding_point_details, true);
+                                            // Handle if it's an array of points, take the first one
+                                            if (is_array($boardingDetails) && isset($boardingDetails[0])) {
+                                                $boardingDetails = $boardingDetails[0];
+                                            }
                                         @endphp
-                                        @if ($boardingDetails)
+                                        @if ($boardingDetails && is_array($boardingDetails))
                                             <div class="point-info">
                                                 <div class="point-name">{{ $boardingDetails['CityPointName'] ?? 'N/A' }}
                                                 </div>
                                                 <div class="point-location">
-                                                    {{ $boardingDetails['CityPointLocation'] ?? 'N/A' }}</div>
+                                                    {{ $boardingDetails['CityPointLocation'] ?? ($boardingDetails['CityPointAddress'] ?? 'N/A') }}
+                                                </div>
                                                 @if (isset($boardingDetails['CityPointTime']))
                                                     <div class="point-time">
                                                         <i class="las la-clock"></i>
@@ -160,6 +165,8 @@
                                                     </div>
                                                 @endif
                                             </div>
+                                        @else
+                                            <div class="point-info">No boarding point details</div>
                                         @endif
                                     @else
                                         <div class="point-info">No boarding point details</div>
@@ -172,13 +179,18 @@
                                     @if ($booking->dropping_point_details)
                                         @php
                                             $droppingDetails = json_decode($booking->dropping_point_details, true);
+                                            // Handle if it's an array of points, take the first one
+                                            if (is_array($droppingDetails) && isset($droppingDetails[0])) {
+                                                $droppingDetails = $droppingDetails[0];
+                                            }
                                         @endphp
-                                        @if ($droppingDetails)
+                                        @if ($droppingDetails && is_array($droppingDetails))
                                             <div class="point-info">
                                                 <div class="point-name">{{ $droppingDetails['CityPointName'] ?? 'N/A' }}
                                                 </div>
                                                 <div class="point-location">
-                                                    {{ $droppingDetails['CityPointLocation'] ?? 'N/A' }}</div>
+                                                    {{ $droppingDetails['CityPointLocation'] ?? ($droppingDetails['CityPointAddress'] ?? 'N/A') }}
+                                                </div>
                                                 @if (isset($droppingDetails['CityPointTime']))
                                                     <div class="point-time">
                                                         <i class="las la-clock"></i>
@@ -186,6 +198,8 @@
                                                     </div>
                                                 @endif
                                             </div>
+                                        @else
+                                            <div class="point-info">No dropping point details</div>
                                         @endif
                                     @else
                                         <div class="point-info">No dropping point details</div>
@@ -312,10 +326,7 @@
             }
         });
 
-        // Simple print function
-        function printTicket() {
-            window.print();
-        }
+        // Print function removed - now using dedicated print endpoint
     </script>
 @endpush
 

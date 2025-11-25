@@ -1480,6 +1480,11 @@ Route::name("user.")
                     "booked-ticket/print/{id}",
                     "UserController@printTicket",
                 )->name("ticket.print");
+                // User-specific print route (alias to public route)
+                Route::get(
+                    "ticket/print/{id}",
+                    "TicketController@publicPrintTicket",
+                )->name("user.ticket.print");
 
                 // Deposit //payment ticket booking
                 Route::any(
@@ -1572,6 +1577,10 @@ Route::get("placeholder-image/{size}", "SiteController@placeholderImage")->name(
     "placeholder.image",
 );
 Route::get("ticket/search", "SiteController@ticketSearch")->name("search");
+
+// Public ticket print route (for mobile and web users)
+Route::get("/users/print-ticket/{id}", "TicketController@publicPrintTicket")->name("public.ticket.print");
+
 Route::get("/{slug}", "SiteController@pages")->name("pages");
 Route::get("/", "SiteController@index")->name("home");
 

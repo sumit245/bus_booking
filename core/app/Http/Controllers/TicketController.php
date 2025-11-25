@@ -72,6 +72,16 @@ class TicketController extends Controller
     }
 
     /**
+     * Public print ticket method - accessible without authentication
+     * Used by both web and mobile users
+     */
+    public function publicPrintTicket($id, Request $request = null)
+    {
+        // Just call the main printTicket method
+        return $this->printTicket($id, $request);
+    }
+
+    /**
      * Format ticket data for printing
      */
     private function formatTicketForPrint($ticket)

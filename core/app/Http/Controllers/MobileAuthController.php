@@ -117,7 +117,7 @@ class MobileAuthController extends Controller
 
         // Login user
         Auth::login($user);
-        
+
         // Delete OTP record
         $otpRecord->delete();
 
@@ -144,6 +144,9 @@ class MobileAuthController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
 
+            // Get general settings
+            $general = \App\Models\GeneralSetting::first();
+
             // Log for debugging
             Log::info('Dashboard loaded', [
                 'user_id' => auth()->id(),
@@ -151,7 +154,7 @@ class MobileAuthController extends Controller
                 'bookings_count' => $bookings->count()
             ]);
 
-            return view($this->activeTemplate . 'user_dashboard', compact('pageTitle', 'layout', 'bookings'));
+            return view($this->activeTemplate . 'user_dashboard', compact('pageTitle', 'layout', 'bookings', 'general'));
         } catch (\Exception $e) {
             Log::error('Error in dashboard', [
                 'user_id' => auth()->id(),

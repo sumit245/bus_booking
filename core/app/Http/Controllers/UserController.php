@@ -25,10 +25,10 @@ class UserController extends Controller
         $emptyMessage = 'No booked ticket found';
         $user = auth()->user();
 
-        $widget['total']     = BookedTicket::where('user_id', $user->id)->count();
-        $widget['booked']    = BookedTicket::booked()->where('user_id', $user->id)->count();
-        $widget['pending']   = BookedTicket::pending()->where('user_id', $user->id)->count();
-        $widget['rejected']  = BookedTicket::rejected()->where('user_id', $user->id)->count();
+        $widget['total'] = BookedTicket::where('user_id', $user->id)->count();
+        $widget['booked'] = BookedTicket::booked()->where('user_id', $user->id)->count();
+        $widget['pending'] = BookedTicket::pending()->where('user_id', $user->id)->count();
+        $widget['rejected'] = BookedTicket::rejected()->where('user_id', $user->id)->count();
         $widget['cancelled'] = BookedTicket::where('user_id', $user->id)->where('status', 3)->count();
 
         $bookedTickets = BookedTicket::with([
@@ -143,8 +143,79 @@ class UserController extends Controller
 
     public function printTicket($id)
     {
-        $pageTitle = "Ticket Print";
-        $ticket = BookedTicket::with(['trip.fleetType', 'trip.startFrom', 'trip.endTo', 'trip.schedule', 'trip.assignedVehicle.vehicle', 'pickup', 'drop', 'user'])->where('user_id', auth()->user()->id)->findOrFail($id);
-        return view($this->activeTemplate . 'user.print_ticket', compact('ticket', 'pageTitle'));
+        $ticket = BookedTicket::with([
+            'trip.fleetType',
+            'trip.startFrom',
+            'trip.endTo',
+            'trip.schedule',
+            'trip.assignedVehicle.vehicle',
+            'pickup',
+            'drop',
+            'user'
+        ])->where('user_id', auth()->user()->id)->findOrFail($id);
+
+        // Prepare ticket data for the unified print template
+        $general = GeneralSetting::first();
+        $companyName = $general->sitename ?? 'Bus Booking';
+        $logoUrl = getImage(imagePath()['logoIcon']['path'] . '/logo.png');
+
+        // Format seats
+        $seats = is_array($ticket->seats) ? $ticket->seats : (is_string($ticket->seats) ? json_decode($ticket->seats, true) : []);
+        if (!is_array($seats)) {
+            $seats = explode(',', $ticket->seats ?? '');
+        }
+        $ticket->seats = array_filter($seats);
+
+        // Format passenger data
+        $passengers = [];
+        if ($ticket->passenger_name && !empty($seats)) {
+            $nameParts = explode(' ', $ticket->passenger_name, 2);
+            $firstName = $nameParts[0] ?? '';
+            $lastName = $nameParts[1] ?? '';
+
+            foreach ($seats as $seat) {
+                $passengers[] = [
+                    'FirstName' => $firstName,
+                    'LastName' => $lastName,
+                    'Age' => $ticket->passenger_age ?? 'N/A',
+                    'Gender' => 1, // Default to Male
+                    'Phoneno' => $ticket->passenger_phone,
+                    'Seat' => [
+                        'SeatName' => $seat
+                    ]
+                ];
+            }
+        }
+
+        // Add passenger data to ticket
+        $ticket->passengers = $passengers;
+
+        // Format journey details
+        $ticket->travel_name = $ticket->trip->fleetType->name ?? 'N/A';
+        $ticket->bus_type = $ticket->trip->fleetType->has_ac ? 'AC' : 'Non-AC';
+        $ticket->boarding_point = $ticket->pickup->name ?? $ticket->origin_city ?? 'N/A';
+        $ticket->dropping_point = $ticket->drop->name ?? $ticket->destination_city ?? 'N/A';
+
+        // Format times
+        if ($ticket->trip && $ticket->trip->schedule) {
+            $ticket->departure_time = \Carbon\Carbon::parse($ticket->trip->schedule->start_from)->format('h:i A');
+            $ticket->arrival_time = \Carbon\Carbon::parse($ticket->trip->schedule->end_to)->format('h:i A');
+
+            // Calculate duration
+            $start = \Carbon\Carbon::parse($ticket->trip->schedule->start_from);
+            $end = \Carbon\Carbon::parse($ticket->trip->schedule->end_to);
+            $diff = $start->diff($end);
+            $ticket->duration = $diff->format('%H:%I hrs');
+        }
+
+        // QR Code (optional - can be generated if needed)
+        $qrCodeUrl = null; // You can integrate QR code generation here if needed
+
+        return view('templates.basic.ticket.print_only', compact(
+            'ticket',
+            'companyName',
+            'logoUrl',
+            'qrCodeUrl'
+        ));
     }
 }

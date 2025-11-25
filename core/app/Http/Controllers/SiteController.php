@@ -969,12 +969,20 @@ class SiteController extends Controller
             ]);
 
             if ($result['success']) {
+                // Determine redirect based on user authentication
+                if (auth()->check()) {
+                    $redirectUrl = route('user.dashboard');
+                } else {
+                    // For guest users, redirect to public print page using ticket ID
+                    $redirectUrl = route('public.ticket.print', $result['ticket_id']);
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Payment successful! Ticket booked successfully.',
                     'ticket_id' => $result['ticket_id'],
                     'pnr' => $result['pnr'],
-                    'redirect' => route('user.ticket.print', $result['pnr'])
+                    'redirect' => $redirectUrl
                 ]);
             }
 

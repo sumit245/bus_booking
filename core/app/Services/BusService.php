@@ -557,26 +557,30 @@ class BusService
         ]);
 
         $filteredTrips = array_filter($trips, function ($trip) use ($filters) {
-            // IMPORTANT: Filter out buses with passed departure times ONLY for today's searches
-            if (isset($trip['DepartureTime'])) {
-                $departureTime = Carbon::parse($trip['DepartureTime']);
+            // IMPORTANT: Filter out buses with passed departure times ONLY for TODAY's searches
+            if (isset($trip['DepartureTime']) && isset($filters['DateOfJourney'])) {
+                $departureDateTime = Carbon::parse($trip['DepartureTime']);
+                $searchDate = Carbon::parse($filters['DateOfJourney'])->startOfDay();
+                $today = Carbon::today();
                 $now = Carbon::now();
-                $searchDate = $departureTime->copy()->startOfDay();
-                $today = $now->copy()->startOfDay();
 
-                // Only filter out if the search is for TODAY and departure time has passed
-                if ($searchDate->equalTo($today) && $departureTime->lessThan($now)) {
-                    Log::info('Bus filtered out - departure time passed TODAY', [
-                        'bus' => $trip['TravelName'] ?? 'Unknown',
-                        'departure_time' => $departureTime->toDateTimeString(),
-                        'current_time' => $now->toDateTimeString(),
-                        'result_index' => $trip['ResultIndex'] ?? 'N/A',
-                        'search_date' => $searchDate->toDateString(),
-                        'today' => $today->toDateString()
-                    ]);
-                    return false;
+                // ONLY filter out past departure times if the search is for TODAY
+                // For future dates, show all buses regardless of departure time
+                if ($searchDate->equalTo($today)) {
+                    // For TODAY: Filter out if departure time has already passed
+                    if ($departureDateTime->lessThan($now)) {
+                        Log::info('Bus filtered out - departure time passed TODAY', [
+                            'bus' => $trip['TravelName'] ?? 'Unknown',
+                            'departure_time' => $departureDateTime->toDateTimeString(),
+                            'current_time' => $now->toDateTimeString(),
+                            'result_index' => $trip['ResultIndex'] ?? 'N/A'
+                        ]);
+                        return false;
+                    }
                 }
+                // For future dates, do NOT filter by time - show all buses
             }
+
 
             // Live tracking filter
             if (!empty($filters['live_tracking']) && $filters['live_tracking']) {

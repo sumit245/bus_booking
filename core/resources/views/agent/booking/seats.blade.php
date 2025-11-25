@@ -82,7 +82,7 @@
                                 <label class="form-label">@lang('Journey Date')</label>
                                 <input type="text" class="form-control"
                                     value="{{ \Carbon\Carbon::parse(session('date_of_journey'))->format('M d, Y') }}"
-                                    disabled>
+                                    disabled />
                             </div>
 
                             <div class="form-group mb-3">
@@ -98,7 +98,7 @@
                                     <span class="input-group-text">+91</span>
                                     <input type="tel" class="form-control" name="passenger_phone"
                                         value="@if (auth('agent')->check()) {{ auth('agent')->user()->phone ?? '' }}@elseif(auth('admin')->check()){{ '' }} @endif"
-                                        required>
+                                        required />
                                 </div>
                             </div>
 
@@ -106,19 +106,17 @@
                                 <label class="form-label">@lang('Email') *</label>
                                 <input type="email" class="form-control" name="passenger_email"
                                     value="{{ auth('agent')->check() ? auth('agent')->user()->email ?? '' : (auth('admin')->check() ? auth('admin')->user()->email ?? '' : '') }}"
-                                    required>
+                                    required />
                             </div>
 
                             <!-- Passenger Details (Dynamic based on selected seats) -->
-                            <div id="passengerDetails">
-                                <!-- Passenger details will be dynamically added here -->
-                            </div>
+                            <div id="passengerDetails"></div>
 
                             <!-- Commission Input -->
                             <div class="form-group mb-3">
                                 <label class="form-label">@lang('Commission Amount') (₹)</label>
                                 <input type="number" class="form-control" id="commissionInput" min="0"
-                                    step="0.01" value="0">
+                                    step="0.01" value="0" />
                                 <small class="text-muted">Add commission amount to total</small>
                             </div>
 
@@ -218,6 +216,7 @@
                                         </select>
                                     </div>
                                 </div>
+
                                 <div class="col-md-5">
                                     <div class="form-group mb-3">
                                         <label class="form-label" for="dropping_point_select">@lang('Dropping Point') *</label>
@@ -489,7 +488,7 @@
                 points.forEach(point => {
                     const option = document.createElement('option');
                     option.value = point.CityPointIndex;
-                    
+
                     // Format time for display
                     let timeStr = '';
                     if (point.CityPointTime) {
@@ -499,7 +498,7 @@
                             minute: '2-digit'
                         });
                     }
-                    
+
                     // Build display text with name, time, and contact
                     let displayText = point.CityPointName || '';
                     if (timeStr) {
@@ -508,7 +507,7 @@
                     if (point.CityPointContactNumber) {
                         displayText += ` (${point.CityPointContactNumber})`;
                     }
-                    
+
                     option.textContent = displayText;
                     // Store additional data in data attributes for tooltip/display
                     option.setAttribute('data-time', timeStr);
@@ -523,7 +522,7 @@
                 points.forEach(point => {
                     const option = document.createElement('option');
                     option.value = point.CityPointIndex;
-                    
+
                     // Format time for display
                     let timeStr = '';
                     if (point.CityPointTime) {
@@ -533,7 +532,7 @@
                             minute: '2-digit'
                         });
                     }
-                    
+
                     // Build display text with name, time, and contact
                     let displayText = point.CityPointName || '';
                     if (timeStr) {
@@ -542,7 +541,7 @@
                     if (point.CityPointContactNumber) {
                         displayText += ` (${point.CityPointContactNumber})`;
                     }
-                    
+
                     option.textContent = displayText;
                     // Store additional data in data attributes
                     option.setAttribute('data-time', timeStr);
@@ -562,7 +561,7 @@
                 points.forEach(point => {
                     const option = document.createElement('option');
                     option.value = point.CityPointIndex;
-                    
+
                     // Format time for display
                     let timeStr = '';
                     if (point.CityPointTime) {
@@ -572,7 +571,7 @@
                             minute: '2-digit'
                         });
                     }
-                    
+
                     // Build display text with name, time, and contact
                     let displayText = point.CityPointName || '';
                     if (timeStr) {
@@ -581,7 +580,7 @@
                     if (point.CityPointContactNumber) {
                         displayText += ` (${point.CityPointContactNumber})`;
                     }
-                    
+
                     option.textContent = displayText;
                     // Store additional data in data attributes for tooltip/display
                     option.setAttribute('data-time', timeStr);
@@ -596,7 +595,7 @@
                 points.forEach(point => {
                     const option = document.createElement('option');
                     option.value = point.CityPointIndex;
-                    
+
                     // Format time for display
                     let timeStr = '';
                     if (point.CityPointTime) {
@@ -606,7 +605,7 @@
                             minute: '2-digit'
                         });
                     }
-                    
+
                     // Build display text with name, time, and contact
                     let displayText = point.CityPointName || '';
                     if (timeStr) {
@@ -615,7 +614,7 @@
                     if (point.CityPointContactNumber) {
                         displayText += ` (${point.CityPointContactNumber})`;
                     }
-                    
+
                     option.textContent = displayText;
                     // Store additional data in data attributes
                     option.setAttribute('data-time', timeStr);

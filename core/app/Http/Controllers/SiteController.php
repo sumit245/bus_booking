@@ -195,28 +195,28 @@ class SiteController extends Controller
     public function ticket()
     {
         $pageTitle = 'Book Ticket';
-        
+
         // Get cities for the search form
         $cities = DB::table("cities")->orderBy("city_name")->get();
-        
+
         // Determine layout based on authentication
         if (auth()->user()) {
             $layout = 'layouts.master';
         } else {
             $layout = 'layouts.frontend';
         }
-        
+
         // Get default cities if session data exists
         $originCity = null;
         $destinationCity = null;
-        
+
         if (session()->has('origin_id')) {
             $originCity = DB::table("cities")->where("city_id", session('origin_id'))->first();
         }
         if (session()->has('destination_id')) {
             $destinationCity = DB::table("cities")->where("city_id", session('destination_id'))->first();
         }
-        
+
         // Provide default cities if session data is not available
         if (!$originCity) {
             $originCity = DB::table("cities")->where("city_name", "Patna")->first();
@@ -224,17 +224,17 @@ class SiteController extends Controller
         if (!$destinationCity) {
             $destinationCity = DB::table("cities")->where("city_name", "Delhi")->first();
         }
-        
+
         // Initialize variables needed by the view (for seat selection, but empty for initial page)
         $parsedLayout = [];
         $seatHtml = '';
         $isOperatorBus = false;
-        
+
         return view($this->activeTemplate . 'book_ticket', compact(
-            'pageTitle', 
-            'layout', 
-            'cities', 
-            'originCity', 
+            'pageTitle',
+            'layout',
+            'cities',
+            'originCity',
             'destinationCity',
             'parsedLayout',
             'seatHtml',
@@ -381,10 +381,10 @@ class SiteController extends Controller
             }
 
             $seatLayout = $operatorBus->activeSeatLayout;
-            
+
             // Get date from session and normalize to Y-m-d format
             $dateOfJourney = session()->get('date_of_journey') ?? request()->get('date') ?? date('Y-m-d');
-            
+
             // Normalize date format (handle m/d/Y from session)
             if ($dateOfJourney && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateOfJourney)) {
                 try {
@@ -401,14 +401,14 @@ class SiteController extends Controller
                     $dateOfJourney = date('Y-m-d');
                 }
             }
-            
+
             Log::info('SiteController@selectSeat: Getting booked seats', [
                 'operator_bus_id' => $operatorBusId,
                 'schedule_id' => $scheduleId,
                 'date_of_journey' => $dateOfJourney,
                 'session_date' => session()->get('date_of_journey')
             ]);
-            
+
             // Use SeatAvailabilityService to get real-time booked seats
             $availabilityService = new \App\Services\SeatAvailabilityService();
             $bookedSeats = $availabilityService->getBookedSeats(
@@ -418,12 +418,12 @@ class SiteController extends Controller
                 null, // boardingPointIndex - will be calculated for all segments
                 null  // droppingPointIndex - will be calculated for all segments
             );
-            
+
             Log::info('SiteController@selectSeat: Booked seats found', [
                 'booked_seats' => $bookedSeats,
                 'count' => count($bookedSeats)
             ]);
-            
+
             // Modify HTML on-the-fly: change nseat→bseat, hseat→bhseat, vseat→bvseat
             $seatHtml = $this->modifyHtmlLayoutForBookedSeats($seatLayout->html_layout, $bookedSeats);
             $parsedLayout = parseSeatHtmlToJson($seatHtml);
@@ -500,7 +500,18 @@ class SiteController extends Controller
         // Determine which view to show based on the route accessed, not just auth status
         // Check route name to determine if this is admin/agent/operator booking or frontend booking
         $routeName = $request->route()->getName();
-        
+        $requestPath = $request->path();
+
+        // Log ALL seat selection requests for debugging
+        Log::info('=== selectSeat Method Called ===', [
+            'route_name' => $routeName,
+            'request_path' => $requestPath,
+            'auth_guard' => auth()->guard()->getName() ?? 'guest',
+            'user_id' => auth()->id(),
+            'session_origin' => session()->get('origin_id'),
+            'session_destination' => session()->get('destination_id')
+        ]);
+
         // Check if accessed via admin booking route
         if (str_contains($routeName, 'admin.booking') || str_contains($request->path(), 'admin/booking')) {
             Log::info('Admin seat selection - Variables:', [
@@ -510,19 +521,28 @@ class SiteController extends Controller
                 'result_index' => $resultIndex,
                 'route_name' => $routeName
             ]);
-            return view('admin.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
+            return response()
+                ->view('admin.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'))
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
         }
 
         // Check if accessed via agent booking route
-        if (str_contains($routeName, 'agent.booking') || str_contains($routeName, 'booking.seats') || str_contains($request->path(), 'agent/booking')) {
+        if (str_contains($routeName, 'agent.booking') || str_contains($request->path(), 'agent/booking')) {
             Log::info('Agent seat selection - Variables:', [
                 'seatHtml' => $seatHtml ? 'Present' : 'Empty',
                 'parsedLayout' => $parsedLayout ? 'Present' : 'Empty',
                 'isOperatorBus' => $isOperatorBus,
                 'result_index' => $resultIndex,
-                'route_name' => $routeName
+                'route_name' => $routeName,
+                'request_path' => $request->path()
             ]);
-            return view('agent.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
+            return response()
+                ->view('agent.booking.seats', compact('pageTitle', 'parsedLayout', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'))
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
         }
 
         // Check if accessed via operator booking route
@@ -693,7 +713,7 @@ class SiteController extends Controller
             // This prevents "1" from matching "U1", "11", "21", etc.
             // Seat IDs are stored in the id attribute: <div id="U1" class="nseat"> or <div id="1" class="nseat">
             $nodes = $xpath->query("//*[@id='{$seatName}' and (contains(@class, 'nseat') or contains(@class, 'hseat') or contains(@class, 'vseat'))]");
-            
+
             foreach ($nodes as $node) {
                 $class = $node->getAttribute('class');
                 // Replace nseat with bseat, hseat with bhseat, vseat with bvseat
@@ -714,11 +734,11 @@ class SiteController extends Controller
         // Frontend booking (ticket.seats route) always uses single passenger format
         // Agent/Admin booking pages use multiple passenger format
         $routeName = $request->route()->getName();
-        $isAgentOrAdminBooking = str_contains($routeName, 'agent.booking') 
+        $isAgentOrAdminBooking = str_contains($routeName, 'agent.booking')
             || str_contains($routeName, 'admin.booking')
             || str_contains($request->path(), 'agent/booking')
             || str_contains($request->path(), 'admin/booking');
-        
+
         // Different validation for agent/admin booking pages vs regular frontend booking
         try {
             if ($isAgentOrAdminBooking) {
@@ -759,7 +779,7 @@ class SiteController extends Controller
             ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed: ' . implode(', ', array_map(function($errors) {
+                'message' => 'Validation failed: ' . implode(', ', array_map(function ($errors) {
                     return implode(', ', $errors);
                 }, $e->errors())),
                 'errors' => $e->errors()
@@ -780,7 +800,7 @@ class SiteController extends Controller
             foreach ($passengerNames as $index => $fullName) {
                 $fullName = trim($fullName);
                 $gender = $passengerGenders[$index] ?? 1; // Default to 1 (Male) if not set
-                
+
                 // Determine title based on gender
                 $title = 'Mr';
                 if ($gender == 2) {
@@ -788,10 +808,10 @@ class SiteController extends Controller
                 } elseif ($gender == 3) {
                     $title = 'Ms';
                 }
-                
+
                 // Split name by spaces
                 $nameParts = explode(' ', $fullName, 2);
-                
+
                 if (count($nameParts) == 1) {
                     // Only one name provided - use title as firstname, provided name as lastname
                     $passengerFirstNames[] = $title;
@@ -870,6 +890,44 @@ class SiteController extends Controller
         $result = $this->bookingService->blockSeatsAndCreateOrder($requestData);
 
         if ($result['success']) {
+            // For agent/admin bookings, return a payment view instead of JSON
+            if ($isAgentOrAdminBooking) {
+                $ticket = \App\Models\BookedTicket::find($result['ticket_id']);
+
+                if (!$ticket) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ticket not found after blocking seats.'
+                    ], 404);
+                }
+
+                // Get Razorpay key from env
+                $razorpayKey = env('RAZORPAY_KEY');
+
+                // Determine which view to return based on auth guard
+                if (auth('agent')->check()) {
+                    return view('agent.booking.payment', [
+                        'ticket' => $ticket,
+                        'order_id' => $result['order_id'],
+                        'amount' => $result['amount'],
+                        'currency' => $result['currency'],
+                        'razorpay_key' => $razorpayKey,
+                        'cancellation_policy' => $result['cancellation_policy'] ?? []
+                    ]);
+                } elseif (auth('admin')->check()) {
+                    // For admin, you might want a different view or same view
+                    return view('admin.booking.payment', [
+                        'ticket' => $ticket,
+                        'order_id' => $result['order_id'],
+                        'amount' => $result['amount'],
+                        'currency' => $result['currency'],
+                        'razorpay_key' => $razorpayKey,
+                        'cancellation_policy' => $result['cancellation_policy'] ?? []
+                    ]);
+                }
+            }
+
+            // For frontend bookings, return JSON as before
             return response()->json([
                 'success' => true,
                 'message' => 'Seats blocked successfully! Proceed to payment.',

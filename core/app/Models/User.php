@@ -66,6 +66,42 @@ class User extends Authenticatable
         return $this->hasMany(BookedTicket::class, 'passenger_phone', 'mobile');
     }
 
+    // Referral relationships
+    public function referrer()
+    {
+        return $this->belongsTo(User::class, 'referred_by');
+    }
+
+    public function referrals()
+    {
+        return $this->hasMany(User::class, 'referred_by');
+    }
+
+    public function referralCode()
+    {
+        return $this->belongsTo(ReferralCode::class);
+    }
+
+    public function myReferralCodes()
+    {
+        return $this->hasMany(ReferralCode::class);
+    }
+
+    public function referralRewards()
+    {
+        return $this->hasMany(ReferralReward::class, 'beneficiary_user_id');
+    }
+
+    public function referralEventsAsReferrer()
+    {
+        return $this->hasMany(ReferralEvent::class, 'referrer_user_id');
+    }
+
+    public function referralEventsAsReferee()
+    {
+        return $this->hasMany(ReferralEvent::class, 'referee_user_id');
+    }
+
     // SCOPES
 
     public function getFullnameAttribute()

@@ -6,6 +6,7 @@ use App\Http\Controllers\API\ApiTicketController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\API\ManageTripController;
 use App\Http\Controllers\Admin\VehicleTicketController;
+use App\Http\Controllers\API\ReferralController;
 
 // Auth-related
 Route::post('/send-otp', [UserController::class, 'sendOTP'])->name('user.send-otp');
@@ -47,5 +48,19 @@ Route::name('trip.')->prefix('manage')->group(function () {
     Route::get('ticket-price/check_price', [VehicleTicketController::class, 'checkTicketPrice'])->name('ticket.check_price');
     Route::get('trip', [ManageTripController::class, 'trips'])->name('list');
     Route::get('assigned-vehicle', [ManageTripController::class, 'assignedVehicleLists'])->name('vehicle.assign');
+});
+
+// Referral routes
+Route::prefix('referral')->name('referral.')->group(function () {
+    Route::post('/install', [ReferralController::class, 'recordInstall'])->name('install');
+    Route::post('/click', [ReferralController::class, 'recordClick'])->name('click');
+    Route::post('/signup', [ReferralController::class, 'recordSignup'])->name('signup');
+    Route::get('/settings', [ReferralController::class, 'getSettings'])->name('settings');
+});
+
+Route::prefix('users')->name('users.')->group(function () {
+    Route::get('/referral-data', [ReferralController::class, 'getReferralData'])->name('referral.data');
+    Route::get('/referral-stats', [ReferralController::class, 'getReferralStats'])->name('referral.stats');
+    Route::get('/referral-history', [ReferralController::class, 'getReferralHistory'])->name('referral.history');
 });
 

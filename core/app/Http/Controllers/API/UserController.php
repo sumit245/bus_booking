@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Models\BookedTicket;
+use App\Services\ReferralService;
 
 class UserController extends Controller
 {
@@ -62,6 +63,7 @@ class UserController extends Controller
         $request->validate([
             'mobile_number' => 'required|regex:/^[6-9]\d{9}$/',
             'otp' => 'required|digits:6',
+            'referral_code' => 'nullable|string|size:6', // Optional referral code
         ]);
 
         // Normalize mobile number to 10 digits (same logic as BookingService)
@@ -104,6 +106,7 @@ class UserController extends Controller
 
         // OTP is verified - find or create user with 10-digit mobile
         $user = User::where('mobile', $mobileNumber)->first();
+        $isNewUser = !$user;
 
         if ($user) {
             // User exists - UPDATE sv=1 (mobile verified)
@@ -119,7 +122,8 @@ class UserController extends Controller
             // User doesn't exist - CREATE new user with sv=1 (verified through OTP)
             Log::info('UserController: Creating new user via OTP verification', [
                 'mobile' => $mobileNumber,
-                'username' => $request->user_name
+                'username' => $request->user_name,
+                'referral_code' => $request->referral_code
             ]);
 
             $user = User::create([
@@ -131,6 +135,23 @@ class UserController extends Controller
                 'ev' => 0,       // Email not verified yet
                 'sv' => 1,       // Mobile verified (OTP success)
             ]);
+        }
+
+        // Handle referral code for new users
+        $referralService = app(ReferralService::class);
+        $referralCode = $request->referral_code ?? session('referral_code') ?? request()->cookie('referral_code');
+
+        if ($isNewUser && $referralCode) {
+            // Record signup event with referral code
+            $event = $referralService->recordSignup($referralCode, $user->id);
+
+            if ($event) {
+                Log::info('UserController: Referral signup recorded', [
+                    'user_id' => $user->id,
+                    'referral_code' => $referralCode,
+                    'event_id' => $event->id
+                ]);
+            }
         }
 
         // Log in the user

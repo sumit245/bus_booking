@@ -539,6 +539,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Agent search results page loaded');
 
+            // Handle back/forward navigation cache clearing
+            window.addEventListener('pageshow', function(event) {
+                if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                    // Page was loaded from cache (back/forward button)
+                    console.log('Page loaded from cache, refreshing data...');
+                    // Allow browser to use cached content but ensure it's fresh
+                    location.reload();
+                }
+            });
+
             // Filter functionality
             const filterForm = document.getElementById('filterForm');
             const resetButton = document.getElementById('resetFilters');

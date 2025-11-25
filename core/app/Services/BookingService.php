@@ -1172,6 +1172,24 @@ class BookingService
 
         $bookedTicket->save();
 
+        // Invalidate seat availability cache immediately after blocking seats
+        if ($isOperatorBus && $operatorBusId && $scheduleId && $dateOfJourney) {
+            $availabilityService = new \App\Services\SeatAvailabilityService();
+            $availabilityService->invalidateCache(
+                $operatorBusId,
+                $scheduleId,
+                $dateOfJourney
+            );
+            Log::info('BookingService: Invalidated seat availability cache after seat block', [
+                'bus_id' => $operatorBusId,
+                'schedule_id' => $scheduleId,
+                'date_of_journey' => $dateOfJourney,
+                'ticket_id' => $bookedTicket->id,
+                'seats' => implode(',', $seats),
+                'note' => 'Cache cleared immediately after blocking seats so other users see updated availability'
+            ]);
+        }
+
         return $bookedTicket;
     }
 
@@ -1422,6 +1440,9 @@ class BookingService
 
         // Update additional fields from the booking response
         $this->updateAdditionalFields($bookedTicket, $apiResponse);
+
+        // Process referral rewards for first booking
+        $this->processReferralRewards($bookedTicket);
 
         // Get detailed ticket information if this is not an operator bus
         if (!str_starts_with($bookingData['result_index'], 'OP_') && $bookingApiId) {
@@ -2019,6 +2040,9 @@ class BookingService
             $bookedTicket->cancelled_at = now();
             $bookedTicket->save();
 
+            // Reverse referral rewards for cancelled booking
+            $this->reverseReferralRewards($bookedTicket, $remarks);
+
             // Invalidate seat availability cache so seats become available again
             if ($bookedTicket->bus_id && $bookedTicket->schedule_id && $bookedTicket->date_of_journey) {
                 $availabilityService = new \App\Services\SeatAvailabilityService();
@@ -2254,6 +2278,9 @@ class BookingService
 
             $bookedTicket->save();
 
+            // Reverse referral rewards for cancelled booking
+            $this->reverseReferralRewards($bookedTicket, $remarks);
+
             $logData = [
                 'ticket_id' => $bookedTicket->id,
                 'booking_id' => $bookingId
@@ -2310,6 +2337,69 @@ class BookingService
                 'message' => 'Failed to cancel third-party bus ticket: ' . $e->getMessage(),
                 'status_code' => 500
             ];
+        }
+    }
+
+    /**
+     * Process referral rewards for first booking
+     */
+    private function processReferralRewards(BookedTicket $bookedTicket)
+    {
+        try {
+            $referralService = app(ReferralService::class);
+
+            // Record first booking event
+            $event = $referralService->recordFirstBooking(
+                $bookedTicket->user_id,
+                $bookedTicket->id,
+                (float) $bookedTicket->total_amount
+            );
+
+            if ($event) {
+                Log::info('BookingService: Referral first booking event recorded', [
+                    'ticket_id' => $bookedTicket->id,
+                    'user_id' => $bookedTicket->user_id,
+                    'amount' => $bookedTicket->total_amount,
+                    'event_id' => $event->id
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Don't fail the booking if referral processing fails
+            Log::error('BookingService: Error processing referral rewards', [
+                'ticket_id' => $bookedTicket->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Reverse referral rewards for cancelled booking
+     */
+    private function reverseReferralRewards(BookedTicket $bookedTicket, string $reason)
+    {
+        try {
+            $referralService = app(ReferralService::class);
+
+            // Reverse rewards associated with this booking
+            $reversedCount = $referralService->reverseRewardsForBooking(
+                $bookedTicket->id,
+                $reason
+            );
+
+            if ($reversedCount > 0) {
+                Log::info('BookingService: Referral rewards reversed for cancelled booking', [
+                    'ticket_id' => $bookedTicket->id,
+                    'user_id' => $bookedTicket->user_id,
+                    'reversed_count' => $reversedCount,
+                    'reason' => $reason
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Don't fail the cancellation if referral reversal fails
+            Log::error('BookingService: Error reversing referral rewards', [
+                'ticket_id' => $bookedTicket->id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }

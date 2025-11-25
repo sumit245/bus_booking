@@ -1,3 +1,5 @@
+{{-- Log to the console the seat HTML for debugging purposes $seatHtml  --}}
+
 <div class="bus">{!! renderSeatHTML($seatHtml, $parsedLayout ?? null, $isOperatorBus ?? false) !!}</div>
 
 @push('style')
@@ -249,6 +251,9 @@
 
 @push('script')
     <script>
+        // Log seatHtml to console for debugging
+        console.log('Seat HTML Data:', {!! json_encode($seatHtml) !!});
+
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const seatDivs = document.querySelectorAll('.seatcontainer > div');

@@ -10,6 +10,9 @@ use App\Models\Deposit;
 use App\Models\UserLogin;
 use App\Models\Counter;
 use App\Models\Vehicle;
+use App\Models\ReferralCode;
+use App\Models\ReferralReward;
+use App\Models\ReferralEvent;
 use App\Rules\FileTypeValidate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,9 +35,17 @@ class AdminController extends Controller
         $widget['rejected_payment'] = Deposit::where('status', 3)->sum('amount');
         $widget['total_counter'] = Counter::count();
         $widget['vehicle_with_ac'] = Vehicle::whereHas('fleetType', function ($q) {
-            $q->where('has_ac', 1); })->count();
+            $q->where('has_ac', 1);
+        })->count();
         $widget['vehicle_without_ac'] = Vehicle::whereHas('fleetType', function ($q) {
-            $q->where('has_ac', 0); })->count();
+            $q->where('has_ac', 0);
+        })->count();
+
+        // Referral Stats
+        $widget['total_referral_codes'] = ReferralCode::count();
+        $widget['total_referral_signups'] = ReferralEvent::where('type', 'signup')->count();
+        $widget['total_referral_rewards'] = ReferralReward::where('status', 'confirmed')->sum('amount_awarded');
+        $widget['pending_referral_rewards'] = ReferralReward::where('status', 'pending')->sum('amount_awarded');
 
         //latest booking history
         $soldTickets = BookedTicket::with(['user', 'trip.fleetType', 'trip.startFrom', 'trip.endTo', 'pickup', 'drop'])->where('status', 1)->latest()->take(5)->get();

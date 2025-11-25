@@ -1,0 +1,3231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>USER_MANUAL.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="bus-booking-system---user-manual">Bus Booking System - User Manual</h1>
+<p><strong>Complete User Guide for All User Types</strong></p>
+<p>This manual provides step-by-step instructions for using the Bus Booking System across all four user roles. The system is accessible via:</p>
+<ul>
+<li><strong>Customer Portal</strong>: <code>https://vindhyashrisolutions.com</code> (Main website)</li>
+<li><strong>Agent Panel</strong>: <code>https://vindhyashrisolutions.com/agent/login</code> (Agent login)</li>
+<li><strong>Operator Panel</strong>: <code>https://vindhyashrisolutions.com/operator/login</code> (Operator login)</li>
+<li><strong>Admin Panel</strong>: <code>https://vindhyashrisolutions.com/admin</code> (Administrator login)</li>
+</ul>
+<hr>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-customer-user-manual">Customer User Manual</a></li>
+<li><a href="#2-agent-user-manual">Agent User Manual</a></li>
+<li><a href="#3-operator-user-manual">Operator User Manual</a></li>
+<li><a href="#4-admin-user-manual">Admin User Manual</a></li>
+</ol>
+<hr>
+<h1 id="1-customer-user-manual">1. CUSTOMER USER MANUAL</h1>
+<p><strong>Access</strong>: <code>https://vindhyashrisolutions.com</code> (Main website)</p>
+<h2 id="11-getting-started">1.1 Getting Started</h2>
+<h3 id="registration--login">Registration &amp; Login</h3>
+<p><strong>Registration Options:</strong></p>
+<ul>
+<li><strong>Mobile Registration</strong>: Register using your mobile number with WhatsApp OTP verification</li>
+<li><strong>Traditional Registration</strong>: Register using email and password</li>
+</ul>
+<p><strong>Login:</strong></p>
+<ol>
+<li>Click <strong>Login</strong> button on homepage</li>
+<li>Enter your mobile number or email</li>
+<li>Enter password (or request OTP if using mobile)</li>
+<li>Click <strong>Login</strong></li>
+</ol>
+<h3 id="forgot-password">Forgot Password</h3>
+<ol>
+<li>Click <strong>Forgot Password</strong> on login page</li>
+<li>Enter your registered email</li>
+<li>Check your email for reset code</li>
+<li>Enter the code and create new password</li>
+</ol>
+<hr>
+<h2 id="12-searching-for-buses">1.2 Searching for Buses</h2>
+<h3 id="how-to-search">How to Search</h3>
+<ol>
+<li>
+<p><strong>On Homepage</strong>, you'll see the search form:</p>
+<ul>
+<li><strong>From City</strong>: Select your departure city</li>
+<li><strong>To City</strong>: Select your destination city</li>
+<li><strong>Travel Date</strong>: Pick your journey date</li>
+<li><strong>Passengers</strong>: Enter number of passengers (optional)</li>
+</ul>
+</li>
+<li>
+<p>Click <strong>Search Buses</strong></p>
+</li>
+</ol>
+<h3 id="understanding-search-results">Understanding Search Results</h3>
+<p>For each bus, you'll see:</p>
+<ul>
+<li><strong>Bus Operator Name</strong></li>
+<li><strong>Bus Type</strong> (AC/Non-AC, Seater/Sleeper)</li>
+<li><strong>Departure Time</strong> and <strong>Arrival Time</strong></li>
+<li><strong>Duration</strong> of journey</li>
+<li><strong>Available Seats</strong></li>
+<li><strong>Price per Seat</strong></li>
+<li><strong>Amenities</strong> (WiFi, Charging Points, etc.)</li>
+</ul>
+<h3 id="filtering-results">Filtering Results</h3>
+<p>You can filter buses by:</p>
+<ul>
+<li><strong>Bus Type</strong>: AC, Non-AC, Seater, Sleeper</li>
+<li><strong>Departure Time</strong>: Morning, Afternoon, Evening, Night</li>
+<li><strong>Price Range</strong>: Set minimum and maximum price</li>
+<li><strong>Amenities</strong>: Filter by specific features</li>
+</ul>
+<h3 id="sorting-results">Sorting Results</h3>
+<p>Sort buses by:</p>
+<ul>
+<li><strong>Departure Time</strong> (earliest first)</li>
+<li><strong>Price</strong> (low to high or high to low)</li>
+<li><strong>Duration</strong> (shortest first)</li>
+</ul>
+<hr>
+<h2 id="13-booking-a-ticket">1.3 Booking a Ticket</h2>
+<h3 id="step-1-select-your-bus">Step 1: Select Your Bus</h3>
+<ol>
+<li>Review bus details and click <strong>View Seats</strong></li>
+<li>You'll see the bus seat layout</li>
+</ol>
+<h3 id="step-2-choose-your-seats">Step 2: Choose Your Seats</h3>
+<ol>
+<li>
+<p><strong>View the Seat Layout</strong>:</p>
+<ul>
+<li><strong>Green seats</strong>: Available for booking</li>
+<li><strong>Red seats</strong>: Already booked</li>
+<li><strong>Selected seats</strong>: Highlighted when you click</li>
+</ul>
+</li>
+<li>
+<p><strong>Select Seats</strong>:</p>
+<ul>
+<li>Click on available seats to select</li>
+<li>Click again to deselect</li>
+<li>Number of seats must match passenger count</li>
+</ul>
+</li>
+<li>
+<p><strong>Review Selection</strong>:</p>
+<ul>
+<li>See selected seat numbers</li>
+<li>View total fare</li>
+<li>Check any applicable discounts</li>
+</ul>
+</li>
+<li>
+<p>Click <strong>Proceed to Booking</strong></p>
+</li>
+</ol>
+<h3 id="step-3-choose-boarding--dropping-points">Step 3: Choose Boarding &amp; Dropping Points</h3>
+<ol>
+<li>
+<p><strong>Select Boarding Point</strong>:</p>
+<ul>
+<li>Choose where you'll board the bus</li>
+<li>See exact location and time</li>
+</ul>
+</li>
+<li>
+<p><strong>Select Dropping Point</strong>:</p>
+<ul>
+<li>Choose where you'll get off</li>
+<li>See exact location and time</li>
+</ul>
+</li>
+<li>
+<p>Click <strong>Continue</strong></p>
+</li>
+</ol>
+<h3 id="step-4-enter-passenger-details">Step 4: Enter Passenger Details</h3>
+<p>For each passenger, provide:</p>
+<ul>
+<li><strong>Full Name</strong></li>
+<li><strong>Age</strong></li>
+<li><strong>Gender</strong></li>
+<li><strong>Mobile Number</strong> (for lead passenger)</li>
+<li><strong>Email Address</strong> (for lead passenger)</li>
+</ul>
+<h3 id="step-5-apply-coupon-optional">Step 5: Apply Coupon (Optional)</h3>
+<ol>
+<li>If you have a coupon code, enter it</li>
+<li>Click <strong>Apply</strong></li>
+<li>See the discount applied to your total</li>
+</ol>
+<h3 id="step-6-review--pay">Step 6: Review &amp; Pay</h3>
+<ol>
+<li>
+<p><strong>Review Your Booking</strong>:</p>
+<ul>
+<li>Journey details</li>
+<li>Passenger information</li>
+<li>Seat numbers</li>
+<li>Total fare (including taxes and fees)</li>
+</ul>
+</li>
+<li>
+<p><strong>Make Payment</strong>:</p>
+<ul>
+<li>Enter payment details (Razorpay payment gateway)</li>
+<li>Complete verification</li>
+<li>Payment confirmation</li>
+</ul>
+</li>
+</ol>
+<h3 id="step-7-confirmation">Step 7: Confirmation</h3>
+<p>After successful payment:</p>
+<ul>
+<li><strong>Ticket Confirmation</strong> displayed on screen</li>
+<li><strong>Booking Confirmation Email</strong> sent to your email</li>
+<li><strong>WhatsApp Notification</strong> with ticket details</li>
+<li><strong>PNR Number</strong> generated for your booking</li>
+</ul>
+<hr>
+<h2 id="14-managing-your-bookings">1.4 Managing Your Bookings</h2>
+<h3 id="view-booking-history">View Booking History</h3>
+<ol>
+<li><strong>Login</strong> to your account</li>
+<li>Go to <strong>Dashboard</strong> or <strong>Booking History</strong></li>
+<li>See all your past and upcoming bookings</li>
+</ol>
+<h3 id="view-booking-details">View Booking Details</h3>
+<p>For each booking, you can see:</p>
+<ul>
+<li><strong>PNR Number</strong></li>
+<li><strong>Journey Date and Time</strong></li>
+<li><strong>Route</strong> (From → To)</li>
+<li><strong>Bus Details</strong></li>
+<li><strong>Passenger Names</strong></li>
+<li><strong>Seat Numbers</strong></li>
+<li><strong>Boarding &amp; Dropping Points</strong></li>
+<li><strong>Ticket Status</strong> (Confirmed/Cancelled)</li>
+</ul>
+<h3 id="print-ticket">Print Ticket</h3>
+<ol>
+<li>Click <strong>Print Ticket</strong> on your booking</li>
+<li>A printable ticket will open</li>
+<li>Save or print for your journey</li>
+</ol>
+<hr>
+<h2 id="15-cancelling-a-ticket">1.5 Cancelling a Ticket</h2>
+<p><strong>Note</strong>: Cancellation policies vary by operator</p>
+<ol>
+<li>Go to <strong>Booking History</strong></li>
+<li>Find the booking you want to cancel</li>
+<li>Click <strong>Cancel Ticket</strong></li>
+<li>Confirm cancellation</li>
+<li>Refund will be processed according to cancellation policy</li>
+</ol>
+<h3 id="understanding-refunds">Understanding Refunds</h3>
+<ul>
+<li>Refund amount depends on time before journey</li>
+<li>Cancellation charges may apply</li>
+<li>Refund credited to original payment method</li>
+<li>Processing time: 5-7 business days</li>
+</ul>
+<hr>
+<h2 id="16-profile-management">1.6 Profile Management</h2>
+<h3 id="update-profile">Update Profile</h3>
+<ol>
+<li>Go to <strong>Profile Settings</strong></li>
+<li>Update your information:
+<ul>
+<li>Name</li>
+<li>Email</li>
+<li>Mobile Number</li>
+<li>Address</li>
+<li>Profile Photo</li>
+</ul>
+</li>
+<li>Click <strong>Save Changes</strong></li>
+</ol>
+<h3 id="change-password">Change Password</h3>
+<ol>
+<li>Go to <strong>Change Password</strong></li>
+<li>Enter current password</li>
+<li>Enter new password</li>
+<li>Confirm new password</li>
+<li>Click <strong>Update Password</strong></li>
+</ol>
+<hr>
+<h2 id="17-customer-support">1.7 Customer Support</h2>
+<h3 id="contact-support">Contact Support</h3>
+<ol>
+<li>Go to <strong>Contact Us</strong> page</li>
+<li>Fill in the form:
+<ul>
+<li>Your Name</li>
+<li>Email</li>
+<li>Subject</li>
+<li>Message</li>
+<li>Attachments (optional)</li>
+</ul>
+</li>
+<li>Submit your query</li>
+</ol>
+<h3 id="create-support-ticket">Create Support Ticket</h3>
+<ol>
+<li>Login to your account</li>
+<li>Go to <strong>Support Tickets</strong></li>
+<li>Click <strong>Create New Ticket</strong></li>
+<li>Describe your issue</li>
+<li>Track ticket status in your dashboard</li>
+</ol>
+<h3 id="view-ticket-responses">View Ticket Responses</h3>
+<ol>
+<li>Go to <strong>Support Tickets</strong></li>
+<li>Click on a ticket to view</li>
+<li>Read admin responses</li>
+<li>Reply if needed</li>
+</ol>
+<hr>
+<h1 id="2-agent-user-manual">2. AGENT USER MANUAL</h1>
+<p><strong>Access</strong>: <code>https://vindhyashrisolutions.com/agent/login</code> (Agent Panel - PWA Mobile-First)</p>
+<h2 id="21-getting-started-as-an-agent">2.1 Getting Started as an Agent</h2>
+<h3 id="agent-registration">Agent Registration</h3>
+<ol>
+<li>Go to <code>https://vindhyashrisolutions.com/agent/register</code></li>
+<li>Fill in registration form:
+<ul>
+<li><strong>Personal Details</strong>: Name, Email, Mobile</li>
+<li><strong>Business Details</strong>: Company Name, Address</li>
+<li><strong>Bank Details</strong>: Account information for commission payouts</li>
+<li><strong>Documents</strong>: Upload required documents</li>
+</ul>
+</li>
+<li>Submit for admin approval</li>
+<li>Wait for verification email</li>
+</ol>
+<h3 id="agent-login">Agent Login</h3>
+<ol>
+<li>Go to <code>https://vindhyashrisolutions.com/agent/login</code></li>
+<li>Enter your email and password</li>
+<li>Click <strong>Login to Agent Panel</strong></li>
+<li>Access your agent dashboard</li>
+</ol>
+<hr>
+<h2 id="22-agent-dashboard">2.2 Agent Dashboard</h2>
+<h3 id="dashboard-overview">Dashboard Overview</h3>
+<p>Your dashboard shows:</p>
+<ul>
+<li><strong>Total Bookings</strong>: All-time bookings made</li>
+<li><strong>Today's Bookings</strong>: Bookings made today</li>
+<li><strong>Monthly Bookings</strong>: This month's count</li>
+<li><strong>Total Earnings</strong>: Total commission earned</li>
+<li><strong>Monthly Earnings</strong>: This month's commission</li>
+<li><strong>Pending Bookings</strong>: Awaiting confirmation</li>
+<li><strong>Confirmed Bookings</strong>: Successfully completed</li>
+</ul>
+<h3 id="quick-actions">Quick Actions</h3>
+<p>From dashboard, quickly:</p>
+<ul>
+<li><strong>Search Buses</strong> - Start new booking</li>
+<li><strong>View My Bookings</strong> - See all bookings</li>
+<li><strong>Check Earnings</strong> - View commission details</li>
+<li><strong>Update Profile</strong> - Manage account</li>
+</ul>
+<hr>
+<h2 id="23-booking-tickets-for-customers">2.3 Booking Tickets for Customers</h2>
+<h3 id="step-1-search-for-buses">Step 1: Search for Buses</h3>
+<ol>
+<li>Click <strong>Search Buses</strong></li>
+<li>Enter journey details:
+<ul>
+<li>Origin City</li>
+<li>Destination City</li>
+<li>Travel Date</li>
+<li>Number of Passengers</li>
+</ul>
+</li>
+<li>Click <strong>Search</strong></li>
+</ol>
+<h3 id="step-2-view-search-results">Step 2: View Search Results</h3>
+<ul>
+<li>Browse available buses</li>
+<li>Compare prices and timings</li>
+<li>Check amenities and bus types</li>
+<li>Filter and sort as needed</li>
+</ul>
+<h3 id="step-3-select-bus--seats">Step 3: Select Bus &amp; Seats</h3>
+<ol>
+<li>Click <strong>View Seats</strong> on chosen bus</li>
+<li>Select seats from layout</li>
+<li>Number of seats = number of passengers</li>
+<li>Review seat selection and price</li>
+</ol>
+<h3 id="step-4-enter-customer-details">Step 4: Enter Customer Details</h3>
+<p><strong>For Each Passenger:</strong></p>
+<ul>
+<li>Full Name</li>
+<li>Age</li>
+<li>Gender</li>
+<li>Mobile Number (lead passenger)</li>
+<li>Email (lead passenger)</li>
+</ul>
+<p><strong>Important</strong>: Enter actual customer details, not your own</p>
+<h3 id="step-5-choose-boarding--dropping-points">Step 5: Choose Boarding &amp; Dropping Points</h3>
+<ol>
+<li>Select customer's boarding point</li>
+<li>Select customer's dropping point</li>
+<li>Verify times and locations</li>
+</ol>
+<h3 id="step-6-review-commission">Step 6: Review Commission</h3>
+<p>Before payment, you'll see:</p>
+<ul>
+<li><strong>Total Ticket Price</strong>: What customer pays</li>
+<li><strong>Your Commission</strong>: What you earn</li>
+<li><strong>Commission Type</strong>: Fixed or Percentage</li>
+<li><strong>Net Amount</strong>: Amount to collect from customer</li>
+</ul>
+<h3 id="step-7-complete-booking">Step 7: Complete Booking</h3>
+<ol>
+<li>Review all details carefully</li>
+<li>Collect payment from customer</li>
+<li>Complete booking through payment gateway</li>
+<li>Booking confirmation sent to customer</li>
+<li>Your commission automatically recorded</li>
+</ol>
+<hr>
+<h2 id="24-managing-bookings">2.4 Managing Bookings</h2>
+<h3 id="view-all-bookings">View All Bookings</h3>
+<ol>
+<li>Go to <strong>My Bookings</strong></li>
+<li>See list of all bookings with:
+<ul>
+<li>Ticket Number</li>
+<li>Customer Name</li>
+<li>Route</li>
+<li>Journey Date</li>
+<li>Commission Earned</li>
+<li>Status</li>
+</ul>
+</li>
+</ol>
+<h3 id="view-booking-details">View Booking Details</h3>
+<p>Click on any booking to see:</p>
+<ul>
+<li>Complete journey information</li>
+<li>Passenger details</li>
+<li>Seat numbers</li>
+<li>Commission breakdown</li>
+<li>Payment status</li>
+</ul>
+<h3 id="cancel-customer-booking">Cancel Customer Booking</h3>
+<ol>
+<li>Find booking in list</li>
+<li>Click <strong>Cancel</strong></li>
+<li>Confirm cancellation</li>
+<li>Commission adjusts accordingly</li>
+</ol>
+<h3 id="print-customer-ticket">Print Customer Ticket</h3>
+<ol>
+<li>Open booking details</li>
+<li>Click <strong>Print Ticket</strong></li>
+<li>Provide to customer</li>
+</ol>
+<hr>
+<h2 id="25-commission--earnings">2.5 Commission &amp; Earnings</h2>
+<h3 id="understanding-commission-structure">Understanding Commission Structure</h3>
+<p><strong>How You Earn</strong>:</p>
+<ul>
+<li><strong>Fixed Commission</strong>: Set amount per booking (for smaller bookings)</li>
+<li><strong>Percentage Commission</strong>: % of booking value (for larger bookings)</li>
+<li><strong>Tiered Structure</strong>: Higher earnings as you book more</li>
+</ul>
+<h3 id="view-earnings-dashboard">View Earnings Dashboard</h3>
+<ol>
+<li>Go to <strong>Earnings</strong></li>
+<li>See:
+<ul>
+<li>Total earnings to date</li>
+<li>Monthly earnings</li>
+<li>Pending commissions</li>
+<li>Paid commissions</li>
+</ul>
+</li>
+</ol>
+<h3 id="earnings-breakdown">Earnings Breakdown</h3>
+<p>For each booking, view:</p>
+<ul>
+<li>Booking Amount</li>
+<li>Commission Type</li>
+<li>Commission Rate</li>
+<li>Commission Earned</li>
+<li>Payment Status</li>
+<li>Payment Date</li>
+</ul>
+<h3 id="commission-calculator">Commission Calculator</h3>
+<ol>
+<li>Use <strong>Commission Calculator</strong> tool</li>
+<li>Enter booking amount</li>
+<li>See instant commission calculation</li>
+<li>Plan your sales strategy</li>
+</ol>
+<h3 id="export-earnings-report">Export Earnings Report</h3>
+<ol>
+<li>Go to <strong>Earnings</strong></li>
+<li>Select date range</li>
+<li>Click <strong>Export</strong></li>
+<li>Download Excel/CSV file</li>
+</ol>
+<hr>
+<h2 id="26-profile--account-management">2.6 Profile &amp; Account Management</h2>
+<h3 id="update-personal-information">Update Personal Information</h3>
+<ol>
+<li>Go to <strong>Profile</strong></li>
+<li>Update:
+<ul>
+<li>Name and contact details</li>
+<li>Business information</li>
+<li>Profile photo</li>
+</ul>
+</li>
+<li>Save changes</li>
+</ol>
+<h3 id="update-bank-details">Update Bank Details</h3>
+<ol>
+<li>Go to <strong>Profile</strong> → <strong>Bank Details</strong></li>
+<li>Update account information:
+<ul>
+<li>Account Holder Name</li>
+<li>Account Number</li>
+<li>IFSC Code</li>
+<li>Bank Name</li>
+</ul>
+</li>
+<li>Required for commission payouts</li>
+</ol>
+<h3 id="upload-documents">Upload Documents</h3>
+<ol>
+<li>Go to <strong>Profile</strong> → <strong>Documents</strong></li>
+<li>Upload required documents:
+<ul>
+<li>ID Proof</li>
+<li>Address Proof</li>
+<li>Business Registration (if applicable)</li>
+</ul>
+</li>
+<li>Keep documents up to date</li>
+</ol>
+<h3 id="change-password">Change Password</h3>
+<ol>
+<li>Go to <strong>Profile</strong> → <strong>Change Password</strong></li>
+<li>Enter current password</li>
+<li>Enter new password</li>
+<li>Confirm and save</li>
+</ol>
+<hr>
+<h2 id="27-agent-best-practices">2.7 Agent Best Practices</h2>
+<h3 id="tips-for-success">Tips for Success</h3>
+<p><strong>Customer Service</strong>:</p>
+<ul>
+<li>Always verify customer details before booking</li>
+<li>Provide clear journey information</li>
+<li>Send ticket confirmation to customer</li>
+<li>Be available for customer queries</li>
+</ul>
+<p><strong>Commission Optimization</strong>:</p>
+<ul>
+<li>Book during peak hours for better rates</li>
+<li>Help customers find best value buses</li>
+<li>Suggest advance bookings</li>
+<li>Build regular customer base</li>
+</ul>
+<p><strong>Record Keeping</strong>:</p>
+<ul>
+<li>Track all bookings systematically</li>
+<li>Maintain customer database</li>
+<li>Monitor earnings regularly</li>
+<li>Keep booking receipts</li>
+</ul>
+<hr>
+<h2 id="28-mobile-pwa-features">2.8 Mobile PWA Features</h2>
+<h3 id="installing-agent-app">Installing Agent App</h3>
+<p><strong>On Mobile Browser</strong>:</p>
+<ol>
+<li>Visit <code>https://vindhyashrisolutions.com/agent/login</code></li>
+<li>Browser will prompt &quot;Add to Home Screen&quot;</li>
+<li>Click <strong>Add</strong> or <strong>Install</strong></li>
+<li>Agent app icon appears on home screen</li>
+</ol>
+<h3 id="offline-capabilities">Offline Capabilities</h3>
+<ul>
+<li>View past bookings offline</li>
+<li>Check earnings data</li>
+<li>Access customer information</li>
+<li>Sync when connection restored</li>
+</ul>
+<h3 id="push-notifications">Push Notifications</h3>
+<p>Receive notifications for:</p>
+<ul>
+<li>Booking confirmations</li>
+<li>Commission updates</li>
+<li>Customer messages</li>
+<li>System announcements</li>
+</ul>
+<hr>
+<h1 id="3-operator-user-manual">3. OPERATOR USER MANUAL</h1>
+<p><strong>Access</strong>: <code>https://vindhyashrisolutions.com/operator/login</code> (Operator Panel)</p>
+<h2 id="31-getting-started-as-operator">3.1 Getting Started as Operator</h2>
+<h3 id="operator-registration">Operator Registration</h3>
+<ol>
+<li>
+<p>Visit <code>https://vindhyashrisolutions.com/operator/register</code></p>
+</li>
+<li>
+<p>Complete multi-step registration:</p>
+<p><strong>Step 1 - Personal Information</strong>:</p>
+<ul>
+<li>Full Name</li>
+<li>Email Address</li>
+<li>Mobile Number</li>
+<li>Password</li>
+</ul>
+<p><strong>Step 2 - Company Details</strong>:</p>
+<ul>
+<li>Company/Business Name</li>
+<li>Business Type</li>
+<li>Registration Number</li>
+<li>Address</li>
+<li>City &amp; State</li>
+</ul>
+<p><strong>Step 3 - Document Upload</strong>:</p>
+<ul>
+<li>Owner Photo</li>
+<li>PAN Card</li>
+<li>Aadhaar Card (Front &amp; Back)</li>
+<li>Business License</li>
+</ul>
+<p><strong>Step 4 - Bank Details</strong>:</p>
+<ul>
+<li>Account Holder Name</li>
+<li>Account Number</li>
+<li>IFSC Code</li>
+<li>Bank Name</li>
+<li>Branch</li>
+<li>Upload Cancelled Cheque</li>
+</ul>
+</li>
+<li>
+<p>Submit for admin verification</p>
+</li>
+<li>
+<p>Wait for approval notification</p>
+</li>
+</ol>
+<h3 id="operator-login">Operator Login</h3>
+<ol>
+<li>Go to <code>https://vindhyashrisolutions.com/operator/login</code></li>
+<li>Enter email and password</li>
+<li>Access operator dashboard</li>
+</ol>
+<hr>
+<h2 id="32-operator-dashboard">3.2 Operator Dashboard</h2>
+<h3 id="dashboard-overview">Dashboard Overview</h3>
+<p>Your dashboard displays:</p>
+<ul>
+<li><strong>Total Routes</strong>: Routes you operate</li>
+<li><strong>Active Routes</strong>: Currently running routes</li>
+<li><strong>Total Buses</strong>: Your fleet size</li>
+<li><strong>Active Buses</strong>: Buses in operation</li>
+<li><strong>Total Bookings</strong>: All bookings received</li>
+<li><strong>Total Revenue</strong>: Earnings summary</li>
+</ul>
+<h3 id="quick-actions">Quick Actions</h3>
+<ul>
+<li><strong>Add New Route</strong>: Create new route</li>
+<li><strong>Add New Bus</strong>: Register new vehicle</li>
+<li><strong>Manage Buses</strong>: View and edit fleet</li>
+<li><strong>View Bookings</strong>: Check reservations</li>
+<li><strong>Manage Staff</strong>: Handle employees</li>
+<li><strong>View Revenue</strong>: Financial reports</li>
+</ul>
+<hr>
+<h2 id="33-route-management">3.3 Route Management</h2>
+<h3 id="create-new-route">Create New Route</h3>
+<ol>
+<li>
+<p>Go to <strong>Routes</strong> → <strong>Create New</strong></p>
+</li>
+<li>
+<p>Enter route details:</p>
+<p><strong>Basic Information</strong>:</p>
+<ul>
+<li>Route Name (e.g., &quot;Delhi to Jaipur Express&quot;)</li>
+<li>Origin City</li>
+<li>Destination City</li>
+<li>Distance (in kilometers)</li>
+<li>Estimated Duration</li>
+</ul>
+<p><strong>Boarding Points</strong>:</p>
+<ul>
+<li>Add multiple boarding points</li>
+<li>For each point: Name, Location, Time</li>
+<li>Mark as active/inactive</li>
+</ul>
+<p><strong>Dropping Points</strong>:</p>
+<ul>
+<li>Add multiple dropping points</li>
+<li>For each point: Name, Location, Time</li>
+<li>Mark as active/inactive</li>
+</ul>
+</li>
+<li>
+<p>Set route status (Active/Inactive)</p>
+</li>
+<li>
+<p>Click <strong>Save Route</strong></p>
+</li>
+</ol>
+<h3 id="view-all-routes">View All Routes</h3>
+<ol>
+<li>Go to <strong>Routes</strong></li>
+<li>See list with:
+<ul>
+<li>Route Name</li>
+<li>Origin → Destination</li>
+<li>Distance</li>
+<li>Boarding/Dropping Points</li>
+<li>Status</li>
+</ul>
+</li>
+<li>Search and filter routes</li>
+</ol>
+<h3 id="edit-route">Edit Route</h3>
+<ol>
+<li>Find route in list</li>
+<li>Click <strong>Edit</strong></li>
+<li>Modify details</li>
+<li>Update boarding/dropping points</li>
+<li>Save changes</li>
+</ol>
+<h3 id="activatedeactivate-route">Activate/Deactivate Route</h3>
+<ol>
+<li>Find route in list</li>
+<li>Toggle status switch</li>
+<li>Inactive routes won't appear in searches</li>
+</ol>
+<hr>
+<h2 id="34-bus-fleet-management">3.4 Bus Fleet Management</h2>
+<h3 id="add-new-bus">Add New Bus</h3>
+<ol>
+<li>
+<p>Go to <strong>Buses</strong> → <strong>Add New Bus</strong></p>
+</li>
+<li>
+<p>Fill bus details:</p>
+<p><strong>Basic Information</strong>:</p>
+<ul>
+<li>Bus Registration Number</li>
+<li>Bus Name/Number</li>
+<li>Fleet Type (AC/Non-AC, Seater/Sleeper)</li>
+<li>Total Seats</li>
+<li>Bus Features (WiFi, Charging, etc.)</li>
+</ul>
+<p><strong>Pricing</strong>:</p>
+<ul>
+<li>Base Price per Seat</li>
+<li>Published Price (What customers see)</li>
+<li>Special Rates</li>
+</ul>
+<p><strong>Commission Settings</strong>:</p>
+<ul>
+<li>Agent Commission (Fixed or %)</li>
+<li>Commission Amount/Percentage</li>
+</ul>
+<p><strong>GST &amp; Fees</strong>:</p>
+<ul>
+<li>GST Applicable (Yes/No)</li>
+<li>GST Rate (if applicable)</li>
+<li>Service Charge</li>
+</ul>
+<p><strong>Documents</strong>:</p>
+<ul>
+<li>Registration Certificate</li>
+<li>Fitness Certificate</li>
+<li>Insurance Copy</li>
+<li>Permit Document</li>
+<li>Bus Photos</li>
+</ul>
+</li>
+<li>
+<p>Click <strong>Save Bus</strong></p>
+</li>
+</ol>
+<h3 id="design-seat-layout">Design Seat Layout</h3>
+<p>After adding bus:</p>
+<ol>
+<li>
+<p>Click <strong>Manage Seat Layout</strong></p>
+</li>
+<li>
+<p>Use drag-and-drop editor:</p>
+<p><strong>Layout Options</strong>:</p>
+<ul>
+<li>Single or Double Deck</li>
+<li>Grid size (rows × columns)</li>
+<li>Seat types (Regular/Sleeper)</li>
+<li>Seat categories (Economy/Premium)</li>
+</ul>
+<p><strong>Seat Configuration</strong>:</p>
+<ul>
+<li>Drag seats onto layout</li>
+<li>Set seat numbers</li>
+<li>Define seat prices</li>
+<li>Mark special seats</li>
+</ul>
+<p><strong>Preview &amp; Save</strong>:</p>
+<ul>
+<li>Preview layout</li>
+<li>Test seat selection</li>
+<li>Save layout</li>
+</ul>
+</li>
+<li>
+<p>Activate layout for bookings</p>
+</li>
+</ol>
+<h3 id="view--manage-buses">View &amp; Manage Buses</h3>
+<ol>
+<li>Go to <strong>Buses</strong></li>
+<li>See all buses with:
+<ul>
+<li>Registration Number</li>
+<li>Bus Type</li>
+<li>Total Seats</li>
+<li>Routes Assigned</li>
+<li>Status</li>
+</ul>
+</li>
+</ol>
+<h3 id="edit-bus-details">Edit Bus Details</h3>
+<ol>
+<li>Find bus in list</li>
+<li>Click <strong>Edit</strong></li>
+<li>Update information</li>
+<li>Save changes</li>
+</ol>
+<h3 id="assign-bus-to-route">Assign Bus to Route</h3>
+<ol>
+<li>Open bus details</li>
+<li>Go to <strong>Route Assignment</strong></li>
+<li>Select route</li>
+<li>Set schedule</li>
+<li>Assign crew (driver, conductor)</li>
+<li>Save assignment</li>
+</ol>
+<hr>
+<h2 id="35-schedule-management">3.5 Schedule Management</h2>
+<h3 id="create-bus-schedule">Create Bus Schedule</h3>
+<ol>
+<li>
+<p>Go to <strong>Schedules</strong> → <strong>Create New</strong></p>
+</li>
+<li>
+<p>Enter schedule details:</p>
+<p><strong>Schedule Information</strong>:</p>
+<ul>
+<li>Select Bus</li>
+<li>Select Route</li>
+<li>Departure Time</li>
+<li>Arrival Time</li>
+<li>Available Days (Daily/Specific Days)</li>
+</ul>
+<p><strong>Date Range</strong>:</p>
+<ul>
+<li>Start Date</li>
+<li>End Date (for seasonal schedules)</li>
+</ul>
+<p><strong>Pricing Overrides</strong> (Optional):</p>
+<ul>
+<li>Special pricing for this schedule</li>
+<li>Weekend/Holiday rates</li>
+</ul>
+</li>
+<li>
+<p>Set as Active</p>
+</li>
+<li>
+<p>Save schedule</p>
+</li>
+</ol>
+<h3 id="manage-schedules">Manage Schedules</h3>
+<p>View and edit:</p>
+<ul>
+<li>All active schedules</li>
+<li>Upcoming schedules</li>
+<li>Past schedules</li>
+<li>Schedule conflicts</li>
+</ul>
+<h3 id="handle-schedule-conflicts">Handle Schedule Conflicts</h3>
+<p>System alerts you if:</p>
+<ul>
+<li>Same bus on multiple routes at same time</li>
+<li>Crew assigned to multiple buses</li>
+<li>Maintenance schedule conflicts</li>
+</ul>
+<hr>
+<h2 id="36-staff-management">3.6 Staff Management</h2>
+<h3 id="add-staff-member">Add Staff Member</h3>
+<ol>
+<li>
+<p>Go to <strong>Staff</strong> → <strong>Add New Staff</strong></p>
+</li>
+<li>
+<p>Enter employee details:</p>
+<p><strong>Personal Information</strong>:</p>
+<ul>
+<li>Full Name</li>
+<li>Employee ID (auto-generated)</li>
+<li>Role (Driver/Conductor/Attendant/Manager/Other)</li>
+<li>Email</li>
+<li>Phone Number</li>
+<li>WhatsApp Number</li>
+<li>Date of Birth</li>
+<li>Gender</li>
+<li>Address</li>
+</ul>
+<p><strong>Employment Details</strong>:</p>
+<ul>
+<li>Joining Date</li>
+<li>Employment Type (Full-time/Part-time/Contract)</li>
+<li>Salary Amount</li>
+<li>Salary Frequency (Monthly/Weekly)</li>
+</ul>
+<p><strong>Emergency Contact</strong>:</p>
+<ul>
+<li>Contact Name</li>
+<li>Contact Number</li>
+<li>Relationship</li>
+</ul>
+<p><strong>Documents</strong>:</p>
+<ul>
+<li>Profile Photo</li>
+<li>ID Proof</li>
+<li>Driving License (for drivers)</li>
+</ul>
+</li>
+<li>
+<p>Set WhatsApp notification preference</p>
+</li>
+<li>
+<p>Save staff member</p>
+</li>
+</ol>
+<h3 id="view-all-staff">View All Staff</h3>
+<ol>
+<li>Go to <strong>Staff</strong></li>
+<li>See complete list with:
+<ul>
+<li>Employee ID</li>
+<li>Name</li>
+<li>Role</li>
+<li>Contact</li>
+<li>Status (Active/Inactive)</li>
+</ul>
+</li>
+</ol>
+<h3 id="filter-staff">Filter Staff</h3>
+<p>Filter by:</p>
+<ul>
+<li>Role (Driver, Conductor, etc.)</li>
+<li>Status (Active/Inactive)</li>
+<li>Employment Type</li>
+</ul>
+<h3 id="edit-staff-details">Edit Staff Details</h3>
+<ol>
+<li>Find staff member</li>
+<li>Click <strong>Edit</strong></li>
+<li>Update information</li>
+<li>Save changes</li>
+</ol>
+<h3 id="deactivate-staff">Deactivate Staff</h3>
+<ol>
+<li>Find staff member</li>
+<li>Toggle status to Inactive</li>
+<li>Staff won't appear in crew assignments</li>
+</ol>
+<hr>
+<h2 id="37-crew-assignment">3.7 Crew Assignment</h2>
+<h3 id="assign-crew-to-bus">Assign Crew to Bus</h3>
+<ol>
+<li>
+<p>Go to <strong>Crew Assignments</strong> → <strong>Create New</strong></p>
+</li>
+<li>
+<p>Select assignment details:</p>
+<p><strong>Assignment Information</strong>:</p>
+<ul>
+<li>Select Bus</li>
+<li>Select Route (optional)</li>
+<li>Assignment Date Range (From - To)</li>
+</ul>
+<p><strong>Crew Selection</strong>:</p>
+<ul>
+<li>Assign Driver</li>
+<li>Assign Conductor</li>
+<li>Assign Attendant (if applicable)</li>
+</ul>
+<p><strong>Shift Details</strong> (Optional):</p>
+<ul>
+<li>Shift Start Time</li>
+<li>Shift End Time</li>
+</ul>
+</li>
+<li>
+<p>System checks for:</p>
+<ul>
+<li>Staff availability</li>
+<li>Conflicting assignments</li>
+<li>Staff role requirements</li>
+</ul>
+</li>
+<li>
+<p>Save assignment</p>
+</li>
+</ol>
+<h3 id="view-crew-assignments">View Crew Assignments</h3>
+<ol>
+<li>Go to <strong>Crew Assignments</strong></li>
+<li>Filter by:
+<ul>
+<li>Bus</li>
+<li>Date</li>
+<li>Staff Member</li>
+<li>Route</li>
+</ul>
+</li>
+</ol>
+<h3 id="manage-crew-schedule">Manage Crew Schedule</h3>
+<p>See:</p>
+<ul>
+<li>Daily crew roster</li>
+<li>Upcoming assignments</li>
+<li>Staff workload</li>
+<li>Assignment conflicts</li>
+</ul>
+<h3 id="quick-crew-assignment">Quick Crew Assignment</h3>
+<ol>
+<li>Go to <strong>Buses</strong></li>
+<li>Click on a bus</li>
+<li>Click <strong>Quick Assign Crew</strong></li>
+<li>Select available staff</li>
+<li>Assign for today or date range</li>
+</ol>
+<hr>
+<h2 id="38-attendance-management">3.8 Attendance Management</h2>
+<h3 id="mark-daily-attendance">Mark Daily Attendance</h3>
+<ol>
+<li>Go to <strong>Attendance</strong> → <strong>Mark Today</strong></li>
+<li>See list of all staff</li>
+<li>For each staff member:
+<ul>
+<li>Mark: Present/Absent/Late/Half-Day/Leave</li>
+<li>Enter check-in time</li>
+<li>Enter check-out time</li>
+<li>Add notes if needed</li>
+</ul>
+</li>
+<li>Save attendance</li>
+</ol>
+<h3 id="view-attendance-records">View Attendance Records</h3>
+<ol>
+<li>Go to <strong>Attendance</strong></li>
+<li>Filter by:
+<ul>
+<li>Date/Date Range</li>
+<li>Staff Member</li>
+<li>Status</li>
+<li>Department/Role</li>
+</ul>
+</li>
+</ol>
+<h3 id="attendance-summary">Attendance Summary</h3>
+<p>View statistics:</p>
+<ul>
+<li>Monthly attendance summary</li>
+<li>Staff-wise attendance %</li>
+<li>Leave utilization</li>
+<li>Overtime hours</li>
+<li>Late arrivals</li>
+</ul>
+<h3 id="approve-attendance">Approve Attendance</h3>
+<ol>
+<li>Go to <strong>Attendance</strong> → <strong>Pending Approval</strong></li>
+<li>Review attendance records</li>
+<li>Approve or reject with notes</li>
+<li>Bulk approve multiple records</li>
+</ol>
+<h3 id="attendance-calendar">Attendance Calendar</h3>
+<ul>
+<li>View month-wise attendance</li>
+<li>Color-coded status</li>
+<li>Click date for details</li>
+<li>Export attendance report</li>
+</ul>
+<hr>
+<h2 id="39-booking-management">3.9 Booking Management</h2>
+<h3 id="view-all-bookings">View All Bookings</h3>
+<ol>
+<li>Go to <strong>Bookings</strong></li>
+<li>See all reservations:
+<ul>
+<li>Customer Name</li>
+<li>PNR Number</li>
+<li>Route</li>
+<li>Journey Date</li>
+<li>Seats Booked</li>
+<li>Total Amount</li>
+<li>Booking Status</li>
+</ul>
+</li>
+</ol>
+<h3 id="filter-bookings">Filter Bookings</h3>
+<p>Filter by:</p>
+<ul>
+<li>Date Range</li>
+<li>Route</li>
+<li>Bus</li>
+<li>Booking Status</li>
+<li>Payment Status</li>
+</ul>
+<h3 id="booking-details">Booking Details</h3>
+<p>Click on booking to see:</p>
+<ul>
+<li>Complete journey information</li>
+<li>Passenger details</li>
+<li>Seat assignments</li>
+<li>Payment information</li>
+<li>Commission breakdown (if via agent)</li>
+<li>Booking source</li>
+</ul>
+<h3 id="create-manual-booking">Create Manual Booking</h3>
+<ol>
+<li>Go to <strong>Bookings</strong> → <strong>Create New</strong></li>
+<li>Select bus and schedule</li>
+<li>Choose seats</li>
+<li>Enter passenger details</li>
+<li>Select boarding/dropping points</li>
+<li>Confirm booking</li>
+<li>Generate ticket</li>
+</ol>
+<h3 id="cancel-booking">Cancel Booking</h3>
+<ol>
+<li>Find booking</li>
+<li>Click <strong>Cancel</strong></li>
+<li>Enter cancellation reason</li>
+<li>Process refund (if applicable)</li>
+<li>Notify customer</li>
+</ol>
+<hr>
+<h2 id="310-revenue--financial-management">3.10 Revenue &amp; Financial Management</h2>
+<h3 id="revenue-dashboard">Revenue Dashboard</h3>
+<p>View comprehensive reports:</p>
+<ul>
+<li><strong>Daily Revenue</strong>: Today's earnings</li>
+<li><strong>Weekly Revenue</strong>: Past 7 days</li>
+<li><strong>Monthly Revenue</strong>: Current month</li>
+<li><strong>Total Revenue</strong>: All-time earnings</li>
+</ul>
+<h3 id="revenue-breakdown">Revenue Breakdown</h3>
+<p>See earnings by:</p>
+<ul>
+<li>Route</li>
+<li>Bus</li>
+<li>Date Range</li>
+<li>Booking Source (Direct/Agent/Admin)</li>
+</ul>
+<h3 id="revenue-reports">Revenue Reports</h3>
+<ol>
+<li>Go to <strong>Revenue</strong> → <strong>Reports</strong></li>
+<li>Generate reports:
+<ul>
+<li>Detailed revenue report</li>
+<li>Route-wise performance</li>
+<li>Bus-wise performance</li>
+<li>Commission paid to agents</li>
+<li>Tax summary</li>
+</ul>
+</li>
+</ol>
+<h3 id="export-financial-data">Export Financial Data</h3>
+<ol>
+<li>Select report type</li>
+<li>Choose date range</li>
+<li>Select export format (Excel/PDF)</li>
+<li>Download report</li>
+</ol>
+<h3 id="payout-management">Payout Management</h3>
+<p><strong>View Payouts</strong>:</p>
+<ol>
+<li>Go to <strong>Revenue</strong> → <strong>Payouts</strong></li>
+<li>See payout history:
+<ul>
+<li>Payout Period</li>
+<li>Total Amount</li>
+<li>Payment Status</li>
+<li>Payment Date</li>
+</ul>
+</li>
+</ol>
+<p><strong>Payout Details</strong>:</p>
+<ul>
+<li>Gross Revenue</li>
+<li>Platform Commission</li>
+<li>Agent Commissions</li>
+<li>Tax Deductions</li>
+<li>Net Payout Amount</li>
+</ul>
+<hr>
+<h2 id="311-profile--account-settings">3.11 Profile &amp; Account Settings</h2>
+<h3 id="update-company-profile">Update Company Profile</h3>
+<ol>
+<li>Go to <strong>Profile</strong></li>
+<li>Update:
+<ul>
+<li>Company information</li>
+<li>Contact details</li>
+<li>Business address</li>
+<li>Logo/Photos</li>
+</ul>
+</li>
+</ol>
+<h3 id="update-bank-details">Update Bank Details</h3>
+<ol>
+<li>Go to <strong>Profile</strong> → <strong>Bank Details</strong></li>
+<li>Update account information</li>
+<li>Upload new cancelled cheque if needed</li>
+<li>Save changes</li>
+</ol>
+<h3 id="manage-documents">Manage Documents</h3>
+<ol>
+<li>Go to <strong>Profile</strong> → <strong>Documents</strong></li>
+<li>View uploaded documents</li>
+<li>Upload updated documents:
+<ul>
+<li>License renewals</li>
+<li>Certificate updates</li>
+<li>Insurance updates</li>
+</ul>
+</li>
+</ol>
+<h3 id="change-password">Change Password</h3>
+<ol>
+<li>Go to <strong>Change Password</strong></li>
+<li>Enter current password</li>
+<li>Enter new password</li>
+<li>Confirm and save</li>
+</ol>
+<hr>
+<h2 id="312-notifications--communication">3.12 Notifications &amp; Communication</h2>
+<h3 id="whatsapp-notifications">WhatsApp Notifications</h3>
+<p>Automatic notifications sent for:</p>
+<ul>
+<li><strong>Crew Assignments</strong>: Staff assigned to bus</li>
+<li><strong>Bookings</strong>: New booking received</li>
+<li><strong>Attendance</strong>: Daily attendance reminders</li>
+<li><strong>Schedules</strong>: Schedule changes</li>
+</ul>
+<h3 id="configure-notifications">Configure Notifications</h3>
+<ol>
+<li>Go to <strong>Settings</strong> → <strong>Notifications</strong></li>
+<li>Enable/disable notification types</li>
+<li>Set notification preferences</li>
+<li>Save settings</li>
+</ol>
+<h3 id="view-notification-history">View Notification History</h3>
+<ul>
+<li>See all sent notifications</li>
+<li>Check delivery status</li>
+<li>Resend failed notifications</li>
+</ul>
+<hr>
+<h1 id="4-admin-user-manual">4. ADMIN USER MANUAL</h1>
+<p><strong>Access</strong>: <code>https://vindhyashrisolutions.com/admin</code> (Administrator Panel)</p>
+<h2 id="41-admin-dashboard">4.1 Admin Dashboard</h2>
+<h3 id="dashboard-overview">Dashboard Overview</h3>
+<p>The admin dashboard provides system-wide overview:</p>
+<p><strong>User Statistics</strong>:</p>
+<ul>
+<li>Total Users</li>
+<li>Verified Users</li>
+<li>Email Unverified Users</li>
+<li>SMS Unverified Users</li>
+</ul>
+<p><strong>Payment Statistics</strong>:</p>
+<ul>
+<li>Successful Payments</li>
+<li>Pending Payments</li>
+<li>Rejected Payments</li>
+</ul>
+<p><strong>Fleet Statistics</strong>:</p>
+<ul>
+<li>Total Counters</li>
+<li>Vehicles with AC</li>
+<li>Vehicles without AC</li>
+</ul>
+<p><strong>Recent Activities</strong>:</p>
+<ul>
+<li>Latest booking history</li>
+<li>Recent transactions</li>
+<li>User activities</li>
+</ul>
+<h3 id="dashboard-charts">Dashboard Charts</h3>
+<p>View analytics:</p>
+<ul>
+<li><strong>Deposit Graph</strong>: 30-day payment trends</li>
+<li><strong>User Browser Stats</strong>: User device information</li>
+<li><strong>Operating System Stats</strong>: OS distribution</li>
+<li><strong>Country-wise Traffic</strong>: User locations</li>
+</ul>
+<hr>
+<h2 id="42-user-management">4.2 User Management</h2>
+<h3 id="view-all-users">View All Users</h3>
+<ol>
+<li>Go to <strong>Users</strong> → <strong>All Users</strong></li>
+<li>See complete user list with:
+<ul>
+<li>Username</li>
+<li>Email</li>
+<li>Mobile</li>
+<li>Registration Date</li>
+<li>Status</li>
+</ul>
+</li>
+</ol>
+<h3 id="filter-users">Filter Users</h3>
+<p>Access filtered views:</p>
+<ul>
+<li><strong>Active Users</strong>: Currently active accounts</li>
+<li><strong>Banned Users</strong>: Suspended accounts</li>
+<li><strong>Email Verified</strong>: Verified email users</li>
+<li><strong>Email Unverified</strong>: Pending verification</li>
+<li><strong>SMS Verified</strong>: Verified mobile users</li>
+<li><strong>SMS Unverified</strong>: Pending SMS verification</li>
+</ul>
+<h3 id="view-user-details">View User Details</h3>
+<ol>
+<li>Click on any user</li>
+<li>See complete profile:
+<ul>
+<li>Personal information</li>
+<li>Booking history</li>
+<li>Transaction history</li>
+<li>Login history</li>
+<li>Account status</li>
+</ul>
+</li>
+</ol>
+<h3 id="edit-user">Edit User</h3>
+<ol>
+<li>Open user details</li>
+<li>Click <strong>Edit</strong></li>
+<li>Modify:
+<ul>
+<li>Personal details</li>
+<li>Email/Mobile</li>
+<li>Verification status</li>
+<li>Account status</li>
+</ul>
+</li>
+<li>Save changes</li>
+</ol>
+<h3 id="manage-user-balance">Manage User Balance</h3>
+<ol>
+<li>Open user details</li>
+<li>Click <strong>Add/Subtract Balance</strong></li>
+<li>Enter amount and reason</li>
+<li>Confirm transaction</li>
+</ol>
+<h3 id="send-email-to-user">Send Email to User</h3>
+<ol>
+<li>Open user details</li>
+<li>Click <strong>Send Email</strong></li>
+<li>Compose message</li>
+<li>Send email</li>
+</ol>
+<h3 id="banunban-user">Ban/Unban User</h3>
+<ol>
+<li>Open user details</li>
+<li>Toggle <strong>Ban User</strong> status</li>
+<li>Enter reason for ban</li>
+<li>Confirm action</li>
+</ol>
+<h3 id="view-user-bookings">View User Bookings</h3>
+<ol>
+<li>Open user details</li>
+<li>Go to <strong>Bookings</strong> tab</li>
+<li>See all user bookings</li>
+<li>Click booking for details</li>
+</ol>
+<h3 id="view-user-transactions">View User Transactions</h3>
+<ol>
+<li>Open user details</li>
+<li>Go to <strong>Transactions</strong> tab</li>
+<li>See payment history</li>
+<li>Filter by date/type</li>
+</ol>
+<h3 id="view-user-login-history">View User Login History</h3>
+<ol>
+<li>Open user details</li>
+<li>Go to <strong>Login History</strong> tab</li>
+<li>See:
+<ul>
+<li>Login Date/Time</li>
+<li>IP Address</li>
+<li>Browser</li>
+<li>Operating System</li>
+<li>Location</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="43-operator-management">4.3 Operator Management</h2>
+<h3 id="view-all-operators">View All Operators</h3>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Operators</strong></li>
+<li>See all registered operators:
+<ul>
+<li>Company Name</li>
+<li>Owner Name</li>
+<li>Email</li>
+<li>Mobile</li>
+<li>Status (Pending/Approved/Rejected)</li>
+<li>Registration Date</li>
+</ul>
+</li>
+</ol>
+<h3 id="approve-operator">Approve Operator</h3>
+<ol>
+<li>Click on pending operator</li>
+<li>Review:
+<ul>
+<li>Company details</li>
+<li>Owner information</li>
+<li>Uploaded documents</li>
+<li>Bank details</li>
+</ul>
+</li>
+<li>Verify all information</li>
+<li>Click <strong>Approve</strong></li>
+<li>Operator receives approval notification</li>
+</ol>
+<h3 id="reject-operator">Reject Operator</h3>
+<ol>
+<li>Click on pending operator</li>
+<li>Review submitted information</li>
+<li>Click <strong>Reject</strong></li>
+<li>Enter rejection reason</li>
+<li>Operator receives rejection notification</li>
+</ol>
+<h3 id="view-operator-details">View Operator Details</h3>
+<p>See complete information:</p>
+<ul>
+<li><strong>Profile</strong>: Company and owner details</li>
+<li><strong>Documents</strong>: All uploaded documents</li>
+<li><strong>Bank Details</strong>: Account information</li>
+<li><strong>Buses</strong>: Operator's fleet</li>
+<li><strong>Routes</strong>: Configured routes</li>
+<li><strong>Bookings</strong>: Booking history</li>
+<li><strong>Revenue</strong>: Earnings and payouts</li>
+</ul>
+<h3 id="edit-operator">Edit Operator</h3>
+<ol>
+<li>Open operator details</li>
+<li>Click <strong>Edit</strong></li>
+<li>Update information</li>
+<li>Save changes</li>
+</ol>
+<h3 id="suspend-operator">Suspend Operator</h3>
+<ol>
+<li>Open operator details</li>
+<li>Click <strong>Suspend</strong></li>
+<li>Enter reason</li>
+<li>Confirm suspension</li>
+<li>Operator's buses removed from searches</li>
+</ol>
+<h3 id="view-operator-buses">View Operator Buses</h3>
+<ol>
+<li>Open operator details</li>
+<li>Go to <strong>Buses</strong> tab</li>
+<li>See all buses</li>
+<li>Review bus details and layouts</li>
+</ol>
+<h3 id="view-operator-routes">View Operator Routes</h3>
+<ol>
+<li>Open operator details</li>
+<li>Go to <strong>Routes</strong> tab</li>
+<li>See all routes</li>
+<li>Review route configurations</li>
+</ol>
+<hr>
+<h2 id="44-agent-management">4.4 Agent Management</h2>
+<h3 id="view-all-agents">View All Agents</h3>
+<ol>
+<li>Go to <strong>Agents</strong></li>
+<li>See all registered agents:
+<ul>
+<li>Agent Name</li>
+<li>Email</li>
+<li>Mobile</li>
+<li>Status</li>
+<li>Total Bookings</li>
+<li>Total Earnings</li>
+</ul>
+</li>
+</ol>
+<h3 id="approve-agent">Approve Agent</h3>
+<ol>
+<li>Click on pending agent</li>
+<li>Review agent details</li>
+<li>Verify documents</li>
+<li>Click <strong>Approve</strong></li>
+<li>Agent can start booking</li>
+</ol>
+<h3 id="reject-agent">Reject Agent</h3>
+<ol>
+<li>Click on pending agent</li>
+<li>Review information</li>
+<li>Click <strong>Reject</strong></li>
+<li>Enter reason</li>
+<li>Notify agent</li>
+</ol>
+<h3 id="view-agent-details">View Agent Details</h3>
+<p>See complete profile:</p>
+<ul>
+<li>Personal information</li>
+<li>Business details</li>
+<li>Bank account</li>
+<li>Booking history</li>
+<li>Commission earnings</li>
+<li>Documents uploaded</li>
+</ul>
+<h3 id="edit-agent">Edit Agent</h3>
+<ol>
+<li>Open agent details</li>
+<li>Click <strong>Edit</strong></li>
+<li>Update information</li>
+<li>Save changes</li>
+</ol>
+<h3 id="verify-agent-documents">Verify Agent Documents</h3>
+<ol>
+<li>Open agent details</li>
+<li>Go to <strong>Documents</strong> tab</li>
+<li>Review each document</li>
+<li>Mark as Verified/Rejected</li>
+</ol>
+<h3 id="suspend-agent">Suspend Agent</h3>
+<ol>
+<li>Open agent details</li>
+<li>Click <strong>Suspend</strong></li>
+<li>Enter suspension reason</li>
+<li>Confirm action</li>
+<li>Agent cannot make new bookings</li>
+</ol>
+<h3 id="view-agent-bookings">View Agent Bookings</h3>
+<ol>
+<li>Open agent details</li>
+<li>Go to <strong>Bookings</strong> tab</li>
+<li>See all bookings made by agent</li>
+<li>View commission details</li>
+</ol>
+<h3 id="view-agent-earnings">View Agent Earnings</h3>
+<ol>
+<li>Open agent details</li>
+<li>Go to <strong>Earnings</strong> tab</li>
+<li>See:
+<ul>
+<li>Total earnings</li>
+<li>Commission breakdown</li>
+<li>Payout history</li>
+<li>Pending payouts</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="45-fleet-management">4.5 Fleet Management</h2>
+<h3 id="manage-counters">Manage Counters</h3>
+<p><strong>View All Counters</strong>:</p>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Counter</strong></li>
+<li>See list of booking counters</li>
+</ol>
+<p><strong>Add New Counter</strong>:</p>
+<ol>
+<li>Click <strong>Add New</strong></li>
+<li>Enter:
+<ul>
+<li>Counter Name</li>
+<li>Location</li>
+<li>City</li>
+<li>Mobile Number</li>
+</ul>
+</li>
+<li>Save counter</li>
+</ol>
+<p><strong>Edit Counter</strong>:</p>
+<ol>
+<li>Click <strong>Edit</strong> on counter</li>
+<li>Update details</li>
+<li>Save changes</li>
+</ol>
+<p><strong>Activate/Deactivate Counter</strong>:</p>
+<ol>
+<li>Toggle status switch</li>
+<li>Confirm action</li>
+</ol>
+<h3 id="manage-fleet-types">Manage Fleet Types</h3>
+<p><strong>View Fleet Types</strong>:</p>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Fleet Type</strong></li>
+<li>See all bus types</li>
+</ol>
+<p><strong>Add Fleet Type</strong>:</p>
+<ol>
+<li>Click <strong>Add New</strong></li>
+<li>Enter:
+<ul>
+<li>Fleet Name (e.g., &quot;AC Sleeper&quot;)</li>
+<li>Has AC (Yes/No)</li>
+<li>Fleet Image</li>
+</ul>
+</li>
+<li>Save fleet type</li>
+</ol>
+<p><strong>Edit Fleet Type</strong>:</p>
+<ol>
+<li>Click <strong>Edit</strong></li>
+<li>Modify details</li>
+<li>Save changes</li>
+</ol>
+<p><strong>Activate/Deactivate</strong>:</p>
+<ol>
+<li>Toggle status</li>
+<li>Inactive types won't appear in searches</li>
+</ol>
+<h3 id="manage-seat-layouts">Manage Seat Layouts</h3>
+<p><strong>View All Layouts</strong>:</p>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Seat Layouts</strong></li>
+<li>See all defined layouts</li>
+</ol>
+<p><strong>Create Seat Layout</strong>:</p>
+<ol>
+<li>Click <strong>Add New Layout</strong></li>
+<li>Enter:
+<ul>
+<li>Layout Name</li>
+<li>Total Seats</li>
+<li>Layout Configuration (JSON/Visual)</li>
+</ul>
+</li>
+<li>Save layout</li>
+</ol>
+<p><strong>Edit Layout</strong>:</p>
+<ol>
+<li>Click <strong>Edit</strong></li>
+<li>Modify configuration</li>
+<li>Preview changes</li>
+<li>Save layout</li>
+</ol>
+<p><strong>Delete Layout</strong>:</p>
+<ol>
+<li>Click <strong>Delete</strong></li>
+<li>Confirm deletion</li>
+<li>Layout removed</li>
+</ol>
+<h3 id="manage-vehicles">Manage Vehicles</h3>
+<p><strong>View All Vehicles</strong>:</p>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Vehicles</strong></li>
+<li>See all system vehicles</li>
+</ol>
+<p><strong>Add Vehicle</strong>:</p>
+<ol>
+<li>Click <strong>Add New</strong></li>
+<li>Enter:
+<ul>
+<li>Registration Number</li>
+<li>Fleet Type</li>
+<li>Total Seats</li>
+<li>Seat Layout</li>
+</ul>
+</li>
+<li>Save vehicle</li>
+</ol>
+<p><strong>Edit Vehicle</strong>:</p>
+<ol>
+<li>Click <strong>Edit</strong></li>
+<li>Update details</li>
+<li>Save changes</li>
+</ol>
+<p><strong>Search Vehicles</strong>:</p>
+<ul>
+<li>Search by registration number</li>
+<li>Filter by fleet type</li>
+<li>Filter by status</li>
+</ul>
+<hr>
+<h2 id="46-trip-management">4.6 Trip Management</h2>
+<h3 id="manage-routes">Manage Routes</h3>
+<p><strong>View All Routes</strong>:</p>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Route</strong></li>
+<li>See all system routes</li>
+</ol>
+<p><strong>Create Route</strong>:</p>
+<ol>
+<li>Click <strong>Create Route</strong></li>
+<li>Enter:
+<ul>
+<li>Route Name</li>
+<li>Start Location</li>
+<li>End Location</li>
+<li>Distance</li>
+<li>Route Points (intermediate stops)</li>
+</ul>
+</li>
+<li>Add boarding points</li>
+<li>Add dropping points</li>
+<li>Save route</li>
+</ol>
+<p><strong>Edit Route</strong>:</p>
+<ol>
+<li>Click <strong>Edit</strong> on route</li>
+<li>Modify details</li>
+<li>Update boarding/dropping points</li>
+<li>Save changes</li>
+</ol>
+<p><strong>Activate/Deactivate Route</strong>:</p>
+<ol>
+<li>Toggle route status</li>
+<li>Confirm action</li>
+</ol>
+<h3 id="manage-schedules">Manage Schedules</h3>
+<p><strong>View Schedules</strong>:</p>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Schedule</strong></li>
+<li>See all trip schedules</li>
+</ol>
+<p><strong>Create Schedule</strong>:</p>
+<ol>
+<li>Click <strong>Add Schedule</strong></li>
+<li>Select:
+<ul>
+<li>Route</li>
+<li>Departure Time</li>
+<li>Arrival Time</li>
+<li>Days of Operation</li>
+</ul>
+</li>
+<li>Save schedule</li>
+</ol>
+<p><strong>Edit Schedule</strong>:</p>
+<ol>
+<li>Click <strong>Edit</strong></li>
+<li>Update timing</li>
+<li>Save changes</li>
+</ol>
+<h3 id="manage-ticket-pricing">Manage Ticket Pricing</h3>
+<p><strong>View Ticket Prices</strong>:</p>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Ticket Price</strong></li>
+<li>See all pricing configurations</li>
+</ol>
+<p><strong>Create Ticket Price</strong>:</p>
+<ol>
+<li>Click <strong>Create Ticket Price</strong></li>
+<li>Select:
+<ul>
+<li>Route</li>
+<li>Vehicle Type</li>
+<li>Boarding Point</li>
+<li>Dropping Point</li>
+</ul>
+</li>
+<li>Enter:
+<ul>
+<li>Base Price</li>
+<li>Discount (if any)</li>
+<li>Special Pricing</li>
+</ul>
+</li>
+<li>Save pricing</li>
+</ol>
+<p><strong>Edit Ticket Price</strong>:</p>
+<ol>
+<li>Click <strong>Edit</strong></li>
+<li>Update pricing</li>
+<li>Save changes</li>
+</ol>
+<p><strong>Delete Ticket Price</strong>:</p>
+<ol>
+<li>Click <strong>Delete</strong></li>
+<li>Confirm deletion</li>
+</ol>
+<h3 id="manage-trips">Manage Trips</h3>
+<p><strong>View All Trips</strong>:</p>
+<ol>
+<li>Go to <strong>Manage</strong> → <strong>Trip</strong></li>
+<li>See all scheduled trips</li>
+</ol>
+<p><strong>Create Trip</strong>:</p>
+<ol>
+<li>Click <strong>Add Trip</strong></li>
+<li>Select:
+<ul>
+<li>Route</li>
+<li>Schedule</li>
+<li>Date</li>
+</ul>
+</li>
+<li>Save trip</li>
+</ol>
+<p><strong>Assign Vehicle to Trip</strong>:</p>
+<ol>
+<li>Go to <strong>Assigned Vehicles</strong></li>
+<li>Select trip</li>
+<li>Assign vehicle</li>
+<li>Set pricing</li>
+<li>Save assignment</li>
+</ol>
+<hr>
+<h2 id="47-coupon-management">4.7 Coupon Management</h2>
+<h3 id="view-all-coupons">View All Coupons</h3>
+<ol>
+<li>Go to <strong>Coupon</strong></li>
+<li>See all coupons:
+<ul>
+<li>Coupon Code</li>
+<li>Discount Type (Percentage/Fixed)</li>
+<li>Discount Value</li>
+<li>Validity Period</li>
+<li>Usage Limit</li>
+<li>Status</li>
+</ul>
+</li>
+</ol>
+<h3 id="create-new-coupon">Create New Coupon</h3>
+<ol>
+<li>
+<p>Click <strong>Create Coupon</strong></p>
+</li>
+<li>
+<p>Enter details:</p>
+<p><strong>Basic Information</strong>:</p>
+<ul>
+<li>Coupon Code (e.g., &quot;SAVE20&quot;)</li>
+<li>Discount Type (Percentage/Fixed Amount)</li>
+<li>Discount Value</li>
+</ul>
+<p><strong>Validity</strong>:</p>
+<ul>
+<li>Start Date</li>
+<li>End Date</li>
+<li>Usage Limit (total uses)</li>
+<li>Uses Per User</li>
+</ul>
+<p><strong>Conditions</strong>:</p>
+<ul>
+<li>Minimum Booking Amount</li>
+<li>Maximum Discount Amount</li>
+<li>Applicable Routes (All/Specific)</li>
+<li>Applicable Buses (All/Specific)</li>
+</ul>
+<p><strong>Visual Elements</strong> (Optional):</p>
+<ul>
+<li>Banner Image</li>
+<li>Sticker Image</li>
+</ul>
+</li>
+<li>
+<p>Save and activate</p>
+</li>
+</ol>
+<h3 id="edit-coupon">Edit Coupon</h3>
+<ol>
+<li>Click <strong>Edit</strong> on coupon</li>
+<li>Modify details</li>
+<li>Save changes</li>
+</ol>
+<h3 id="activatedeactivate-coupon">Activate/Deactivate Coupon</h3>
+<ol>
+<li>Toggle coupon status</li>
+<li>Confirm action</li>
+<li>Inactive coupons cannot be applied</li>
+</ol>
+<h3 id="delete-coupon">Delete Coupon</h3>
+<ol>
+<li>Click <strong>Delete</strong></li>
+<li>Confirm deletion</li>
+<li>Coupon permanently removed</li>
+</ol>
+<h3 id="view-coupon-usage">View Coupon Usage</h3>
+<ul>
+<li>See total uses</li>
+<li>View user-wise usage</li>
+<li>Track booking amounts</li>
+<li>Monitor discount given</li>
+</ul>
+<hr>
+<h2 id="48-payment--deposit-management">4.8 Payment &amp; Deposit Management</h2>
+<h3 id="view-all-payments">View All Payments</h3>
+<ol>
+<li>Go to <strong>Payment</strong></li>
+<li>Filter by status:
+<ul>
+<li><strong>Pending</strong>: Awaiting confirmation</li>
+<li><strong>Successful</strong>: Completed payments</li>
+<li><strong>Rejected</strong>: Failed payments</li>
+<li><strong>All</strong>: Complete list</li>
+</ul>
+</li>
+</ol>
+<h3 id="payment-details">Payment Details</h3>
+<p>Click on payment to see:</p>
+<ul>
+<li>Transaction ID</li>
+<li>User Information</li>
+<li>Amount</li>
+<li>Payment Method</li>
+<li>Gateway</li>
+<li>Date &amp; Time</li>
+<li>Status</li>
+<li>Gateway Response</li>
+</ul>
+<h3 id="approve-payment">Approve Payment</h3>
+<ol>
+<li>Find pending payment</li>
+<li>Click <strong>Approve</strong></li>
+<li>Verify transaction</li>
+<li>Confirm approval</li>
+<li>User notified</li>
+</ol>
+<h3 id="reject-payment">Reject Payment</h3>
+<ol>
+<li>Find pending payment</li>
+<li>Click <strong>Reject</strong></li>
+<li>Enter rejection reason</li>
+<li>Confirm rejection</li>
+<li>User notified</li>
+</ol>
+<h3 id="search-payments">Search Payments</h3>
+<p>Search by:</p>
+<ul>
+<li>Transaction ID</li>
+<li>User Name/Email</li>
+<li>Date Range</li>
+<li>Amount Range</li>
+<li>Status</li>
+</ul>
+<h3 id="export-payment-reports">Export Payment Reports</h3>
+<ol>
+<li>Select filters</li>
+<li>Choose date range</li>
+<li>Click <strong>Export</strong></li>
+<li>Download Excel/PDF</li>
+</ol>
+<hr>
+<h2 id="49-payment-gateway-management">4.9 Payment Gateway Management</h2>
+<h3 id="view-payment-gateways">View Payment Gateways</h3>
+<p><strong>Automatic Gateways</strong>:</p>
+<ol>
+<li>Go to <strong>Payment Gateways</strong> → <strong>Automatic</strong></li>
+<li>See all integrated gateways:
+<ul>
+<li>Razorpay</li>
+<li>PayPal</li>
+<li>Stripe</li>
+<li>etc.</li>
+</ul>
+</li>
+</ol>
+<p><strong>Manual Gateways</strong>:</p>
+<ol>
+<li>Go to <strong>Payment Gateways</strong> → <strong>Manual</strong></li>
+<li>See manual payment methods</li>
+</ol>
+<h3 id="configure-payment-gateway">Configure Payment Gateway</h3>
+<ol>
+<li>
+<p>Click <strong>Edit</strong> on gateway</p>
+</li>
+<li>
+<p>Configure settings:</p>
+<p><strong>Gateway Details</strong>:</p>
+<ul>
+<li>Gateway Name</li>
+<li>Status (Active/Inactive)</li>
+</ul>
+<p><strong>API Configuration</strong>:</p>
+<ul>
+<li>API Key</li>
+<li>API Secret</li>
+<li>Merchant ID</li>
+<li>Other credentials</li>
+</ul>
+<p><strong>Currency Settings</strong>:</p>
+<ul>
+<li>Supported Currencies</li>
+<li>Exchange Rate</li>
+<li>Symbol</li>
+</ul>
+<p><strong>Fee Structure</strong>:</p>
+<ul>
+<li>Minimum Amount</li>
+<li>Maximum Amount</li>
+<li>Fixed Charge</li>
+<li>Percentage Charge</li>
+</ul>
+</li>
+<li>
+<p>Save configuration</p>
+</li>
+</ol>
+<h3 id="add-new-currency">Add New Currency</h3>
+<ol>
+<li>Edit gateway</li>
+<li>Click <strong>Add New Currency</strong></li>
+<li>Select currency</li>
+<li>Set exchange rate</li>
+<li>Configure fees</li>
+<li>Save currency</li>
+</ol>
+<h3 id="activatedeactivate-gateway">Activate/Deactivate Gateway</h3>
+<ol>
+<li>Toggle gateway status</li>
+<li>Confirm action</li>
+<li>Inactive gateways don't appear at checkout</li>
+</ol>
+<h3 id="test-gateway">Test Gateway</h3>
+<ol>
+<li>Enable test mode</li>
+<li>Make test payment</li>
+<li>Verify transaction</li>
+<li>Switch to live mode</li>
+</ol>
+<hr>
+<h2 id="410-booking-management">4.10 Booking Management</h2>
+<h3 id="view-all-bookings">View All Bookings</h3>
+<ol>
+<li>Go to <strong>Tickets</strong> → <strong>All Bookings</strong></li>
+<li>See complete list with:
+<ul>
+<li>Booking ID</li>
+<li>User Name</li>
+<li>Route</li>
+<li>Journey Date</li>
+<li>Seats</li>
+<li>Amount</li>
+<li>Status</li>
+</ul>
+</li>
+</ol>
+<h3 id="filter-bookings">Filter Bookings</h3>
+<p>Access specific views:</p>
+<ul>
+<li><strong>Booked</strong>: Confirmed bookings</li>
+<li><strong>Pending</strong>: Awaiting confirmation</li>
+<li><strong>Rejected</strong>: Failed bookings</li>
+<li><strong>Cancelled</strong>: Cancelled bookings</li>
+</ul>
+<h3 id="view-booking-details">View Booking Details</h3>
+<p>Click on booking to see:</p>
+<ul>
+<li><strong>Journey Information</strong>:
+<ul>
+<li>Route and timings</li>
+<li>Bus details</li>
+<li>Seat numbers</li>
+</ul>
+</li>
+<li><strong>Passenger Details</strong>:
+<ul>
+<li>Names and contact</li>
+<li>Age and gender</li>
+</ul>
+</li>
+<li><strong>Payment Information</strong>:
+<ul>
+<li>Amount paid</li>
+<li>Payment method</li>
+<li>Transaction ID</li>
+</ul>
+</li>
+<li><strong>Boarding &amp; Dropping</strong>:
+<ul>
+<li>Points and times</li>
+</ul>
+</li>
+<li><strong>Booking Source</strong>:
+<ul>
+<li>Direct/Agent/Admin</li>
+<li>Commission details (if via agent)</li>
+</ul>
+</li>
+</ul>
+<h3 id="cancel-booking">Cancel Booking</h3>
+<ol>
+<li>Open booking details</li>
+<li>Click <strong>Cancel Booking</strong></li>
+<li>Enter cancellation reason</li>
+<li>Process refund</li>
+<li>Notify customer</li>
+</ol>
+<h3 id="refund-booking">Refund Booking</h3>
+<ol>
+<li>Open cancelled booking</li>
+<li>Click <strong>Process Refund</strong></li>
+<li>Enter refund amount</li>
+<li>Confirm refund</li>
+<li>Update status</li>
+</ol>
+<h3 id="search-bookings">Search Bookings</h3>
+<p>Search by:</p>
+<ul>
+<li>Booking ID</li>
+<li>PNR Number</li>
+<li>User Name</li>
+<li>Mobile Number</li>
+<li>Date Range</li>
+</ul>
+<h3 id="export-booking-report">Export Booking Report</h3>
+<ol>
+<li>Apply filters</li>
+<li>Select date range</li>
+<li>Click <strong>Export</strong></li>
+<li>Download report</li>
+</ol>
+<h3 id="admin-booking">Admin Booking</h3>
+<p><strong>Create Manual Booking</strong>:</p>
+<ol>
+<li>Go to <strong>Booking</strong> → <strong>Search</strong></li>
+<li>Search for buses</li>
+<li>Select bus and seats</li>
+<li>Enter passenger details</li>
+<li>Complete booking</li>
+<li>Generate ticket</li>
+</ol>
+<hr>
+<h2 id="411-reports--analytics">4.11 Reports &amp; Analytics</h2>
+<h3 id="booking-reports">Booking Reports</h3>
+<p>View comprehensive reports:</p>
+<ul>
+<li><strong>Daily Bookings</strong>: Today's activity</li>
+<li><strong>Weekly Report</strong>: Past 7 days</li>
+<li><strong>Monthly Report</strong>: Current month</li>
+<li><strong>Custom Range</strong>: Select dates</li>
+</ul>
+<h3 id="revenue-reports">Revenue Reports</h3>
+<p>Access financial data:</p>
+<ul>
+<li>Total revenue</li>
+<li>Revenue by route</li>
+<li>Revenue by operator</li>
+<li>Commission paid</li>
+<li>Platform earnings</li>
+</ul>
+<h3 id="user-activity-reports">User Activity Reports</h3>
+<p>Monitor user behavior:</p>
+<ul>
+<li>New registrations</li>
+<li>Active users</li>
+<li>Booking patterns</li>
+<li>Peak booking times</li>
+</ul>
+<h3 id="login-history">Login History</h3>
+<ol>
+<li>Go to <strong>Report</strong> → <strong>Login History</strong></li>
+<li>See all user logins:
+<ul>
+<li>User Name</li>
+<li>IP Address</li>
+<li>Browser</li>
+<li>OS</li>
+<li>Location</li>
+<li>Date/Time</li>
+</ul>
+</li>
+</ol>
+<h3 id="ip-history">IP History</h3>
+<ol>
+<li>Go to <strong>Report</strong> → <strong>IP History</strong></li>
+<li>Enter IP address</li>
+<li>See all logins from that IP</li>
+<li>Identify suspicious activity</li>
+</ol>
+<h3 id="email-history">Email History</h3>
+<ol>
+<li>Go to <strong>Report</strong> → <strong>Email History</strong></li>
+<li>See all system emails:
+<ul>
+<li>Recipient</li>
+<li>Subject</li>
+<li>Status (Sent/Failed)</li>
+<li>Date/Time</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="412-support-ticket-management">4.12 Support Ticket Management</h2>
+<h3 id="view-all-tickets">View All Tickets</h3>
+<ol>
+<li>Go to <strong>Tickets</strong></li>
+<li>See all support tickets:
+<ul>
+<li>Ticket ID</li>
+<li>User</li>
+<li>Subject</li>
+<li>Priority</li>
+<li>Status</li>
+<li>Last Reply</li>
+</ul>
+</li>
+</ol>
+<h3 id="filter-tickets">Filter Tickets</h3>
+<p>Access filtered views:</p>
+<ul>
+<li><strong>Pending</strong>: New tickets</li>
+<li><strong>Answered</strong>: Admin replied</li>
+<li><strong>Closed</strong>: Resolved tickets</li>
+</ul>
+<h3 id="view-ticket-details">View Ticket Details</h3>
+<ol>
+<li>Click on ticket</li>
+<li>See complete conversation:
+<ul>
+<li>User message</li>
+<li>Admin replies</li>
+<li>Attachments</li>
+<li>Ticket history</li>
+</ul>
+</li>
+</ol>
+<h3 id="reply-to-ticket">Reply to Ticket</h3>
+<ol>
+<li>Open ticket</li>
+<li>Type your response</li>
+<li>Attach files if needed</li>
+<li>Click <strong>Reply</strong></li>
+<li>User receives notification</li>
+</ol>
+<h3 id="close-ticket">Close Ticket</h3>
+<ol>
+<li>Open ticket</li>
+<li>Click <strong>Close Ticket</strong></li>
+<li>Confirm closure</li>
+<li>User notified</li>
+</ol>
+<h3 id="delete-ticket">Delete Ticket</h3>
+<ol>
+<li>Select ticket</li>
+<li>Click <strong>Delete</strong></li>
+<li>Confirm deletion</li>
+</ol>
+<h3 id="download-attachments">Download Attachments</h3>
+<ol>
+<li>Open ticket</li>
+<li>Click on attachment</li>
+<li>Download to view</li>
+</ol>
+<hr>
+<h2 id="413-email-template-management">4.13 Email Template Management</h2>
+<h3 id="view-email-templates">View Email Templates</h3>
+<ol>
+<li>Go to <strong>Email Template</strong> → <strong>Index</strong></li>
+<li>See all email types:
+<ul>
+<li>Registration Confirmation</li>
+<li>Booking Confirmation</li>
+<li>Password Reset</li>
+<li>Payment Confirmation</li>
+<li>etc.</li>
+</ul>
+</li>
+</ol>
+<h3 id="edit-email-template">Edit Email Template</h3>
+<ol>
+<li>Click <strong>Edit</strong> on template</li>
+<li>Modify:
+<ul>
+<li>Subject Line</li>
+<li>Email Body (HTML editor)</li>
+<li>Available Variables</li>
+</ul>
+</li>
+<li>Use variables for dynamic content:
+<ul>
+<li><code>{{user_name}}</code></li>
+<li><code>{{booking_id}}</code></li>
+<li><code>{{amount}}</code></li>
+<li>etc.</li>
+</ul>
+</li>
+<li>Preview template</li>
+<li>Save changes</li>
+</ol>
+<h3 id="email-global-settings">Email Global Settings</h3>
+<ol>
+<li>Go to <strong>Email Template</strong> → <strong>Global</strong></li>
+<li>Configure:
+<ul>
+<li>Email Header</li>
+<li>Email Footer</li>
+<li>Signature</li>
+<li>Colors and Styling</li>
+</ul>
+</li>
+<li>Save settings</li>
+</ol>
+<h3 id="email-configuration">Email Configuration</h3>
+<ol>
+<li>
+<p>Go to <strong>Email Template</strong> → <strong>Setting</strong></p>
+</li>
+<li>
+<p>Configure email server:</p>
+<p><strong>SMTP Settings</strong>:</p>
+<ul>
+<li>SMTP Host</li>
+<li>SMTP Port</li>
+<li>SMTP Username</li>
+<li>SMTP Password</li>
+<li>Encryption (SSL/TLS)</li>
+</ul>
+<p><strong>SendGrid API</strong> (Alternative):</p>
+<ul>
+<li>API Key</li>
+<li>From Email</li>
+<li>From Name</li>
+</ul>
+<p><strong>Mailjet API</strong> (Alternative):</p>
+<ul>
+<li>API Key</li>
+<li>API Secret</li>
+</ul>
+</li>
+<li>
+<p>Test email sending</p>
+</li>
+<li>
+<p>Save configuration</p>
+</li>
+</ol>
+<hr>
+<h2 id="414-sms-template-management">4.14 SMS Template Management</h2>
+<h3 id="view-sms-templates">View SMS Templates</h3>
+<ol>
+<li>Go to <strong>SMS Template</strong> → <strong>Index</strong></li>
+<li>See all SMS types:
+<ul>
+<li>OTP Verification</li>
+<li>Booking Confirmation</li>
+<li>Cancellation Alert</li>
+<li>etc.</li>
+</ul>
+</li>
+</ol>
+<h3 id="edit-sms-template">Edit SMS Template</h3>
+<ol>
+<li>Click <strong>Edit</strong> on template</li>
+<li>Modify message content</li>
+<li>Use variables:
+<ul>
+<li><code>{{otp}}</code></li>
+<li><code>{{booking_id}}</code></li>
+<li><code>{{name}}</code></li>
+</ul>
+</li>
+<li>Character limit: 160</li>
+<li>Save template</li>
+</ol>
+<h3 id="sms-global-settings">SMS Global Settings</h3>
+<ol>
+<li>Go to <strong>SMS Template</strong> → <strong>Global</strong></li>
+<li>Configure default settings:
+<ul>
+<li>Sender ID</li>
+<li>Default message footer</li>
+</ul>
+</li>
+<li>Save settings</li>
+</ol>
+<h3 id="sms-gateway-configuration">SMS Gateway Configuration</h3>
+<ol>
+<li>Go to <strong>SMS Template</strong> → <strong>Setting</strong></li>
+<li>Configure SMS provider:
+<ul>
+<li>Gateway Name</li>
+<li>API Credentials</li>
+<li>Sender ID</li>
+</ul>
+</li>
+<li>Test SMS sending</li>
+<li>Save configuration</li>
+</ol>
+<hr>
+<h2 id="415-language-management">4.15 Language Management</h2>
+<h3 id="view-languages">View Languages</h3>
+<ol>
+<li>Go to <strong>Language</strong></li>
+<li>See all available languages:
+<ul>
+<li>Language Name</li>
+<li>Language Code</li>
+<li>Status</li>
+<li>Default Language</li>
+</ul>
+</li>
+</ol>
+<h3 id="add-new-language">Add New Language</h3>
+<ol>
+<li>Click <strong>Add New</strong></li>
+<li>Enter:
+<ul>
+<li>Language Name (e.g., &quot;Spanish&quot;)</li>
+<li>Language Code (e.g., &quot;es&quot;)</li>
+</ul>
+</li>
+<li>Save language</li>
+</ol>
+<h3 id="edit-language">Edit Language</h3>
+<ol>
+<li>Click <strong>Edit</strong> on language</li>
+<li>Click <strong>Manage Keys</strong></li>
+<li>See all text strings</li>
+<li>Translate each string</li>
+<li>Save translations</li>
+</ol>
+<h3 id="add-translation-key">Add Translation Key</h3>
+<ol>
+<li>Edit language</li>
+<li>Click <strong>Add New Key</strong></li>
+<li>Enter key name</li>
+<li>Enter translation</li>
+<li>Save key</li>
+</ol>
+<h3 id="update-translation">Update Translation</h3>
+<ol>
+<li>Edit language</li>
+<li>Find key</li>
+<li>Update translation</li>
+<li>Save changes</li>
+</ol>
+<h3 id="delete-language-key">Delete Language Key</h3>
+<ol>
+<li>Edit language</li>
+<li>Find key</li>
+<li>Click <strong>Delete</strong></li>
+<li>Confirm deletion</li>
+</ol>
+<h3 id="set-default-language">Set Default Language</h3>
+<ol>
+<li>Find language</li>
+<li>Click <strong>Make Default</strong></li>
+<li>Confirm action</li>
+<li>Site default language updated</li>
+</ol>
+<h3 id="import-language-pack">Import Language Pack</h3>
+<ol>
+<li>Click <strong>Import Language</strong></li>
+<li>Upload language file (.json)</li>
+<li>Confirm import</li>
+<li>Translations loaded</li>
+</ol>
+<hr>
+<h2 id="416-general-settings">4.16 General Settings</h2>
+<h3 id="site-settings">Site Settings</h3>
+<ol>
+<li>
+<p>Go to <strong>General Setting</strong></p>
+</li>
+<li>
+<p>Configure:</p>
+<p><strong>Basic Information</strong>:</p>
+<ul>
+<li>Site Name</li>
+<li>Site Title</li>
+<li>Base Color</li>
+<li>Secondary Color</li>
+<li>Currency</li>
+<li>Timezone</li>
+</ul>
+<p><strong>Registration</strong>:</p>
+<ul>
+<li>Allow Registration (Yes/No)</li>
+<li>Email Verification Required</li>
+<li>SMS Verification Required</li>
+</ul>
+<p><strong>Notifications</strong>:</p>
+<ul>
+<li>Email Notifications (Enable/Disable)</li>
+<li>SMS Notifications (Enable/Disable)</li>
+</ul>
+<p><strong>Security</strong>:</p>
+<ul>
+<li>Secure Password (Enforce strong passwords)</li>
+<li>Force SSL</li>
+<li>CAPTCHA on Login</li>
+</ul>
+<p><strong>Social Login</strong>:</p>
+<ul>
+<li>Google Login</li>
+<li>Facebook Login</li>
+</ul>
+</li>
+<li>
+<p>Save settings</p>
+</li>
+</ol>
+<h3 id="logo--icon-settings">Logo &amp; Icon Settings</h3>
+<ol>
+<li>Go to <strong>Setting</strong> → <strong>Logo &amp; Icon</strong></li>
+<li>Upload:
+<ul>
+<li>Site Logo (for light background)</li>
+<li>Logo Icon (Favicon)</li>
+<li>Dark Logo (for dark background)</li>
+</ul>
+</li>
+<li>Preview uploads</li>
+<li>Save changes</li>
+</ol>
+<h3 id="custom-css">Custom CSS</h3>
+<ol>
+<li>Go to <strong>Custom CSS</strong></li>
+<li>Add custom styling code</li>
+<li>Preview changes</li>
+<li>Save CSS</li>
+</ol>
+<h3 id="cookie-settings">Cookie Settings</h3>
+<ol>
+<li>Go to <strong>Cookie</strong></li>
+<li>Configure:
+<ul>
+<li>Cookie Policy Text</li>
+<li>Accept Button Text</li>
+<li>Cookie Settings</li>
+</ul>
+</li>
+<li>Save configuration</li>
+</ol>
+<hr>
+<h2 id="417-extensions--plugins">4.17 Extensions &amp; Plugins</h2>
+<h3 id="view-extensions">View Extensions</h3>
+<ol>
+<li>Go to <strong>Extensions</strong></li>
+<li>See all available extensions:
+<ul>
+<li>Extension Name</li>
+<li>Description</li>
+<li>Status (Active/Inactive)</li>
+</ul>
+</li>
+</ol>
+<h3 id="activate-extension">Activate Extension</h3>
+<ol>
+<li>Find extension</li>
+<li>Click <strong>Activate</strong></li>
+<li>Configure extension settings</li>
+<li>Save configuration</li>
+</ol>
+<h3 id="deactivate-extension">Deactivate Extension</h3>
+<ol>
+<li>Find active extension</li>
+<li>Click <strong>Deactivate</strong></li>
+<li>Confirm action</li>
+</ol>
+<h3 id="configure-extension">Configure Extension</h3>
+<ol>
+<li>Click <strong>Edit</strong> on active extension</li>
+<li>Enter configuration:
+<ul>
+<li>API Keys</li>
+<li>Settings</li>
+<li>Options</li>
+</ul>
+</li>
+<li>Save configuration</li>
+</ol>
+<hr>
+<h2 id="418-frontend-management">4.18 Frontend Management</h2>
+<h3 id="manage-templates">Manage Templates</h3>
+<ol>
+<li>Go to <strong>Frontend</strong> → <strong>Templates</strong></li>
+<li>See available templates</li>
+<li>Select active template</li>
+<li>Click <strong>Activate</strong></li>
+</ol>
+<h3 id="manage-sections">Manage Sections</h3>
+<ol>
+<li>Go to <strong>Frontend</strong> → <strong>Sections</strong></li>
+<li>Select page (Home/About/Contact)</li>
+<li>Manage sections:
+<ul>
+<li>Banner</li>
+<li>Features</li>
+<li>How It Works</li>
+<li>Testimonials</li>
+<li>etc.</li>
+</ul>
+</li>
+</ol>
+<h3 id="edit-section-content">Edit Section Content</h3>
+<ol>
+<li>Click on section</li>
+<li>Update:
+<ul>
+<li>Heading</li>
+<li>Sub-heading</li>
+<li>Description</li>
+<li>Images</li>
+<li>Call-to-action</li>
+</ul>
+</li>
+<li>Save changes</li>
+</ol>
+<h3 id="add-section-element">Add Section Element</h3>
+<ol>
+<li>Select section</li>
+<li>Click <strong>Add Element</strong></li>
+<li>Fill in content</li>
+<li>Upload images</li>
+<li>Save element</li>
+</ol>
+<h3 id="manage-pages">Manage Pages</h3>
+<ol>
+<li>Go to <strong>Frontend</strong> → <strong>Manage Pages</strong></li>
+<li>See all pages:
+<ul>
+<li>Page Name</li>
+<li>Slug</li>
+<li>Status</li>
+</ul>
+</li>
+</ol>
+<h3 id="create-new-page">Create New Page</h3>
+<ol>
+<li>Click <strong>Create Page</strong></li>
+<li>Enter:
+<ul>
+<li>Page Name</li>
+<li>Page Slug</li>
+<li>Page Content (HTML editor)</li>
+</ul>
+</li>
+<li>Select sections</li>
+<li>Save page</li>
+</ol>
+<h3 id="edit-page">Edit Page</h3>
+<ol>
+<li>Click <strong>Edit</strong> on page</li>
+<li>Update content</li>
+<li>Save changes</li>
+</ol>
+<h3 id="delete-page">Delete Page</h3>
+<ol>
+<li>Click <strong>Delete</strong></li>
+<li>Confirm deletion</li>
+</ol>
+<hr>
+<h2 id="419-seo-management">4.19 SEO Management</h2>
+<h3 id="configure-seo-settings">Configure SEO Settings</h3>
+<ol>
+<li>
+<p>Go to <strong>SEO</strong></p>
+</li>
+<li>
+<p>Configure:</p>
+<p><strong>Meta Tags</strong>:</p>
+<ul>
+<li>Meta Title</li>
+<li>Meta Description</li>
+<li>Meta Keywords</li>
+</ul>
+<p><strong>Social Meta</strong>:</p>
+<ul>
+<li>Facebook Title</li>
+<li>Facebook Description</li>
+<li>Facebook Image</li>
+<li>Twitter Title</li>
+<li>Twitter Description</li>
+<li>Twitter Image</li>
+</ul>
+<p><strong>Sitemap</strong>:</p>
+<ul>
+<li>Enable XML Sitemap</li>
+<li>Update Frequency</li>
+</ul>
+</li>
+<li>
+<p>Save SEO settings</p>
+</li>
+</ol>
+<hr>
+<h2 id="420-payout-management">4.20 Payout Management</h2>
+<h3 id="view-payouts">View Payouts</h3>
+<ol>
+<li>Go to <strong>Payouts</strong></li>
+<li>See all operator payouts:
+<ul>
+<li>Operator Name</li>
+<li>Payout Period</li>
+<li>Gross Revenue</li>
+<li>Commission</li>
+<li>Net Payout</li>
+<li>Status</li>
+</ul>
+</li>
+</ol>
+<h3 id="generate-payout">Generate Payout</h3>
+<ol>
+<li>Click <strong>Create Payout</strong></li>
+<li>Select:
+<ul>
+<li>Operator</li>
+<li>Period (Monthly/Custom Range)</li>
+<li>Start Date</li>
+<li>End Date</li>
+</ul>
+</li>
+<li>System calculates:
+<ul>
+<li>Total bookings</li>
+<li>Gross revenue</li>
+<li>Platform commission</li>
+<li>Net payout</li>
+</ul>
+</li>
+<li>Review calculation</li>
+<li>Generate payout</li>
+</ol>
+<h3 id="bulk-generate-payouts">Bulk Generate Payouts</h3>
+<ol>
+<li>Click <strong>Bulk Generate</strong></li>
+<li>Select period</li>
+<li>Choose operators (All/Specific)</li>
+<li>Generate payouts for all</li>
+</ol>
+<h3 id="record-payment">Record Payment</h3>
+<ol>
+<li>Find payout</li>
+<li>Click <strong>Record Payment</strong></li>
+<li>Enter:
+<ul>
+<li>Payment Mode</li>
+<li>Transaction ID</li>
+<li>Payment Date</li>
+<li>Bank Details</li>
+<li>Notes</li>
+</ul>
+</li>
+<li>Save payment</li>
+<li>Mark as Paid</li>
+</ol>
+<h3 id="view-payout-details">View Payout Details</h3>
+<p>Click on payout to see:</p>
+<ul>
+<li>Complete booking breakdown</li>
+<li>Revenue calculation</li>
+<li>Commission details</li>
+<li>Tax information</li>
+<li>Payment history</li>
+</ul>
+<h3 id="cancel-payout">Cancel Payout</h3>
+<ol>
+<li>Find pending payout</li>
+<li>Click <strong>Cancel</strong></li>
+<li>Enter reason</li>
+<li>Confirm cancellation</li>
+</ol>
+<h3 id="update-payout-notes">Update Payout Notes</h3>
+<ol>
+<li>Open payout</li>
+<li>Click <strong>Update Notes</strong></li>
+<li>Enter administrative notes</li>
+<li>Save notes</li>
+</ol>
+<h3 id="export-payout-report">Export Payout Report</h3>
+<ol>
+<li>Apply filters</li>
+<li>Select date range</li>
+<li>Click <strong>Export</strong></li>
+<li>Download Excel/PDF</li>
+</ol>
+<h3 id="payout-statistics">Payout Statistics</h3>
+<p>View dashboard:</p>
+<ul>
+<li>Total payouts this month</li>
+<li>Pending payouts</li>
+<li>Paid payouts</li>
+<li>Outstanding amount</li>
+</ul>
+<hr>
+<h2 id="421-system-maintenance">4.21 System Maintenance</h2>
+<h3 id="view-system-information">View System Information</h3>
+<ol>
+<li>Go to <strong>System Info</strong></li>
+<li>See:
+<ul>
+<li>Laravel Version</li>
+<li>PHP Version</li>
+<li>Server Information</li>
+<li>Database Version</li>
+<li>Timezone Settings</li>
+</ul>
+</li>
+</ol>
+<h3 id="clear-cache">Clear Cache</h3>
+<ol>
+<li>Go to <strong>Optimize</strong></li>
+<li>Click <strong>Clear Cache</strong></li>
+<li>Cache cleared</li>
+</ol>
+<h3 id="view-error-logs">View Error Logs</h3>
+<ol>
+<li>Access log files</li>
+<li>Review system errors</li>
+<li>Debug issues</li>
+</ol>
+<hr>
+<h2 id="422-admin-profile--security">4.22 Admin Profile &amp; Security</h2>
+<h3 id="update-profile">Update Profile</h3>
+<ol>
+<li>Click on admin name (top right)</li>
+<li>Go to <strong>Profile</strong></li>
+<li>Update:
+<ul>
+<li>Name</li>
+<li>Email</li>
+<li>Profile Photo</li>
+</ul>
+</li>
+<li>Save changes</li>
+</ol>
+<h3 id="change-password">Change Password</h3>
+<ol>
+<li>Go to <strong>Password</strong></li>
+<li>Enter:
+<ul>
+<li>Current Password</li>
+<li>New Password</li>
+<li>Confirm Password</li>
+</ul>
+</li>
+<li>Save new password</li>
+</ol>
+<h3 id="logout">Logout</h3>
+<ol>
+<li>Click admin name</li>
+<li>Click <strong>Logout</strong></li>
+<li>Session ended</li>
+</ol>
+<hr>
+<h2 id="appendix-common-tasks-quick-reference">Appendix: Common Tasks Quick Reference</h2>
+<h3 id="for-customers">For Customers:</h3>
+<ol>
+<li><strong>Book Ticket</strong>: Home → Search → Select Bus → Choose Seats → Enter Details → Pay</li>
+<li><strong>Cancel Booking</strong>: Dashboard → Booking History → Select Booking → Cancel</li>
+<li><strong>Print Ticket</strong>: Dashboard → Booking History → Print Ticket</li>
+</ol>
+<h3 id="for-agents">For Agents:</h3>
+<ol>
+<li><strong>Make Booking</strong>: Login → Search Buses → Select → Enter Customer Details → Complete</li>
+<li><strong>View Earnings</strong>: Dashboard → Earnings → View Details</li>
+<li><strong>Track Bookings</strong>: Dashboard → My Bookings</li>
+</ol>
+<h3 id="for-operators">For Operators:</h3>
+<ol>
+<li><strong>Add Bus</strong>: Login → Buses → Add New → Fill Details → Save</li>
+<li><strong>Create Schedule</strong>: Schedules → Create New → Select Bus &amp; Route → Save</li>
+<li><strong>Mark Attendance</strong>: Attendance → Mark Today → Update → Save</li>
+</ol>
+<h3 id="for-admins">For Admins:</h3>
+<ol>
+<li><strong>Approve Operator</strong>: Operators → Pending → Review → Approve</li>
+<li><strong>Manage Payment</strong>: Payments → Pending → Review → Approve/Reject</li>
+<li><strong>Create Coupon</strong>: Coupons → Create → Fill Details → Activate</li>
+</ol>
+<hr>
+<h2 id="support--help">Support &amp; Help</h2>
+<p>For any issues or questions:</p>
+<ul>
+<li><strong>Email</strong>: support@yourdomain.com</li>
+<li><strong>Phone</strong>: +XX-XXXXXXXXXX</li>
+<li><strong>Support Ticket</strong>: Create ticket through admin panel</li>
+</ul>
+<hr>
+<p><strong>End of User Manual</strong>
+<em>Version 1.0 - Generated November 2024</em></p>
+
+</body>
+</html>

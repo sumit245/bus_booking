@@ -1,0 +1,465 @@
+{
+    "info": {
+        "name": "Bus Booking - Canonical Routes (from code)",
+        "_postman_id": "bus-booking-canonical-routes",
+        "description": "Postman collection generated from `core/routes/api.php` and API-like web routes in `core/routes/web.php`. This collection contains only paths and HTTP methods exactly as declared in the codebase. No request/response schemas were assumed.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost/bus-booking",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "API: POST /api/send-otp",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/send-otp",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "send-otp"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> UserController::sendOTP (auth-related). No parameter schema assumed; fill JSON body as required by controller."
+            }
+        },
+        {
+            "name": "API: POST /api/verify-otp",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/verify-otp",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "verify-otp"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> UserController::verifyOtp (auth-related)."
+            }
+        },
+        {
+            "name": "API: POST /api/users/get-my-tickets",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/users/get-my-tickets",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "users",
+                        "get-my-tickets"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> UserController::userHistoryByPhone."
+            }
+        },
+        {
+            "name": "API: POST /api/users/cancel-ticket",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/users/cancel-ticket",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "users",
+                        "cancel-ticket"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> UserController::cancelTicketApi."
+            }
+        },
+        {
+            "name": "API: GET /api/autocomplete-city",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/autocomplete-city",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "autocomplete-city"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ApiTicketController::autocompleteCity (autocomplete endpoint)."
+            }
+        },
+        {
+            "name": "API (bus): GET /api/bus/search",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/bus/search",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "bus",
+                        "search"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ApiTicketController::ticketSearch."
+            }
+        },
+        {
+            "name": "API (bus): GET /api/bus/show-seats",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/bus/show-seats",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "bus",
+                        "show-seats"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ApiTicketController::showSeat."
+            }
+        },
+        {
+            "name": "API (bus): GET /api/bus/get-counters",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/bus/get-counters",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "bus",
+                        "get-counters"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ApiTicketController::getCounters."
+            }
+        },
+        {
+            "name": "API (bus): POST /api/bus/block-seat",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/bus/block-seat",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "bus",
+                        "block-seat"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ApiTicketController::blockSeatApi."
+            }
+        },
+        {
+            "name": "API (bus): POST /api/bus/confirm-payment",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/bus/confirm-payment",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "bus",
+                        "confirm-payment"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ApiTicketController::confirmPayment."
+            }
+        },
+        {
+            "name": "API (bus): POST /api/bus/cancellation-policy",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/bus/cancellation-policy",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "bus",
+                        "cancellation-policy"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ApiTicketController::getCancellationPolicy."
+            }
+        },
+        {
+            "name": "API: GET /api/coupons",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/coupons",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "coupons"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> CouponController::getActiveCouponsApi."
+            }
+        },
+        {
+            "name": "API: POST /api/apply-coupon",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": ""
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/apply-coupon",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "apply-coupon"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> CouponController::applyCouponApi."
+            }
+        },
+        {
+            "name": "API (manage): GET /api/manage/route",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/manage/route",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "manage",
+                        "route"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ManageTripController::routeList (named trip.route)."
+            }
+        },
+        {
+            "name": "API (manage): GET /api/manage/schedule",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/manage/schedule",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "manage",
+                        "schedule"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ManageTripController::schedules."
+            }
+        },
+        {
+            "name": "API (manage): GET /api/manage/ticket-price",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/manage/ticket-price",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "manage",
+                        "ticket-price"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ManageTripController::ticketPriceList."
+            }
+        },
+        {
+            "name": "API (manage): GET /api/manage/route-data",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/manage/route-data",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "manage",
+                        "route-data"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> VehicleTicketController::getRouteData (named ticket.get_route_data)."
+            }
+        },
+        {
+            "name": "API (manage): GET /api/manage/ticket-price/check_price",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/manage/ticket-price/check_price",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "manage",
+                        "ticket-price",
+                        "check_price"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> VehicleTicketController::checkTicketPrice."
+            }
+        },
+        {
+            "name": "API (manage): GET /api/manage/trip",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/manage/trip",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "manage",
+                        "trip"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ManageTripController::trips (named trip.list)."
+            }
+        },
+        {
+            "name": "API (manage): GET /api/manage/assigned-vehicle",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/manage/assigned-vehicle",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "manage",
+                        "assigned-vehicle"
+                    ]
+                },
+                "description": "Route declared in core/routes/api.php -> ManageTripController::assignedVehicleLists (named trip.vehicle.assign)."
+            }
+        }
+    ]
+}

@@ -21,7 +21,7 @@
                                 <option value="">@lang('Select Departure City')</option>
                                 @foreach ($cities as $city)
                                     <option value="{{ $city->city_id }}"
-                                        {{ old('OriginId') == $city->city_id ? 'selected' : '' }}>
+                                        {{ old('OriginId', request()->get('OriginId')) == $city->city_id ? 'selected' : '' }}>
                                         {{ $city->city_name }}
                                     </option>
                                 @endforeach
@@ -37,7 +37,7 @@
                                 <option value="">@lang('Select Destination City')</option>
                                 @foreach ($cities as $city)
                                     <option value="{{ $city->city_id }}"
-                                        {{ old('DestinationId') == $city->city_id ? 'selected' : '' }}>
+                                        {{ old('DestinationId', request()->get('DestinationId')) == $city->city_id ? 'selected' : '' }}>
                                         {{ $city->city_name }}
                                     </option>
                                 @endforeach
@@ -51,7 +51,8 @@
                             <label for="date_of_journey" class="form-label">@lang('Journey Date') *</label>
                             <input type="date" class="form-control @error('DateOfJourney') is-invalid @enderror"
                                 id="date_of_journey" name="DateOfJourney"
-                                value="{{ old('date_of_journey', date('Y-m-d')) }}" min="{{ date('Y-m-d') }}" required>
+                                value="{{ old('DateOfJourney', request()->get('DateOfJourney', date('Y-m-d'))) }}"
+                                min="{{ date('Y-m-d') }}" required>
                             @error('date_of_journey')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
@@ -62,7 +63,7 @@
                             <select class="form-control" id="passengers" name="passengers" required>
                                 @for ($i = 1; $i <= 10; $i++)
                                     <option value="{{ $i }}"
-                                        {{ old('passengers', 1) == $i ? 'selected' : '' }}>
+                                        {{ old('passengers', request()->get('passengers', 1)) == $i ? 'selected' : '' }}>
                                         {{ $i }} @lang('Passenger'){{ $i > 1 ? 's' : '' }}
                                     </option>
                                 @endfor
@@ -75,7 +76,7 @@
 
                     <div class="row">
                         <div class="col-12 text-center">
-                            <button type="submit" class="btn btn-primary btn-lg px-5" id="searchBtn">
+                            <button type="submit" class="form-control btn btn-primary px-5" id="searchBtn">
                                 <i class="las la-search"></i>
                                 @lang('Search Buses')
                             </button>
@@ -159,6 +160,10 @@
 @push('script')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Reset button state on page load (in case of back navigation)
+            const searchBtn = $('#searchBtn');
+            searchBtn.html('<i class="las la-search"></i> {{ __('Search Buses') }}').prop('disabled', false);
+
             // Ensure jQuery is available
             if (typeof $ === 'undefined') {
                 console.error('jQuery is not loaded');
@@ -177,15 +182,15 @@
                         if (!params.term || params.term.trim() === '') {
                             return data;
                         }
-                        
+
                         // Normalize search term
                         const term = params.term.toLowerCase().trim();
-                        
+
                         // If search term is less than 3 characters, show all options (user is still typing)
                         if (term.length < 3) {
                             return data;
                         }
-                        
+
                         // Get text from multiple possible sources
                         let text = '';
                         if (data.text) {
@@ -202,9 +207,10 @@
                         } else if (data.id && data.id !== '') {
                             // Fallback: try to get text from the option element by value
                             // Find the select element that contains this Select2 instance
-                            const $select = $('#origin_city_id, #destination_city_id').filter(function() {
-                                return $(this).data('select2') !== undefined;
-                            }).first();
+                            const $select = $('#origin_city_id, #destination_city_id').filter(
+                                function() {
+                                    return $(this).data('select2') !== undefined;
+                                }).first();
                             if ($select.length) {
                                 const $option = $select.find('option[value="' + data.id + '"]');
                                 if ($option.length) {
@@ -212,15 +218,15 @@
                                 }
                             }
                         }
-                        
+
                         // Normalize text for comparison
                         text = (text || '').toLowerCase().trim();
-                        
+
                         // Only match if text starts with search term (initial 3+ characters)
                         if (text && text.startsWith(term)) {
                             return data;
                         }
-                        
+
                         // No match
                         return null;
                     }
@@ -296,19 +302,39 @@
                     if (!fromCity || !toCity) {
                         e.preventDefault();
                         alert('Please select departure and destination cities');
+                        // Reset button state
+                        $('#searchBtn').html(
+                            '<i class="las la-search"></i> {{ __('Search Buses') }}').prop(
+                            'disabled', false);
                         return false;
                     }
 
                     if (fromCity === toCity) {
                         e.preventDefault();
                         alert('Departure and destination cities cannot be the same');
+                        // Reset button state
+                        $('#searchBtn').html(
+                            '<i class="las la-search"></i> {{ __('Search Buses') }}').prop(
+                            'disabled', false);
                         return false;
                     }
 
-                    // Show loading state
+                    // Show loading state only if validation passes
                     $('#searchBtn').html(
-                        '<i class="las la-spinner la-spin"></i> @lang('Searching...')').prop(
-                        'disabled', true);
+                            '<i class="las la-spinner la-spin"></i> {{ __('Searching...') }}')
+                        .prop(
+                            'disabled', true);
+                });
+
+                // Reset button state on pageshow event (handles back/forward browser navigation)
+                window.addEventListener('pageshow', function(event) {
+                    if (event.persisted || (window.performance && window.performance.navigation
+                            .type === 2)) {
+                        // Page was loaded from cache (back/forward button)
+                        $('#searchBtn').html(
+                            '<i class="las la-search"></i> {{ __('Search Buses') }}').prop(
+                            'disabled', false);
+                    }
                 });
 
                 // Auto-focus first field

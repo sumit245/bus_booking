@@ -71,21 +71,6 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin']], fun
     Route::get('ticket/details', 'Admin\VehicleTicketController@ticketDetails')->name('admin.ticket.details');
     Route::post('ticket/cancel', 'Admin\VehicleTicketController@cancelTicket')->name('admin.ticket.cancel');
     Route::post('ticket/refund', 'Admin\VehicleTicketController@refundTicket')->name('admin.ticket.refund');
-
-    // Debug route to test if routing works
-    Route::get('ticket/test-route', function (\Illuminate\Http\Request $request) {
-        \Log::info('=== TEST ROUTE CALLED ===', [
-            'timestamp' => now()->toDateTimeString(),
-            'url' => $request->fullUrl(),
-            'method' => $request->method(),
-            'params' => $request->all()
-        ]);
-        return response()->json([
-            'success' => true,
-            'message' => 'Test route is working!',
-            'timestamp' => now()->toDateTimeString()
-        ]);
-    })->name('admin.ticket.test');
 });
 
 /*
@@ -675,6 +660,21 @@ Route::
                 "report/email/history",
                 "ReportController@emailHistory",
             )->name("report.email.history");
+
+            // Referral Management
+            Route::name("referral.")
+                ->prefix("referral")
+                ->group(function () {
+                Route::get("/settings", "ReferralController@settings")->name("settings");
+                Route::post("/settings", "ReferralController@updateSettings")->name("settings.update");
+                Route::get("/analytics", "ReferralController@analytics")->name("analytics");
+                Route::get("/codes", "ReferralController@codes")->name("codes");
+                Route::get("/codes/{id}", "ReferralController@codeDetails")->name("codes.details");
+                Route::post("/codes/{id}/toggle", "ReferralController@toggleCodeStatus")->name("codes.toggle");
+                Route::get("/rewards", "ReferralController@rewards")->name("rewards");
+                Route::post("/rewards/{id}/confirm", "ReferralController@confirmReward")->name("rewards.confirm");
+                Route::post("/rewards/{id}/reverse", "ReferralController@reverseReward")->name("rewards.reverse");
+            });
 
             // Admin Support
             Route::get("tickets", "SupportTicketController@tickets")->name(
@@ -1679,10 +1679,14 @@ Route::middleware(["auth:agent"])
             Route::get("/search", function () {
                 $pageTitle = "Search Buses";
                 $cities = \App\Models\City::orderBy("city_name")->get();
-                return view(
-                    "agent.search.index",
-                    compact("pageTitle", "cities"),
-                );
+                return response()
+                    ->view(
+                        "agent.search.index",
+                        compact("pageTitle", "cities"),
+                    )
+                    ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                    ->header('Pragma', 'no-cache')
+                    ->header('Expires', '0');
             })->name("search");
 
             Route::get("/search/results", function (\Illuminate\Http\Request $request, ) {
@@ -1745,18 +1749,22 @@ Route::middleware(["auth:agent"])
                 $availableBuses = $result["trips"] ?? [];
                 $pagination = $result["pagination"] ?? null;
 
-                return view(
-                    "agent.search.results",
-                    compact(
-                        "pageTitle",
-                        "fromCityData",
-                        "toCityData",
-                        "dateOfJourney",
-                        "passengers",
-                        "availableBuses",
-                        "pagination",
-                    ),
-                );
+                return response()
+                    ->view(
+                        "agent.search.results",
+                        compact(
+                            "pageTitle",
+                            "fromCityData",
+                            "toCityData",
+                            "dateOfJourney",
+                            "passengers",
+                            "availableBuses",
+                            "pagination",
+                        ),
+                    )
+                    ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                    ->header('Pragma', 'no-cache')
+                    ->header('Expires', '0');
             })->name("search.results");
 
             // Get schedules for a bus

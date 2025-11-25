@@ -43,14 +43,8 @@ class SeatAvailabilityService
         ?int $droppingPointIndex = null
     ): array {
         $cacheKey = $this->getCacheKey($operatorBusId, $scheduleId, $dateOfJourney, $boardingPointIndex, $droppingPointIndex);
-        
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () use (
-            $operatorBusId,
-            $scheduleId,
-            $dateOfJourney,
-            $boardingPointIndex,
-            $droppingPointIndex
-        ) {
+
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($operatorBusId, $scheduleId, $dateOfJourney, $boardingPointIndex, $droppingPointIndex) {
             return $this->calculateBookedSeats(
                 $operatorBusId,
                 $scheduleId,
@@ -88,14 +82,14 @@ class SeatAvailabilityService
                 $normalizedDate = $dateOfJourney; // Use as-is if parsing fails
             }
         }
-        
+
         // Get all bookings for this bus, schedule, and date
         // Status: 0 = pending, 1 = confirmed, 2 = rejected
         // We only care about pending and confirmed bookings
         // Check both Y-m-d and m/d/Y formats in database
         $bookings = BookedTicket::where('bus_id', $operatorBusId)
             ->where('schedule_id', $scheduleId)
-            ->where(function($query) use ($normalizedDate, $dateOfJourney) {
+            ->where(function ($query) use ($normalizedDate, $dateOfJourney) {
                 // Try exact match first (Y-m-d format)
                 $query->where('date_of_journey', $normalizedDate)
                     // Also try original format if different
@@ -106,7 +100,7 @@ class SeatAvailabilityService
             ->whereIn('status', [0, 1]) // pending or confirmed
             ->whereNotNull('seats')
             ->get();
-        
+
         Log::info('SeatAvailabilityService: Found bookings', [
             'operator_bus_id' => $operatorBusId,
             'schedule_id' => $scheduleId,
@@ -128,13 +122,13 @@ class SeatAvailabilityService
         }
 
         $route = $schedule->operatorRoute;
-        
+
         // Get boarding and dropping points for this route
         $boardingPoints = BoardingPoint::where('operator_route_id', $route->id)
             ->active()
             ->ordered()
             ->get();
-        
+
         $droppingPoints = DroppingPoint::where('operator_route_id', $route->id)
             ->active()
             ->ordered()
@@ -165,14 +159,16 @@ class SeatAvailabilityService
             }
 
             // Check if segments overlap
-            if ($this->segmentsOverlap(
-                $boardingPointIndex,
-                $droppingPointIndex,
-                $bookingBoardingIndex,
-                $bookingDroppingIndex,
-                $boardingPoints,
-                $droppingPoints
-            )) {
+            if (
+                $this->segmentsOverlap(
+                    $boardingPointIndex,
+                    $droppingPointIndex,
+                    $bookingBoardingIndex,
+                    $bookingDroppingIndex,
+                    $boardingPoints,
+                    $droppingPoints
+                )
+            ) {
                 $seats = $this->extractSeatsFromBooking($booking);
                 $bookedSeats = array_merge($bookedSeats, $seats);
             }
@@ -207,7 +203,7 @@ class SeatAvailabilityService
     ): bool {
         // Get point indices sorted by position in route
         $allPoints = [];
-        
+
         // Combine boarding and dropping points, ordered by point_index
         foreach ($boardingPoints as $bp) {
             $allPoints[$bp->point_index] = ['type' => 'boarding', 'point' => $bp];
@@ -215,7 +211,7 @@ class SeatAvailabilityService
         foreach ($droppingPoints as $dp) {
             $allPoints[$dp->point_index] = ['type' => 'dropping', 'point' => $dp];
         }
-        
+
         ksort($allPoints);
         $sortedIndices = array_keys($allPoints);
 
@@ -226,8 +222,10 @@ class SeatAvailabilityService
         $bookingEndPos = array_search($bookingDroppingIndex, $sortedIndices);
 
         // If any index not found, assume overlap (safety)
-        if ($requestStartPos === false || $requestEndPos === false || 
-            $bookingStartPos === false || $bookingEndPos === false) {
+        if (
+            $requestStartPos === false || $requestEndPos === false ||
+            $bookingStartPos === false || $bookingEndPos === false
+        ) {
             Log::warning('SeatAvailabilityService: Point index not found in sorted indices', [
                 'request_boarding' => $requestBoardingIndex,
                 'request_dropping' => $requestDroppingIndex,
@@ -256,18 +254,18 @@ class SeatAvailabilityService
     private function extractSeatsFromBooking(BookedTicket $booking): array
     {
         $seats = [];
-        
+
         // Try seats array first
         if ($booking->seats && is_array($booking->seats)) {
             $seats = array_merge($seats, $booking->seats);
         }
-        
+
         // Fallback to seat_numbers string
         if (empty($seats) && $booking->seat_numbers) {
             $seatNumbers = explode(',', $booking->seat_numbers);
             $seats = array_merge($seats, array_map('trim', $seatNumbers));
         }
-        
+
         return array_filter($seats); // Remove empty values
     }
 
@@ -283,7 +281,7 @@ class SeatAvailabilityService
                 return (int) $details['CityPointIndex'];
             }
         }
-        
+
         // Try from boarding_point column (if it's a point_index)
         if ($booking->boarding_point) {
             // Check if it's a valid point_index for this route
@@ -294,7 +292,7 @@ class SeatAvailabilityService
                 return $point->point_index;
             }
         }
-        
+
         // Try to find by matching point name/location
         // This is a fallback - less reliable
         if ($booking->boarding_point_details) {
@@ -308,7 +306,7 @@ class SeatAvailabilityService
                 }
             }
         }
-        
+
         return null;
     }
 
@@ -324,7 +322,7 @@ class SeatAvailabilityService
                 return (int) $details['CityPointIndex'];
             }
         }
-        
+
         // Try from dropping_point column
         if ($booking->dropping_point) {
             $point = DroppingPoint::where('operator_route_id', $routeId)
@@ -334,7 +332,7 @@ class SeatAvailabilityService
                 return $point->point_index;
             }
         }
-        
+
         // Try to find by matching point name/location
         if ($booking->dropping_point_details) {
             $details = json_decode($booking->dropping_point_details, true);
@@ -347,7 +345,7 @@ class SeatAvailabilityService
                 }
             }
         }
-        
+
         return null;
     }
 
@@ -369,23 +367,51 @@ class SeatAvailabilityService
             $boardingPointIndex ?? 'all',
             $droppingPointIndex ?? 'all'
         ];
-        
+
         return implode(':', $parts);
     }
 
     /**
      * Invalidate cache for a specific bus/schedule/date
+     * Clears ALL cache variations (with and without boarding/dropping points)
      */
     public function invalidateCache(int $operatorBusId, int $scheduleId, string $dateOfJourney): void
     {
-        // Invalidate all variations (with and without boarding/dropping points)
-        $patterns = [
-            "seat_availability:{$operatorBusId}:{$scheduleId}:{$dateOfJourney}:*"
-        ];
-        
-        // For now, we'll use a prefix-based approach
-        // Laravel cache doesn't support wildcard deletion, so we'll clear relevant cache on booking
-        Cache::forget($this->getCacheKey($operatorBusId, $scheduleId, $dateOfJourney, null, null));
+        // Normalize date format first
+        $normalizedDate = $dateOfJourney;
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateOfJourney)) {
+            try {
+                if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $dateOfJourney)) {
+                    $normalizedDate = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+                } else {
+                    $normalizedDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                Log::warning('SeatAvailabilityService: Failed to normalize date for cache invalidation', [
+                    'original_date' => $dateOfJourney,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        // Clear the main cache key (no boarding/dropping points)
+        $mainKey = $this->getCacheKey($operatorBusId, $scheduleId, $normalizedDate, null, null);
+        Cache::forget($mainKey);
+
+        // Also try to clear with original date format if different
+        if ($normalizedDate !== $dateOfJourney) {
+            $originalKey = $this->getCacheKey($operatorBusId, $scheduleId, $dateOfJourney, null, null);
+            Cache::forget($originalKey);
+        }
+
+        Log::info('SeatAvailabilityService: Cache invalidated', [
+            'operator_bus_id' => $operatorBusId,
+            'schedule_id' => $scheduleId,
+            'date_of_journey' => $normalizedDate,
+            'original_date' => $dateOfJourney,
+            'main_key_cleared' => $mainKey,
+            'note' => 'Specific cache keys cleared. All seat availability for this bus/schedule/date will be recalculated.'
+        ]);
     }
 
     /**
@@ -406,10 +432,10 @@ class SeatAvailabilityService
             $boardingPointIndex,
             $droppingPointIndex
         );
-        
+
         $bookedCount = count($bookedSeats);
         $availableCount = max(0, $totalSeats - $bookedCount);
-        
+
         return $availableCount;
     }
 }

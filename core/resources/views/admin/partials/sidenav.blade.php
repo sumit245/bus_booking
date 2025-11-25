@@ -286,6 +286,42 @@
                     </div>
                 </li>
 
+                <!-- Referral System Dropdown -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('admin.referral*', 3) }}">
+                        <i class="menu-icon las la-share-alt"></i>
+                        <span class="menu-title">@lang('Referral System')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('admin.referral*', 2) }}">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('admin.referral.settings') }}">
+                                <a href="{{ route('admin.referral.settings') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Settings')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('admin.referral.analytics') }}">
+                                <a href="{{ route('admin.referral.analytics') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Analytics')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('admin.referral.codes') }}">
+                                <a href="{{ route('admin.referral.codes') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Referral Codes')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('admin.referral.rewards') }}">
+                                <a href="{{ route('admin.referral.rewards') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Rewards')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 <li class="sidebar__menu-header">@lang('Transport Manager')</li>
 
                 <!-- Counter Menu Item -->

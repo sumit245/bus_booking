@@ -1282,78 +1282,6 @@ Route::name("operator.")
         });
     });
 
-// Temporary routes without authentication for testing
-
-Route::get("test-seat-layout", function (\Illuminate\Http\Request $request) {
-    $busId = $request->get("bus_id", 1);
-    $bus = App\Models\OperatorBus::find($busId);
-
-    if (!$bus) {
-        return response()->json(["error" => "Bus not found"], 404);
-    }
-
-    $seatLayout = $bus->activeSeatLayout;
-    if (!$seatLayout) {
-        return response()->json(
-            ["error" => "No seat layout found for this bus"],
-            400,
-        );
-    }
-
-    // Get blocked seats (empty for now)
-    $blockedSeats = [];
-
-    // Convert seat layout array to HTML
-    $html = '<div class="bus-layout">';
-
-    foreach ($seatLayout->processed_layout as $deckName => $deck) {
-        $html .= '<div class="deck ' . $deckName . '">';
-        $html .= "<h5>" . ucfirst(str_replace("_", " ", $deckName)) . "</h5>";
-        $html .= '<div class="seats-container">';
-
-        foreach ($deck["seats"] as $seat) {
-            $seatId = $seat["seat_id"];
-            $isBlocked = in_array($seatId, $blockedSeats);
-            $seatClass = $seat["type"] . " " . $seat["category"];
-            $blockedClass = $isBlocked ? " blocked" : "";
-
-            $html .=
-                '<div class="seat ' .
-                $seatClass .
-                $blockedClass .
-                '" id="' .
-                $seatId .
-                '" ';
-            $html .=
-                'style="left: ' .
-                $seat["left"] .
-                "px; top: " .
-                $seat["position"] .
-                "px; ";
-            $html .=
-                "width: " .
-                $seat["width"] * 40 .
-                "px; height: " .
-                $seat["height"] * 40 .
-                'px;" ';
-            $html .= 'data-price="' . $seat["price"] . '" ';
-            $html .= 'data-type="' . $seat["type"] . '">';
-            $html .= $seatId;
-            $html .= "</div>";
-        }
-
-        $html .= "</div></div>";
-    }
-
-    $html .= "</div>";
-
-    return response()->json([
-        "seat_layout_html" => $html,
-        "blocked_seats" => $blockedSeats,
-        "total_seats" => $bus->total_seats,
-    ]);
-});
-
 Route::get(
     "operator/schedules/get-for-date",
     "Operator\ScheduleController@getSchedulesForDate",
@@ -1532,19 +1460,8 @@ Route::post("/get-boarding-points", "SiteController@getBoardingPoints")->name(
 Route::post("/block-seat", "SiteController@blockSeat")->name("block.seat");
 Route::post("/book-seat", "SiteController@bookTicketApi")->name("book.ticket");
 // Razorpay routes
-// Deprecated routes
-// Route::post('/razorpay/create-order', 'RazorpayController@createOrder')->name('razorpay.create-order');
-// Route::post('/razorpay/verify-payment', 'RazorpayController@verifyPayment')->name('razorpay.verify-payment');
-// Add these routes to your web.php file
-// Route::post('/create-razorpay-order', [App\Http\Controllers\RazorpayController::class, 'createOrder'])->name('create.razorpay.order');
-// Route::post('/verify-razorpay-payment', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('verify.razorpay.payment');
 
-// Update your existing book.ticket route to use the verification method
-// Route::post('/book-ticket', [App\Http\Controllers\RazorpayController::class, 'verifyPayment'])->name('book.ticket');
-
-Route::get("/admin/markup", [SiteController::class, "showMarkupPage"])->name(
-    "admin.markup",
-);
+Route::get("/admin/markup", [SiteController::class, "showMarkupPage"])->name("admin.markup");
 
 // Add these routes to your web.php file
 Route::post("/send-otp", [UserController::class, "sendOTP"])->name("send.otp");

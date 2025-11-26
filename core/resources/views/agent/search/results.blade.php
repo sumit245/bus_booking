@@ -699,8 +699,11 @@
                         .replace(/[^a-z0-9]+/g, '-')
                         .replace(/^-+|-+$/g, '');
 
-                    // Redirect to agent seat selection page with proper slug
-                    const url = `/bus_booking/agent/booking/seats/${busId}/${slug}`;
+                    // Redirect to agent seat selection page with proper slug using Laravel route helper
+                    const url =
+                        "{{ route('agent.booking.seats', ['id' => 'BUS_ID', 'slug' => 'BUS_SLUG']) }}"
+                        .replace('BUS_ID', busId)
+                        .replace('BUS_SLUG', slug);
                     window.location.href = url;
                 });
             });

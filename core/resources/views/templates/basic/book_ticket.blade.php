@@ -178,33 +178,33 @@
                     <i class="las la-times"></i>
                 </button>
             </div>
+            <!-- Step indicator tabs at top -->
+            <ul class="nav nav-tabs justify-content-center mb-3" id="bookingSteps" role="tablist"
+                style="justify-content: left!important;">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="boarding-tab" data-bs-toggle="tab"
+                        data-bs-target="#boarding-content" type="button" role="tab">
+                        @lang('Boarding & Dropping')
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="passenger-tab" data-bs-toggle="tab" data-bs-target="#passenger-content"
+                        type="button" role="tab">
+                        @lang('Passenger Details')
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment-content"
+                        type="button" role="tab">
+                        @lang('Payment')
+                    </button>
+                </li>
+            </ul>
             <div class="flyout-body">
-                <!-- Step indicator -->
-                <ul class="nav nav-tabs justify-content-center mb-4" id="bookingSteps" role="tablist"
-                    style="justify-content: left!important;">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="boarding-tab" data-bs-toggle="tab"
-                            data-bs-target="#boarding-content" type="button" role="tab">
-                            @lang('Boarding & Dropping')
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="passenger-tab" data-bs-toggle="tab"
-                            data-bs-target="#passenger-content" type="button" role="tab">
-                            @lang('Passenger Details')
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment-content"
-                            type="button" role="tab">
-                            @lang('Payment')
-                        </button>
-                    </li>
-                </ul>
                 <div class="tab-content">
                     <!-- Step 1: Boarding & Dropping Points -->
                     <div class="tab-pane fade show active" id="boarding-content" role="tabpanel">
-                        <div class="step-title">@lang('Select Boarding & Dropping Points')</div>
+                        {{-- <div class="step-title">@lang('Select Boarding & Dropping Points')</div> --}}
                         <div class="row">
                             <div class="col-md-6">
                                 <h6 class="mb-3">@lang('Boarding Points')</h6>
@@ -231,17 +231,12 @@
                         </div>
                         <input type="hidden" name="selected_boarding_point" id="selected_boarding_point">
                         <input type="hidden" name="selected_dropping_point" id="selected_dropping_point">
-                        <div class="mt-3 text-end">
-                            <button type="button" class="btn btn-primary btn-sm next-btn" id="nextToPassengerBtn">
-                                @lang('Continue')
-                            </button>
-                        </div>
                     </div>
                     <!-- Step 2: Passenger Details -->
                     <div class="tab-pane fade" id="passenger-content" role="tabpanel">
                         <div class="step-title">@lang('Passenger Details')</div>
                         <div class="passenger-details">
-                            <h6 class="mb-3">@lang('Passenger Information')</h6>
+                            {{-- <h6 class="mb-3">@lang('Passenger Information')</h6> --}}
                             <div class="row gy-3">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -362,11 +357,22 @@
                     <div class="tab-pane fade" id="payment-content" role="tabpanel">
                         <div class="step-title">@lang('Payment & Confirmation')</div>
                         <!-- Payment content will be handled by Razorpay -->
-                        <div class="py-5 text-center">
-                            <p>@lang('You will be redirected to the payment gateway.')</p>
+                        <div class="text-center">
+                            <p>@lang('Please review your booking details below and proceed to payment.')</p>
+                            <div class="booking-summary-card my-4">
+                                <div id="payment-summary"></div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-lg w-100" id="payNowBtn">
+                                @lang('Pay Now') <span id="payment-total-display"></span></button>
                         </div>
                     </div>
                 </div>
+            </div>
+            <!-- Continue button at bottom -->
+            <div class="flyout-bottom-nav">
+                <button type="button" class="btn btn-primary w-100 continue-btn" id="nextToPassengerBtn">
+                    @lang('Continue')
+                </button>
             </div>
         </div>
     </div>
@@ -374,8 +380,6 @@
 @endsection
 
 @php
-    use App\Models\MarkupTable;
-    use App\Models\CouponTable;
     use Carbon\Carbon;
 
     $markupData = \App\Models\MarkupTable::orderBy('id', 'desc')->first();
@@ -600,25 +604,15 @@
                     minute: '2-digit'
                 });
                 html += `
-                <div class="boarding-point-card" data-index="${point.CityPointIndex}">
-                    <div class="card-header">
+                <div class="point-card boarding-point-card" data-index="${point.CityPointIndex}">
+                    <div class="point-info-row">
+                        <div class="point-time">${time}</div>
                         <div class="point-name">${point.CityPointName}</div>
-                        <div class="point-time">
-                            <i class="las la-clock"></i>
-                            <span>${time}</span>
-                        </div>
                     </div>
-                    <div class="card-content">
-                        <div class="point-location">
-                            <i class="las la-map-marker-alt"></i>
-                            <span>${point.CityPointLocation || point.CityPointName}</span>
-                        </div>
-                        ${point.CityPointContactNumber ? `
-                                        <div class="point-contact">
-                                            <i class="las la-phone"></i>
-                                            <span>${point.CityPointContactNumber}</span>
-                                        </div>
-                                        ` : ''}
+                    <div class="point-details-row">
+                        <i class="las la-map-marker-alt"></i>
+                        <span class="point-location">${point.CityPointLocation || point.CityPointName}</span>
+                        ${point.CityPointContactNumber ? `<span class="point-contact">- ${point.CityPointContactNumber}</span>` : ''}
                     </div>
                 </div>
                 `;
@@ -644,25 +638,15 @@
                     minute: '2-digit'
                 });
                 html += `
-                <div class="dropping-point-card" data-index="${point.CityPointIndex}">
-                    <div class="card-header">
+                <div class="point-card dropping-point-card" data-index="${point.CityPointIndex}">
+                    <div class="point-info-row">
+                        <div class="point-time">${time}</div>
                         <div class="point-name">${point.CityPointName}</div>
-                        <div class="point-time">
-                            <i class="las la-clock"></i>
-                            <span>${time}</span>
-                        </div>
                     </div>
-                    <div class="card-content">
-                        <div class="point-location">
-                            <i class="las la-map-marker-alt"></i>
-                            <span>${point.CityPointLocation || point.CityPointName}</span>
-                        </div>
-                        ${point.CityPointContactNumber ? `
-                                        <div class="point-contact">
-                                            <i class="las la-phone"></i>
-                                            <span>${point.CityPointContactNumber}</span>
-                                        </div>
-                                        ` : ''}
+                    <div class="point-details-row">
+                        <i class="las la-map-marker-alt"></i>
+                        <span class="point-location">${point.CityPointLocation || point.CityPointName}</span>
+                        ${point.CityPointContactNumber ? `<span class="point-contact">- ${point.CityPointContactNumber}</span>` : ''}
                     </div>
                 </div>
                 `;
@@ -714,9 +698,9 @@
                         font-weight: normal;
                     }
                     #bookingSteps .nav-link.active {
-                        color: #000;
+                        color: #D63942;
                         font-weight: bold;
-                        border-bottom: 2px solid #007bff;
+                        border-bottom: 2px solid #D63942;
                     }
                 `)
                 .appendTo('head');
@@ -750,6 +734,12 @@
             $('#form_boarding_point_index').val($('#selected_boarding_point').val());
             $('#form_dropping_point_index').val($('#selected_dropping_point').val());
             $('#form_passenger_title').val($('#passenger_title').val());
+
+            // Also update the main gender input for the form
+            let selectedTitle = $('#passenger_title').val();
+            let genderValue = selectedTitle === "Mr" ? "1" : (selectedTitle === "Ms" ? "2" : "3");
+            $('#selected_gender').val(genderValue);
+
             $('#form_passenger_firstname').val($('#passenger_firstname').val());
             $('#form_passenger_lastname').val($('#passenger_lastname').val());
             $('#form_passenger_email').val($('#passenger_email').val());
@@ -758,8 +748,20 @@
             $('#form_passenger_address').val($('#passenger_address').val());
 
             // Submit the booking form before opening the payment tab
+            // Update the payment summary display
+            $('#payment-summary').html($('.booking-summary-card').html());
+            $('#payment-total-display').text('(' + $('#totalPriceDisplay').text() + ')');
+
+            // Switch to the payment tab
+            $('#payment-tab').tab('show');
+        });
+
+        // Handle the final payment submission
+        $('#payNowBtn').on('click', function() {
             let formData = $('#bookingForm').serialize();
             const serverGeneratedTrx = "{{ getTrx(10) }}";
+            const $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Processing...');
 
             $.ajax({
                 url: "{{ route('block.seat') }}",
@@ -772,11 +774,19 @@
                         const amount = parseFloat($('input[name="price"]').val());
                         createPaymentOrder(response.order_id, response.ticket_id, amount);
                     } else {
+                        $btn.prop('disabled', false).html(
+                            `@lang('Pay Now') <span id="payment-total-display">${$('#totalPriceDisplay').text()}</span>`
+                        );
                         alert(response.message || "An error occurred. Please try again.");
                     }
                 },
                 error: function(xhr) {
                     console.log(xhr.responseJSON);
+                    alert(xhr.responseJSON?.message ||
+                        "Failed to process booking. Please check your details.");
+                    $btn.prop('disabled', false).html(
+                        `@lang('Pay Now') <span id="payment-total-display">${$('#totalPriceDisplay').text()}</span>`
+                    );
                     alert(xhr.responseJSON?.message ||
                         "Failed to process booking. Please check your details.");
                 }
@@ -1113,10 +1123,16 @@
             border: none;
             color: white;
             font-size: 1.5rem;
+            line-height: 1;
             cursor: pointer;
-            padding: 5px;
+            padding: 0;
             border-radius: 50%;
             transition: background-color 0.2s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .flyout-close:hover {
@@ -1134,34 +1150,13 @@
             }
         }
 
-        /* Enhanced step styling */
-        #bookingSteps .nav-link {
-            color: #6c757d;
-            font-weight: normal;
-            border: none;
-            border-bottom: 2px solid transparent;
-            padding: 10px 15px;
-            transition: all 0.3s ease;
-        }
 
-        #bookingSteps .nav-link.active {
-            color: #667eea;
-            font-weight: bold;
-            border-bottom-color: #667eea;
-            background: none;
-        }
-
-        #bookingSteps .nav-link:hover {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-
-        /* Enhanced card styling */
         .boarding-point-card,
-        .dropping-point-card {
+        .dropping-point-card,
+        .point-card {
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 2px solid transparent;
+            border: 1px solid transparent;
         }
 
         .boarding-point-card:hover,
@@ -1170,11 +1165,15 @@
             box-shadow: 0 4px 8px rgba(102, 126, 234, 0.1);
         }
 
-        .boarding-point-card.border-primary,
-        .dropping-point-card.border-primary {
+        .point-card.selected {
             border-color: #667eea !important;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+        }
+
+        .boarding-point-card.border-primary,
+        .dropping-point-card.border-primary {
+            /* This class seems unused now, but keeping for compatibility */
         }
 
         /* Enhanced form styling */
@@ -1307,17 +1306,6 @@
             background: #D63942 !important;
         }
 
-        /* Update Step Colors */
-        #bookingSteps .nav-link.active {
-            color: #D63942 !important;
-            border-bottom-color: #D63942 !important;
-        }
-
-        #bookingSteps .nav-link:hover {
-            color: #D63942 !important;
-            border-bottom-color: #D63942 !important;
-        }
-
         /* Update Card Colors */
         .boarding-point-card:hover,
         .dropping-point-card:hover {
@@ -1380,87 +1368,88 @@
         }
 
         /* Professional Boarding/Dropping Point Cards */
-        .boarding-point-card,
-        .dropping-point-card {
+        .point-card {
             cursor: pointer;
             transition: all 0.3s ease;
             border: 1px solid #e9ecef;
-            border-radius: 12px;
+            border-radius: 6px;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             margin-bottom: 12px;
             background: #fff;
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            max-width: 100%;
+        }
+
+        .point-info-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 4px;
+            flex-wrap: nowrap;
+        }
+
+        .point-details-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            line-height: 1.3;
+            flex-wrap: wrap;
         }
 
         .boarding-point-card:hover,
-        .dropping-point-card:hover {
+        .dropping-point-card:hover,
+        .point-card:hover {
             border-color: #D63942;
             box-shadow: 0 4px 12px rgba(214, 57, 66, 0.15);
             transform: translateY(-1px);
         }
 
         .boarding-point-card.selected,
-        .dropping-point-card.selected {
+        .dropping-point-card.selected,
+        .point-card.selected {
             border-color: #D63942;
             background: #D63942;
             color: white;
             box-shadow: 0 4px 12px rgba(214, 57, 66, 0.2);
         }
 
-        .card-header {
-            padding: 16px 20px 12px;
-            border-bottom: 1px solid #f1f3f4;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .boarding-point-card.selected .card-header,
-        .dropping-point-card.selected .card-header {
-            border-bottom-color: rgba(255, 255, 255, 0.2);
-        }
 
         .point-name {
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: #333;
-        }
-
-        .boarding-point-card.selected .point-name,
-        .dropping-point-card.selected .point-name {
-            color: white;
+            white-space: normal;
+            word-wrap: break-word;
         }
 
         .point-time {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.9rem;
-            color: #666;
-            font-weight: 500;
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 700;
+            min-width: 65px;
+            flex-shrink: 0;
         }
 
         .boarding-point-card.selected .point-time,
-        .dropping-point-card.selected .point-time {
-            color: rgba(255, 255, 255, 0.9);
+        .dropping-point-card.selected .point-time,
+        .point-card.selected .point-time {
+            color: white;
         }
 
-        .point-time i {
-            font-size: 0.85rem;
-        }
 
-        .card-content {
-            padding: 12px 20px 16px;
-        }
 
-        .point-location,
-        .point-contact {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
+        .point-location {
+            font-size: 0.8rem;
             color: #666;
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.4;
+            flex: 1;
         }
 
         .point-location:last-child,
@@ -1469,22 +1458,62 @@
         }
 
         .boarding-point-card.selected .point-location,
-        .boarding-point-card.selected .point-contact,
         .dropping-point-card.selected .point-location,
-        .dropping-point-card.selected .point-contact {
-            color: rgba(255, 255, 255, 0.9);
+        .point-card.selected .point-location {
+            color: rgba(255, 255, 255, 0.85);
         }
 
-        .point-location i,
-        .point-contact i {
-            font-size: 0.9rem;
-            width: 16px;
-            text-align: center;
+        .point-contact {
+            font-size: 0.75rem;
+            color: #999;
+            margin-left: 4px;
+            flex-shrink: 0;
         }
 
-        /* Improve flyout overall spacing */
+        .point-card.selected .point-contact {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        /* Flyout bottom navigation (tabs + continue button) */
+        .flyout-bottom-nav {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px 20px;
+            border-top: 2px solid #e9ecef;
+            z-index: 100;
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .flyout-bottom-nav .nav-tabs {
+            border-bottom: none;
+            margin-bottom: 12px;
+        }
+
+        .flyout-bottom-nav .continue-btn {
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            background: #D63942;
+            border: none;
+            color: white;
+            width: 100%;
+        }
+
+        .flyout-bottom-nav .continue-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(214, 57, 66, 0.3);
+            background: #c32d36;
+        }
+
+        /* Adjust flyout body padding to account for fixed bottom nav */
         .flyout-body {
-            padding: 24px;
+            padding: 24px 24px 100px 24px;
+            overflow-y: auto;
         }
 
         /* Better section spacing */
@@ -1493,19 +1522,6 @@
             font-weight: 600;
             margin-bottom: 16px;
             font-size: 1rem;
-        }
-
-        /* Professional Next/Continue buttons */
-        .next-btn {
-            padding: 10px 24px;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .next-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(214, 57, 66, 0.3);
         }
     </style>
 @endpush

@@ -331,7 +331,7 @@
 
                     // Load routes for this bus
                     console.log('Loading routes for bus:', busId);
-                    $.get(`/bus_booking/operator/buses/${busId}/routes`, {})
+                    $.get("{{ url('operator/buses') }}/" + busId + "/routes", {})
                         .done(function(data) {
                             console.log('Routes loaded:', data);
                             routeSelect.html('<option value="">@lang('Choose Route')</option>');
@@ -349,7 +349,7 @@
                         });
 
                     // Load schedules for this bus
-                    $.get(`/bus_booking/test-schedules`, {})
+                    $.get("{{ url('operator/schedules/get-for-date') }}", {})
                         .done(function(data) {
                             console.log('Schedules loaded:', data);
                             scheduleSelect.html('<option value="">@lang('No specific schedule')</option>');
@@ -363,7 +363,7 @@
                                             const timePart = schedule.departure_time.split('T')[
                                                 1];
                                             departureTime = timePart.substring(0,
-                                            5); // Get HH:MM part
+                                                5); // Get HH:MM part
                                         } else if (schedule.departure_time.match(
                                                 /^\d{2}:\d{2}$/)) {
                                             // If it's already in HH:MM format, use it directly
@@ -371,7 +371,7 @@
                                         } else {
                                             // Parse time string properly - just extract HH:MM
                                             const timeParts = schedule.departure_time.split(
-                                            ':');
+                                                ':');
                                             const hours = timeParts[0];
                                             const minutes = timeParts[1];
                                             departureTime = hours + ':' + minutes;
@@ -404,7 +404,7 @@
                 const scheduleSelect = $('#bus_schedule_id');
 
                 if (busId && routeId) {
-                    $.get(`/bus_booking/test-schedules`, {})
+                    $.get("{{ url('operator/schedules/get-for-date') }}", {})
                         .done(function(data) {
                             console.log('Schedules reloaded for route:', data);
                             scheduleSelect.html('<option value="">@lang('No specific schedule')</option>');
@@ -418,7 +418,7 @@
                                             const timePart = schedule.departure_time.split('T')[
                                                 1];
                                             departureTime = timePart.substring(0,
-                                            5); // Get HH:MM part
+                                                5); // Get HH:MM part
                                         } else if (schedule.departure_time.match(
                                                 /^\d{2}:\d{2}$/)) {
                                             // If it's already in HH:MM format, use it directly
@@ -426,7 +426,7 @@
                                         } else {
                                             // Parse time string properly - just extract HH:MM
                                             const timeParts = schedule.departure_time.split(
-                                            ':');
+                                                ':');
                                             const hours = timeParts[0];
                                             const minutes = timeParts[1];
                                             departureTime = hours + ':' + minutes;
@@ -485,7 +485,7 @@
                     }
                 });
 
-                $.get('/bus_booking/test-seat-layout', {
+                $.get("{{ url('operator/bookings/get-seat-layout') }}", {
                         bus_id: busId
                     })
                     .done(function(data) {

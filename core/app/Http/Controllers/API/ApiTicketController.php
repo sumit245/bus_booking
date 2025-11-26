@@ -1092,20 +1092,16 @@ class ApiTicketController extends Controller
     private function handleOperatorBusCounters(string $resultIndex, string $searchTokenId)
     {
         try {
-            // Extract operator bus ID from ResultIndex (OP_1 -> 1)
-            $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
+            // Extract operator bus ID and schedule ID from ResultIndex (OP_{bus_id}_{schedule_id})
+            $parts = explode('_', str_replace('OP_', '', $resultIndex));
+            $operatorBusId = !empty($parts) ? (int) $parts[0] : 0;
+            $scheduleId = count($parts) > 1 ? (int) end($parts) : null;
 
-            // Find the operator bus with its route and boarding/dropping points
-            $operatorBus = \App\Models\OperatorBus::with([
-                'currentRoute.boardingPoints',
-                'currentRoute.droppingPoints'
-            ])->find($operatorBusId);
-
-            if (!$operatorBus || !$operatorBus->currentRoute) {
-                return response()->json(['error' => 'Operator bus or route not found'], 404);
-            }
-
-            $route = $operatorBus->currentRoute;
+            Log::info('API handleOperatorBusCounters: Processing', [
+                'result_index' => $resultIndex,
+                'operator_bus_id' => $operatorBusId,
+                'schedule_id' => $scheduleId
+            ]);
 
             // Get date of journey from cache if available (same format as ticketSearch)
             $dateOfJourney = now()->format('Y-m-d');
@@ -1122,8 +1118,51 @@ class ApiTicketController extends Controller
                 }
             }
 
+            // If scheduleId is present, use schedule-specific points
+            if ($scheduleId) {
+                $schedule = \App\Models\BusSchedule::with([
+                    'operatorRoute.boardingPoints',
+                    'operatorRoute.droppingPoints',
+                    'boardingPoints',
+                    'droppingPoints'
+                ])->find($scheduleId);
+
+                if (!$schedule || !$schedule->operatorRoute) {
+                    return response()->json(['error' => 'Operator schedule or route not found'], 404);
+                }
+
+                $route = $schedule->operatorRoute;
+
+                // Get boarding/dropping points - Priority: Schedule-specific > Route-level
+                $boardingPointsCollection = $schedule->boardingPoints()->where('status', 1)->orderBy('point_index')->get();
+                if ($boardingPointsCollection->isEmpty()) {
+                    $boardingPointsCollection = $route->boardingPoints()->where('status', 1)->orderBy('point_index')->get();
+                }
+
+                $droppingPointsCollection = $schedule->droppingPoints()->where('status', 1)->orderBy('point_index')->get();
+                if ($droppingPointsCollection->isEmpty()) {
+                    $droppingPointsCollection = $route->droppingPoints()->where('status', 1)->orderBy('point_index')->get();
+                }
+            } else {
+                // Legacy path: fall back to bus currentRoute
+                $operatorBus = \App\Models\OperatorBus::with([
+                    'currentRoute.boardingPoints',
+                    'currentRoute.droppingPoints'
+                ])->find($operatorBusId);
+
+                if (!$operatorBus || !$operatorBus->currentRoute) {
+                    return response()->json(['error' => 'Operator bus or route not found'], 404);
+                }
+
+                $route = $operatorBus->currentRoute;
+
+                // Use route-level points for legacy
+                $boardingPointsCollection = $route->boardingPoints()->where('status', 1)->orderBy('point_index')->get();
+                $droppingPointsCollection = $route->droppingPoints()->where('status', 1)->orderBy('point_index')->get();
+            }
+
             // Transform boarding points to match third-party API format exactly
-            $boardingPoints = $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
+            $boardingPoints = $boardingPointsCollection->map(function ($point) use ($dateOfJourney) {
                 // Format time: combine date with point_time (H:i format)
                 $timeString = null;
                 if ($point->point_time) {
@@ -1150,7 +1189,7 @@ class ApiTicketController extends Controller
             })->toArray();
 
             // Transform dropping points to match third-party API format exactly
-            $droppingPoints = $route->droppingPoints->map(function ($point) use ($dateOfJourney) {
+            $droppingPoints = $droppingPointsCollection->map(function ($point) use ($dateOfJourney) {
                 // Format time: combine date with point_time (H:i format)
                 $timeString = null;
                 if ($point->point_time) {
@@ -1176,12 +1215,14 @@ class ApiTicketController extends Controller
                 ];
             })->toArray();
 
-            Log::info('Operator bus counters retrieved successfully', [
+            Log::info('API handleOperatorBusCounters: Retrieved successfully', [
                 'operator_bus_id' => $operatorBusId,
+                'schedule_id' => $scheduleId,
                 'result_index' => $resultIndex,
                 'date_of_journey' => $dateOfJourney,
                 'boarding_points_count' => count($boardingPoints),
-                'dropping_points_count' => count($droppingPoints)
+                'dropping_points_count' => count($droppingPoints),
+                'using_schedule_specific' => $scheduleId ? true : false
             ]);
 
             return response()->json([
@@ -1209,7 +1250,7 @@ class ApiTicketController extends Controller
             ]);
 
             $request->validate([
-                'OriginCity' => 'nullable', 
+                'OriginCity' => 'nullable',
                 'DestinationCity' => 'nullable',
                 'SearchTokenId' => 'required',
                 'ResultIndex' => 'required',

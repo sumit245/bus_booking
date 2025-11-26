@@ -435,12 +435,29 @@ class BookingService
             }
 
             // Get boarding and dropping points
+            // Priority: Schedule-specific points > Route-level points
             // Fix: BoardingPointId/DroppingPointId from API is point_index, not database id
-            // Try to find by point_index first, then fallback to id
-            $boardingPoint = $operatorBus->currentRoute->boardingPoints->firstWhere('point_index', $boardingPointId)
-                ?? $operatorBus->currentRoute->boardingPoints->find($boardingPointId);
-            $droppingPoint = $operatorBus->currentRoute->droppingPoints->firstWhere('point_index', $droppingPointId)
-                ?? $operatorBus->currentRoute->droppingPoints->find($droppingPointId);
+            $boardingPoint = null;
+            $droppingPoint = null;
+
+            if ($scheduleId) {
+                $schedule = \App\Models\BusSchedule::with(['boardingPoints', 'droppingPoints'])->find($scheduleId);
+                if ($schedule) {
+                    // Try schedule-specific points first
+                    $boardingPoint = $schedule->boardingPoints->firstWhere('point_index', $boardingPointId);
+                    $droppingPoint = $schedule->droppingPoints->firstWhere('point_index', $droppingPointId);
+                }
+            }
+
+            // Fallback to route-level points if no schedule-specific points found
+            if (!$boardingPoint) {
+                $boardingPoint = $operatorBus->currentRoute->boardingPoints->firstWhere('point_index', $boardingPointId)
+                    ?? $operatorBus->currentRoute->boardingPoints->find($boardingPointId);
+            }
+            if (!$droppingPoint) {
+                $droppingPoint = $operatorBus->currentRoute->droppingPoints->firstWhere('point_index', $droppingPointId)
+                    ?? $operatorBus->currentRoute->droppingPoints->find($droppingPointId);
+            }
 
             Log::info('BookingService: Found boarding/dropping points', [
                 'boarding_point_id' => $boardingPointId,
@@ -658,32 +675,27 @@ class BookingService
         $originName = null;
         $destinationName = null;
 
-        // Check if this is an operator bus
-        if (str_starts_with($resultIndex, 'OP_')) {
+        // PRIORITY 1: Get from request/session data (actual search direction)
+        $originId = $requestData['origin_id'] ?? $requestData['OriginId'] ?? session('origin_id') ?? null;
+        $destinationId = $requestData['destination_id'] ?? $requestData['DestinationId'] ?? session('destination_id') ?? null;
+
+        // If it's a string (city name), try to find the ID
+        if (!$originId && isset($requestData['origin_city']) && is_numeric($requestData['origin_city'])) {
+            $originId = $requestData['origin_city'];
+        }
+        if (!$destinationId && isset($requestData['destination_city']) && is_numeric($requestData['destination_city'])) {
+            $destinationId = $requestData['destination_city'];
+        }
+
+        // PRIORITY 2: Fallback to operator bus route (only if session data not available)
+        // Note: This fallback may not respect the actual search direction for bidirectional routes
+        if ((!$originId || !$destinationId) && str_starts_with($resultIndex, 'OP_')) {
             $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
             $operatorBus = OperatorBus::with('currentRoute.originCity', 'currentRoute.destinationCity')->find($operatorBusId);
 
             if ($operatorBus && $operatorBus->currentRoute) {
-                $originId = $operatorBus->currentRoute->origin_city_id ?? null;
-                $destinationId = $operatorBus->currentRoute->destination_city_id ?? null;
-                $originName = $operatorBus->currentRoute->originCity->city_name ?? null;
-                $destinationName = $operatorBus->currentRoute->destinationCity->city_name ?? null;
-            }
-        }
-
-        // Fallback to request/session data
-        if (!$originId) {
-            $originId = $requestData['origin_id'] ?? $requestData['OriginId'] ?? null;
-            // If it's a string (city name), try to find the ID
-            if (!$originId && isset($requestData['origin_city']) && is_numeric($requestData['origin_city'])) {
-                $originId = $requestData['origin_city'];
-            }
-        }
-        if (!$destinationId) {
-            $destinationId = $requestData['destination_id'] ?? $requestData['DestinationId'] ?? null;
-            // If it's a string (city name), try to find the ID
-            if (!$destinationId && isset($requestData['destination_city']) && is_numeric($requestData['destination_city'])) {
-                $destinationId = $requestData['destination_city'];
+                $originId = $originId ?? ($operatorBus->currentRoute->origin_city_id ?? null);
+                $destinationId = $destinationId ?? ($operatorBus->currentRoute->destination_city_id ?? null);
             }
         }
 

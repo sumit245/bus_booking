@@ -139,6 +139,18 @@
                                                     <i class="fa fa-trash"></i>
                                                 </button>
                                             </div>
+                                            <div class="btn-group mt-1" role="group">
+                                                <a href="{{ route('operator.schedules.boarding-points', $schedule) }}"
+                                                    class="btn btn--primary btn-sm" title="@lang('Boarding Points')">
+                                                    <i class="las la-map-marker-alt"></i> <span
+                                                        class="badge badge-light">{{ $schedule->boardingPoints->count() }}</span>
+                                                </a>
+                                                <a href="{{ route('operator.schedules.dropping-points', $schedule) }}"
+                                                    class="btn btn--success btn-sm" title="@lang('Dropping Points')">
+                                                    <i class="las la-map-marker"></i> <span
+                                                        class="badge badge-light">{{ $schedule->droppingPoints->count() }}</span>
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty

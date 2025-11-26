@@ -124,18 +124,35 @@
                                                 <div class="col-md-6">
                                                     <h6>@lang('User Bookings')</h6>
                                                     @if (isset($report->detailed_breakdown['user_bookings']))
+                                                        @php
+                                                            // Handle both old and new structure
+                                                            $userBookings =
+                                                                $report->detailed_breakdown['user_bookings'];
+                                                            if (isset($userBookings['total'])) {
+                                                                // New structure with 'total' wrapper
+                                                                $count = $userBookings['total']['count'];
+                                                                $revenue = $userBookings['total']['revenue'];
+                                                                $avgTicketValue =
+                                                                    $userBookings['total']['avg_ticket_value'] ?? 0;
+                                                            } else {
+                                                                // Old structure without 'total' wrapper
+                                                                $count = $userBookings['count'] ?? 0;
+                                                                $revenue = $userBookings['revenue'] ?? 0;
+                                                                $avgTicketValue = $count > 0 ? $revenue / $count : 0;
+                                                            }
+                                                        @endphp
                                                         <div class="mb-3">
                                                             <div class="d-flex justify-content-between">
                                                                 <span>@lang('Total Count'):</span>
-                                                                <strong>{{ $report->detailed_breakdown['user_bookings']['total']['count'] }}</strong>
+                                                                <strong>{{ $count }}</strong>
                                                             </div>
                                                             <div class="d-flex justify-content-between">
                                                                 <span>@lang('Total Revenue'):</span>
-                                                                <strong>₹{{ number_format($report->detailed_breakdown['user_bookings']['total']['revenue'], 2) }}</strong>
+                                                                <strong>₹{{ number_format($revenue, 2) }}</strong>
                                                             </div>
                                                             <div class="d-flex justify-content-between">
                                                                 <span>@lang('Average Ticket Value'):</span>
-                                                                <strong>₹{{ number_format($report->detailed_breakdown['user_bookings']['total']['avg_ticket_value'], 2) }}</strong>
+                                                                <strong>₹{{ number_format($avgTicketValue, 2) }}</strong>
                                                             </div>
                                                         </div>
                                                     @endif
@@ -143,18 +160,36 @@
                                                 <div class="col-md-6">
                                                     <h6>@lang('Operator Bookings')</h6>
                                                     @if (isset($report->detailed_breakdown['operator_bookings']))
+                                                        @php
+                                                            // Handle both old and new structure
+                                                            $operatorBookings =
+                                                                $report->detailed_breakdown['operator_bookings'];
+                                                            if (isset($operatorBookings['total'])) {
+                                                                // New structure with 'total' wrapper
+                                                                $count = $operatorBookings['total']['count'];
+                                                                $revenue = $operatorBookings['total']['revenue'];
+                                                                $avgBookingValue =
+                                                                    $operatorBookings['total']['avg_booking_value'] ??
+                                                                    0;
+                                                            } else {
+                                                                // Old structure without 'total' wrapper
+                                                                $count = $operatorBookings['count'] ?? 0;
+                                                                $revenue = $operatorBookings['revenue'] ?? 0;
+                                                                $avgBookingValue = $count > 0 ? $revenue / $count : 0;
+                                                            }
+                                                        @endphp
                                                         <div class="mb-3">
                                                             <div class="d-flex justify-content-between">
                                                                 <span>@lang('Total Count'):</span>
-                                                                <strong>{{ $report->detailed_breakdown['operator_bookings']['total']['count'] }}</strong>
+                                                                <strong>{{ $count }}</strong>
                                                             </div>
                                                             <div class="d-flex justify-content-between">
                                                                 <span>@lang('Total Revenue'):</span>
-                                                                <strong>₹{{ number_format($report->detailed_breakdown['operator_bookings']['total']['revenue'], 2) }}</strong>
+                                                                <strong>₹{{ number_format($revenue, 2) }}</strong>
                                                             </div>
                                                             <div class="d-flex justify-content-between">
                                                                 <span>@lang('Average Booking Value'):</span>
-                                                                <strong>₹{{ number_format($report->detailed_breakdown['operator_bookings']['total']['avg_booking_value'], 2) }}</strong>
+                                                                <strong>₹{{ number_format($avgBookingValue, 2) }}</strong>
                                                             </div>
                                                         </div>
                                                     @endif

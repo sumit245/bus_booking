@@ -184,7 +184,7 @@ class OperatorBookingController extends Controller
             'departure_time' => $departureTime,
             'arrival_time' => $arrivalTime,
             'journey_date' => $operatorBooking->journey_date ? $operatorBooking->journey_date->format('Y-m-d') : null,
-            'operator_phone' => $operatorBooking->operator->phone ?? 'NULL'
+            'operator_mobile' => $operatorBooking->operator->mobile ?? 'NULL'
         ]);
 
         // Get boarding and dropping points
@@ -242,9 +242,9 @@ class OperatorBookingController extends Controller
             'seats' => json_encode($operatorBooking->blocked_seats), // Convert array to JSON
             'ticket_count' => count($operatorBooking->blocked_seats),
             'passenger_names' => json_encode($passengerNames), // Convert array to JSON
-            'passenger_phones' => json_encode([$operatorBooking->operator->phone]), // Convert array to JSON
+            'passenger_phones' => json_encode([$operatorBooking->operator->mobile]), // Convert array to JSON
             'passenger_emails' => json_encode([$operatorBooking->operator->email]), // Convert array to JSON
-            'passenger_phone' => $operatorBooking->operator->phone, // Add single phone field
+            'passenger_phone' => $operatorBooking->operator->mobile, // Add single phone field
             'passenger_email' => $operatorBooking->operator->email, // Add single email field
             'passenger_name' => $operatorBooking->operator->company_name, // Add passenger name
             'passenger_age' => 0, // Default age for operator bookings
@@ -457,8 +457,7 @@ class OperatorBookingController extends Controller
      */
     public function getSeatLayout(Request $request)
     {
-        // Skip authentication for testing - use operator ID 41 directly
-        $operatorId = 41; // Sutra Seva operator
+        $operator = auth('operator')->user();
 
         $request->validate([
             'bus_id' => 'required|exists:operator_buses,id',
@@ -467,7 +466,7 @@ class OperatorBookingController extends Controller
             'is_date_range' => 'boolean'
         ]);
 
-        $bus = OperatorBus::where('operator_id', $operatorId)
+        $bus = OperatorBus::where('operator_id', $operator->id)
             ->where('id', $request->bus_id)
             ->firstOrFail();
 

@@ -658,7 +658,12 @@ class SiteController extends Controller
 
             // If scheduleId is present, use it to fetch the correct route for this direction
             if ($scheduleId) {
-                $schedule = \App\Models\BusSchedule::with(['operatorRoute.boardingPoints', 'operatorRoute.droppingPoints'])->find($scheduleId);
+                $schedule = \App\Models\BusSchedule::with([
+                    'operatorRoute.boardingPoints',
+                    'operatorRoute.droppingPoints',
+                    'boardingPoints',
+                    'droppingPoints'
+                ])->find($scheduleId);
                 if (!$schedule || !$schedule->operatorRoute) {
                     return response()->json([
                         'success' => false,
@@ -676,6 +681,17 @@ class SiteController extends Controller
                     ]);
                 }
                 $route = $schedule->operatorRoute;
+
+                // Get boarding/dropping points - Priority: Schedule-specific > Route-level
+                $boardingPointsCollection = $schedule->boardingPoints()->active()->ordered()->get();
+                if ($boardingPointsCollection->isEmpty()) {
+                    $boardingPointsCollection = $route->boardingPoints()->active()->ordered()->get();
+                }
+
+                $droppingPointsCollection = $schedule->droppingPoints()->active()->ordered()->get();
+                if ($droppingPointsCollection->isEmpty()) {
+                    $droppingPointsCollection = $route->droppingPoints()->active()->ordered()->get();
+                }
             } else {
                 // Legacy path: fall back to bus currentRoute
                 $operatorBus = \App\Models\OperatorBus::with(['currentRoute.boardingPoints', 'currentRoute.droppingPoints'])->find($operatorBusId);
@@ -686,6 +702,10 @@ class SiteController extends Controller
                     ], 400);
                 }
                 $route = $operatorBus->currentRoute;
+
+                // Use route-level points for legacy
+                $boardingPointsCollection = $route->boardingPoints()->active()->ordered()->get();
+                $droppingPointsCollection = $route->droppingPoints()->active()->ordered()->get();
             }
 
             // Normalize DateOfJourney to Y-m-d for time composition
@@ -707,7 +727,7 @@ class SiteController extends Controller
             }
 
             // Transform boarding points to match API format, composing full datetime
-            $boardingPoints = $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
+            $boardingPoints = $boardingPointsCollection->map(function ($point) use ($dateOfJourney) {
                 $time = $point->point_time ?: '00:00:00';
                 // Normalize time to H:i:s regardless of type
                 if ($time instanceof \Carbon\Carbon || $time instanceof \DateTimeInterface) {
@@ -731,7 +751,7 @@ class SiteController extends Controller
             })->toArray();
 
             // Transform dropping points to match API format, composing full datetime
-            $droppingPoints = $route->droppingPoints->map(function ($point) use ($dateOfJourney) {
+            $droppingPoints = $droppingPointsCollection->map(function ($point) use ($dateOfJourney) {
                 $time = $point->point_time ?: '00:00:00';
                 // Normalize time to H:i:s regardless of type
                 if ($time instanceof \Carbon\Carbon || $time instanceof \DateTimeInterface) {

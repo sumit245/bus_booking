@@ -287,46 +287,8 @@ class BusService
                     'TaxableAmount' => (float) ($bus->taxable_amount ?? 0),
                 ]
             ],
-            'BoardingPointsDetails' => $route->boardingPoints->map(function ($point) use ($dateOfJourney) {
-                $journeyDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
-                $departureTime = $point->point_time ?: '00:00:00';
-                if (strpos($departureTime, ' ') !== false) {
-                    $departureTime = Carbon::parse($departureTime)->format('H:i:s');
-                }
-                return [
-                    'CityPointIndex' => $point->id,
-                    'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
-                    'CityPointName' => $point->point_name,
-                    'CityPointTime' => Carbon::parse($journeyDate . ' ' . $departureTime)->format('Y-m-d\TH:i:s'),
-                    'CityPointLandmark' => $point->point_landmark,
-                    'CityPointContactNumber' => $point->contact_number,
-                ];
-            })->toArray(),
-            'DroppingPointsDetails' => $route->droppingPoints->map(function ($point) use ($dateOfJourney, $route) {
-                $journeyDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
-                $pointArrivalTime = $point->point_time;
-                if (!$pointArrivalTime) {
-                    $arrivalTime = Carbon::parse($dateOfJourney)->setTime(0, 0, 0);
-                    if ($route->estimated_duration) {
-                        $arrivalTime->addHours((int) $route->estimated_duration);
-                    } else {
-                        $arrivalTime->addHours(8);
-                    }
-                    $pointArrivalTime = $arrivalTime->format('H:i:s');
-                } else {
-                    if (strpos($pointArrivalTime, ' ') !== false) {
-                        $pointArrivalTime = Carbon::parse($pointArrivalTime)->format('H:i:s');
-                    }
-                }
-                return [
-                    'CityPointIndex' => $point->id,
-                    'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
-                    'CityPointName' => $point->point_name,
-                    'CityPointTime' => Carbon::parse($journeyDate . ' ' . $pointArrivalTime)->format('Y-m-d\TH:i:s'),
-                    'CityPointLandmark' => $point->point_landmark,
-                    'CityPointContactNumber' => $point->contact_number,
-                ];
-            })->toArray(),
+            'BoardingPointsDetails' => $this->getBoardingPointsForSchedule($schedule, $route, $dateOfJourney),
+            'DroppingPointsDetails' => $this->getDroppingPointsForSchedule($schedule, $route, $dateOfJourney),
             'CancellationPolicies' => $this->getOperatorCancellationPoliciesWithDates($bus, $dateOfJourney),
             // Removed SeatLayout from search results - not needed, use show-seats API instead
             'OperatorBusId' => $bus->id,
@@ -801,5 +763,77 @@ class BusService
                 'ToDate' => $journeyDate->copy()->subHours($timeFrom)->format('Y-m-d\TH:i:s')
             ];
         }, $policies);
+    }
+
+    /**
+     * Get boarding points for a schedule with fallback to route-level points.
+     * Priority: Schedule-specific > Route-level (legacy)
+     */
+    private function getBoardingPointsForSchedule(BusSchedule $schedule, OperatorRoute $route, string $dateOfJourney): array
+    {
+        // First, try to get schedule-specific boarding points
+        $boardingPoints = $schedule->boardingPoints()->active()->ordered()->get();
+
+        // Fallback to route-level points if no schedule-specific points
+        if ($boardingPoints->isEmpty()) {
+            $boardingPoints = $route->boardingPoints()->active()->ordered()->get();
+        }
+
+        return $boardingPoints->map(function ($point) use ($dateOfJourney) {
+            $journeyDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
+            $departureTime = $point->point_time ?: '00:00:00';
+            if (strpos($departureTime, ' ') !== false) {
+                $departureTime = Carbon::parse($departureTime)->format('H:i:s');
+            }
+            return [
+                'CityPointIndex' => $point->id,
+                'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
+                'CityPointName' => $point->point_name,
+                'CityPointTime' => Carbon::parse($journeyDate . ' ' . $departureTime)->format('Y-m-d\TH:i:s'),
+                'CityPointLandmark' => $point->point_landmark,
+                'CityPointContactNumber' => $point->contact_number,
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Get dropping points for a schedule with fallback to route-level points.
+     * Priority: Schedule-specific > Route-level (legacy)
+     */
+    private function getDroppingPointsForSchedule(BusSchedule $schedule, OperatorRoute $route, string $dateOfJourney): array
+    {
+        // First, try to get schedule-specific dropping points
+        $droppingPoints = $schedule->droppingPoints()->active()->ordered()->get();
+
+        // Fallback to route-level points if no schedule-specific points
+        if ($droppingPoints->isEmpty()) {
+            $droppingPoints = $route->droppingPoints()->active()->ordered()->get();
+        }
+
+        return $droppingPoints->map(function ($point) use ($dateOfJourney, $route) {
+            $journeyDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
+            $pointArrivalTime = $point->point_time;
+            if (!$pointArrivalTime) {
+                $arrivalTime = Carbon::parse($dateOfJourney)->setTime(0, 0, 0);
+                if ($route->estimated_duration) {
+                    $arrivalTime->addHours((int) $route->estimated_duration);
+                } else {
+                    $arrivalTime->addHours(8);
+                }
+                $pointArrivalTime = $arrivalTime->format('H:i:s');
+            } else {
+                if (strpos($pointArrivalTime, ' ') !== false) {
+                    $pointArrivalTime = Carbon::parse($pointArrivalTime)->format('H:i:s');
+                }
+            }
+            return [
+                'CityPointIndex' => $point->id,
+                'CityPointLocation' => $point->point_address ?: $point->point_location ?: $point->point_name,
+                'CityPointName' => $point->point_name,
+                'CityPointTime' => Carbon::parse($journeyDate . ' ' . $pointArrivalTime)->format('Y-m-d\TH:i:s'),
+                'CityPointLandmark' => $point->point_landmark,
+                'CityPointContactNumber' => $point->contact_number,
+            ];
+        })->toArray();
     }
 }

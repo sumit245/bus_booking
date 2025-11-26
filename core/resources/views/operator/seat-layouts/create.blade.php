@@ -834,18 +834,39 @@
 
             // Test button functionality
             document.getElementById('testBtn').addEventListener('click', function() {
-                console.log('Test button clicked');
+                console.log('=== DRAG & DROP TEST ===');
+                console.log('Upper deck grid:', editor.upperDeckGrid);
+                console.log('Upper deck grid ID:', editor.upperDeckGrid?.id);
+                console.log('Upper deck grid children:', editor.upperDeckGrid?.children.length);
+                console.log('Lower deck grid:', editor.lowerDeckGrid);
+                console.log('Lower deck grid ID:', editor.lowerDeckGrid?.id);
+                console.log('Lower deck grid children:', editor.lowerDeckGrid?.children.length);
 
-                // Test adding a seat programmatically
-                const testSeat = {
-                    type: 'nseat',
-                    category: 'seater'
-                };
+                // Check seat positions
+                const lowerPositions = editor.lowerDeckGrid?.querySelectorAll('.seat-position');
+                console.log('Seat positions in lower deck:', lowerPositions?.length);
 
-                // Add a test seat to lower deck
-                editor.addSeat('lower_deck', 30, 30, testSeat.type, testSeat.category);
+                if (lowerPositions && lowerPositions.length > 0) {
+                    console.log('First seat position:', lowerPositions[0]);
+                    console.log('Position data:', {
+                        row: lowerPositions[0].dataset.row,
+                        col: lowerPositions[0].dataset.col,
+                        side: lowerPositions[0].dataset.side
+                    });
+                }
 
-                alert('Test seat added! Check the lower deck area.');
+                // Check if drag events are attached
+                const seatTypes = document.querySelectorAll('.seat-type-item');
+                console.log('Seat type items found:', seatTypes.length);
+                seatTypes.forEach((item, index) => {
+                    console.log(`Seat type ${index}:`, {
+                        draggable: item.draggable,
+                        type: item.dataset.type,
+                        category: item.dataset.category
+                    });
+                });
+
+                alert('Drag & Drop test complete! Check browser console for details.');
             });
 
             // Initialize deck type on page load

@@ -51,7 +51,6 @@ class SeatLayoutEditor {
   init() {
     console.log("Bus Seat Layout Editor initialized");
     this.setupEventListeners();
-    this.setupDragAndDrop();
 
     // First, load existing configuration if it exists
     // This will infer seat layout from existing seats if configuration is missing
@@ -66,6 +65,10 @@ class SeatLayoutEditor {
     // Create the bus layout with the loaded/inferred configuration
     // This must happen after loadExistingConfiguration so we have the correct seatLayout
     this.createBusLayout();
+
+    // CRITICAL FIX: Setup drag and drop AFTER creating bus layout
+    // because createBusLayout() replaces the grid elements
+    this.setupDragAndDrop();
 
     // Apply deck type settings after layout is created
     this.applyDeckTypeSettings();
@@ -200,6 +203,20 @@ class SeatLayoutEditor {
         e.preventDefault();
         e.stopPropagation();
         grid.classList.add("drag-over");
+
+        // Reset visual feedback when dragging back over grid
+        if (this.draggingSeat) {
+          this.draggingSeat.style.opacity = "0.5";
+          this.draggingSeat.style.filter = "none";
+        }
+
+        // Highlight valid drop positions
+        const rect = grid.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        this.highlightDropPosition(grid, x, y, this.draggingSeat);
+
         console.log("Drag over on:", grid.id);
       });
 
@@ -208,6 +225,8 @@ class SeatLayoutEditor {
         e.stopPropagation();
         if (!grid.contains(e.relatedTarget)) {
           grid.classList.remove("drag-over");
+          // Clear all drop highlights when leaving grid
+          this.clearDropHighlights(grid);
         }
       });
 
@@ -215,6 +234,9 @@ class SeatLayoutEditor {
         e.preventDefault();
         e.stopPropagation();
         grid.classList.remove("drag-over");
+
+        // Clear drop highlights
+        this.clearDropHighlights(grid);
 
         try {
           const data = e.dataTransfer.getData("text/plain");
@@ -256,7 +278,122 @@ class SeatLayoutEditor {
       });
     });
 
+    // Setup delete zone - when seats are dragged outside bus layout
+    document.addEventListener("dragover", (e) => {
+      // Check if we're dragging a seat (reposition)
+      if (this.draggingSeat) {
+        // Check if we're NOT over any grid using closest()
+        const isOverGrid = e.target.closest('.seatcontainer') ||
+          e.target.closest('#upperDeckGrid') ||
+          e.target.closest('#lowerDeckGrid');
+
+        if (!isOverGrid) {
+          e.preventDefault();
+          // Visual feedback that seat will be deleted
+          this.draggingSeat.style.opacity = "0.3";
+          this.draggingSeat.style.filter = "grayscale(100%)";
+        }
+      }
+    });
+
+    document.addEventListener("drop", (e) => {
+      // Check if we're dragging a seat outside the grids
+      if (this.draggingSeat) {
+        // Check if drop target is within any grid using closest()
+        const isOverGrid = e.target.closest('.seatcontainer') ||
+          e.target.closest('#upperDeckGrid') ||
+          e.target.closest('#lowerDeckGrid');
+
+        if (!isOverGrid) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Delete the seat
+          this.deleteSeat(this.draggingSeat);
+          console.log("Seat deleted by dragging outside");
+        }
+      }
+    });
+
     console.log("Drag and drop setup complete");
+  }
+
+  highlightDropPosition(grid, x, y, draggingSeat) {
+    // Clear previous highlights first
+    this.clearDropHighlights(grid);
+
+    // Find the position under cursor
+    const targetPosition = this.getSeatPositionAt(grid, x, y);
+    if (!targetPosition) return;
+
+    const row = parseInt(targetPosition.dataset.row);
+    const col = parseInt(targetPosition.dataset.col);
+
+    // Determine seat type being dragged
+    let seatType;
+    if (draggingSeat) {
+      // Repositioning existing seat
+      const seatData = JSON.parse(draggingSeat.dataset.seatData);
+      seatType = seatData.type;
+    } else {
+      // New seat - we don't have type info during dragover for new seats
+      return;
+    }
+
+    // Check if we can place the seat here (ignore the seat being dragged)
+    const canPlace = this.canPlaceSeat(grid, row, col, seatType, draggingSeat);
+
+    if (canPlace) {
+      // Highlight valid drop area with green
+      const width = this.getSeatWidth(seatType);
+      const height = this.getSeatHeight(seatType);
+
+      for (let r = row; r < row + height; r++) {
+        for (let c = col; c < col + width; c++) {
+          const cell = grid.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+          if (cell) {
+            cell.classList.add('drop-highlight-valid');
+            cell.style.backgroundColor = 'rgba(0, 255, 0, 0.3)';
+            cell.style.border = '2px solid #00ff00';
+
+            // Show green + on main cell (if not occupied by the seat being dragged)
+            if (r === row && c === col) {
+              const existingSeat = cell.querySelector('.seat-item');
+              if (!existingSeat || existingSeat === draggingSeat) {
+                const currentContent = cell.innerHTML;
+                cell.innerHTML = '<span style="color: #00ff00; font-size: 24px; font-weight: bold;">+</span>';
+              }
+            }
+          }
+        }
+      }
+    } else {
+      // Highlight invalid drop area with red
+      targetPosition.classList.add('drop-highlight-invalid');
+      targetPosition.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+      targetPosition.style.border = '2px solid #ff0000';
+    }
+  }
+
+  clearDropHighlights(grid) {
+    // Remove all drop highlights
+    const validHighlights = grid.querySelectorAll('.drop-highlight-valid');
+    validHighlights.forEach(cell => {
+      cell.classList.remove('drop-highlight-valid');
+      cell.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+      cell.style.border = '1px solid #ddd';
+
+      // Restore original content if empty
+      if (!cell.querySelector('.seat-item')) {
+        cell.innerHTML = '<span>+</span>';
+      }
+    });
+
+    const invalidHighlights = grid.querySelectorAll('.drop-highlight-invalid');
+    invalidHighlights.forEach(cell => {
+      cell.classList.remove('drop-highlight-invalid');
+      cell.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+      cell.style.border = '1px solid #ddd';
+    });
   }
 
   createBusLayout() {
@@ -579,70 +716,84 @@ class SeatLayoutEditor {
     );
   }
 
-  moveSeatToPosition(seatElement, deck, x, y) {
+  moveSeatToPosition(seatElement, targetDeck, x, y) {
+    // Get the target grid
+    const targetGrid =
+      targetDeck === "upper_deck" ? this.upperDeckGrid : this.lowerDeckGrid;
+
     // Find the target position
-    const targetPosition = this.findPositionAt(deck, x, y);
+    const targetPosition = this.getSeatPositionAt(targetGrid, x, y);
     if (!targetPosition) {
       console.log("No valid position found for seat move");
       return;
     }
 
-    // Check if target position is already occupied
-    if (targetPosition.querySelector(".seat-item")) {
-      console.log("Target position already occupied");
-      return;
-    }
-
     // Get seat data
     const seatData = JSON.parse(seatElement.dataset.seatData);
+    const oldDeck = seatElement.dataset.deck;
     const oldPosition = seatElement.parentElement;
 
-    // Remove from old position
-    oldPosition.innerHTML = "<span>+</span>";
-    this.clearOccupiedCells(
-      oldPosition.parentElement,
-      seatData.row,
-      seatData.col,
-      seatData.type,
-    );
-
-    // Update seat data with new position
+    // Get new position data
     const newRow = parseInt(targetPosition.dataset.row);
     const newCol = parseInt(targetPosition.dataset.col);
     const newSide = targetPosition.dataset.side;
 
+    // Check if we can place the seat at the new position (ignore the seat being moved)
+    if (!this.canPlaceSeat(targetGrid, newRow, newCol, seatData.type, seatElement)) {
+      console.log("Cannot move seat - not enough space at target position");
+      return;
+    }
+
+    // Clear old position and occupied cells
+    const oldGrid =
+      oldDeck === "upper_deck" ? this.upperDeckGrid : this.lowerDeckGrid;
+    oldPosition.innerHTML = "<span>+</span>";
+    this.clearOccupiedCells(oldGrid, seatData.row, seatData.col, seatData.type);
+
+    // Remove from old deck data
+    this.layoutData[oldDeck].seats = this.layoutData[oldDeck].seats.filter(
+      (seat) => seat.seat_id !== seatData.seat_id,
+    );
+
+    // Update seat data with new position
     seatData.row = newRow;
     seatData.col = newCol;
     seatData.side = newSide;
-    seatData.position = newRow * 30; // Update position based on row
-    seatData.left = newCol * 40; // Update left based on column
+    seatData.position = newRow * this.cellHeight;
+    seatData.left = newCol * this.cellWidth;
 
-    // Update layout data
-    const deckData = this.layoutData[deck];
-    const seatIndex = deckData.seats.findIndex(
-      (seat) => seat.seat_id === seatData.seat_id,
-    );
-    if (seatIndex !== -1) {
-      deckData.seats[seatIndex] = { ...seatData };
+    // Regenerate seat ID with new position (always regenerate for column-major ordering)
+    seatData.seat_id = this.generateSeatId(targetDeck, newRow, newCol, newSide, seatData.type);
+    seatElement.dataset.seatId = seatData.seat_id;
+    seatElement.querySelector('div').textContent = seatData.seat_id;
+
+    // Add to new deck data
+    if (!this.layoutData[targetDeck].seats) {
+      this.layoutData[targetDeck].seats = [];
     }
+    this.layoutData[targetDeck].seats.push(seatData);
+
+    // Update seat element
+    seatElement.dataset.deck = targetDeck;
+    seatElement.dataset.seatData = JSON.stringify(seatData);
 
     // Place in new position
     targetPosition.innerHTML = "";
     targetPosition.appendChild(seatElement);
-    this.markOccupiedCells(
-      targetPosition.parentElement,
-      newRow,
-      newCol,
-      seatData.type,
-    );
+    this.markOccupiedCells(targetGrid, newRow, newCol, seatData.type);
 
-    // Update seat element data
-    seatElement.dataset.seatData = JSON.stringify(seatData);
+    // Update counts
+    this.updateSeatCounts();
+    this.updateLayoutDataInput();
 
     console.log(
       "Seat moved successfully:",
       seatData.seat_id,
+      "from",
+      oldDeck,
       "to",
+      targetDeck,
+      "at",
       newRow,
       newCol,
     );
@@ -694,8 +845,8 @@ class SeatLayoutEditor {
       return;
     }
 
-    // Generate seat ID (matching API format)
-    const seatId = this.generateSeatId(deck, row, col, side);
+    // Generate seat ID (matching API format) - pass seat type for proper prefix
+    const seatId = this.generateSeatId(deck, row, col, side, type);
 
     // Create seat data
     const position = parseInt(seatPosition.style.top) || row * this.cellHeight;
@@ -772,15 +923,24 @@ class SeatLayoutEditor {
     return null;
   }
 
-  generateSeatId(deck, row, col, side) {
-    // Generate seat ID matching API format
-    if (deck === "upper_deck") {
-      // Upper deck: U1, U2, U3...
-      const seatNumber = row * 10 + (col + 1);
-      return `U${seatNumber}`;
+  generateSeatId(deck, row, col, side, seatType = 'nseat') {
+    // Calculate column-major seat number
+    // Formula: Each column has totalRows positions, numbered top-to-bottom
+    const totalRows = this.getTotalRows();
+    const seatNumber = (col * totalRows) + row + 1;
+
+    // Determine if seat is a sleeper
+    const isSleeper = (seatType === 'hseat' || seatType === 'vseat');
+
+    if (isSleeper) {
+      // Sleeper seats get prefix based on deck
+      if (deck === "upper_deck") {
+        return `U${seatNumber}`;
+      } else {
+        return `L${seatNumber}`;
+      }
     } else {
-      // Lower deck: 1, 2, 3... (simple numbers)
-      const seatNumber = row * 10 + (col + 1);
+      // Seater (nseat) has no prefix - just the number
       return `${seatNumber}`;
     }
   }
@@ -811,7 +971,7 @@ class SeatLayoutEditor {
     }
   }
 
-  canPlaceSeat(grid, row, col, type) {
+  canPlaceSeat(grid, row, col, type, ignoreSeat = null) {
     const width = this.getSeatWidth(type);
     const height = this.getSeatHeight(type);
 
@@ -823,11 +983,17 @@ class SeatLayoutEditor {
       return false;
     }
 
-    // Check if all required cells are empty
+    // Check if all required cells are empty (or occupied by the seat being moved)
     for (let r = row; r < row + height; r++) {
       for (let c = col; c < col + width; c++) {
         const cell = grid.querySelector(`[data-row="${r}"][data-col="${c}"]`);
-        if (!cell || cell.querySelector(".seat-item")) {
+        if (!cell) {
+          return false;
+        }
+
+        const existingSeat = cell.querySelector(".seat-item");
+        if (existingSeat && existingSeat !== ignoreSeat) {
+          // Cell is occupied by a different seat
           return false;
         }
       }
@@ -946,6 +1112,10 @@ class SeatLayoutEditor {
     seatElement.addEventListener("dragend", (e) => {
       seatElement.style.opacity = "1";
       this.draggingSeat = null;
+
+      // Clear all drop highlights
+      this.clearDropHighlights(this.upperDeckGrid);
+      this.clearDropHighlights(this.lowerDeckGrid);
     });
 
     // Clear position content and add seat
@@ -1024,33 +1194,41 @@ class SeatLayoutEditor {
     if (!this.selectedSeat) return;
 
     if (confirm("Delete this seat?")) {
-      const seatId = this.selectedSeat.dataset.seatId;
-      const deck = this.selectedSeat.dataset.deck;
-      const seatData = JSON.parse(this.selectedSeat.dataset.seatData);
-
-      // Remove from layout data
-      this.layoutData[deck].seats = this.layoutData[deck].seats.filter(
-        (seat) => seat.seat_id !== seatId,
-      );
-
-      // Clear occupied cells
-      const grid =
-        deck === "upper_deck" ? this.upperDeckGrid : this.lowerDeckGrid;
-      this.clearOccupiedCells(grid, seatData.row, seatData.col, seatData.type);
-
-      // Remove visual element and restore position
-      const position = this.selectedSeat.parentElement;
-      position.innerHTML = "<span>+</span>";
-
-      // Hide properties panel
-      this.hideSeatProperties();
-
-      // Update counts
-      this.updateSeatCounts();
-      this.updateLayoutDataInput();
-
-      console.log("Seat deleted:", seatId);
+      this.deleteSeat(this.selectedSeat);
     }
+  }
+
+  deleteSeat(seatElement) {
+    if (!seatElement) return;
+
+    const seatId = seatElement.dataset.seatId;
+    const deck = seatElement.dataset.deck;
+    const seatData = JSON.parse(seatElement.dataset.seatData);
+
+    // Remove from layout data
+    this.layoutData[deck].seats = this.layoutData[deck].seats.filter(
+      (seat) => seat.seat_id !== seatId,
+    );
+
+    // Clear occupied cells
+    const grid =
+      deck === "upper_deck" ? this.upperDeckGrid : this.lowerDeckGrid;
+    this.clearOccupiedCells(grid, seatData.row, seatData.col, seatData.type);
+
+    // Remove visual element and restore position
+    const position = seatElement.parentElement;
+    position.innerHTML = "<span>+</span>";
+
+    // Hide properties panel if this was the selected seat
+    if (this.selectedSeat === seatElement) {
+      this.hideSeatProperties();
+    }
+
+    // Update counts
+    this.updateSeatCounts();
+    this.updateLayoutDataInput();
+
+    console.log("Seat deleted:", seatId);
   }
 
   clearOccupiedCells(grid, row, col, type) {
@@ -1168,6 +1346,11 @@ class SeatLayoutEditor {
       this.applyDeckTypeSettings();
     }
 
+    // Re-setup drag and drop after modifying deck
+    if (!skipDataClear) {
+      this.setupDragAndDrop();
+    }
+
     console.log("=== DECK TYPE SET COMPLETE ===");
 
     this.updateSeatCounts();
@@ -1180,6 +1363,9 @@ class SeatLayoutEditor {
     // Recreate bus layout
     this.createBusLayout();
 
+    // Re-setup drag and drop after recreating layout
+    this.setupDragAndDrop();
+
     // Clear existing seats
     this.clearAllSeats();
 
@@ -1191,6 +1377,9 @@ class SeatLayoutEditor {
 
     // Recreate bus layout
     this.createBusLayout();
+
+    // Re-setup drag and drop after recreating layout
+    this.setupDragAndDrop();
 
     // Clear existing seats
     this.clearAllSeats();

@@ -161,6 +161,29 @@
                         </div>
                     @endif
 
+                    <!-- Boarding/Dropping Points Management -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h5 class="text-primary mb-3">@lang('Boarding & Dropping Points Management')</h5>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                @lang('Manage schedule-specific boarding and dropping points. If not set, route-level points will be used as fallback.')
+                            </div>
+                            <div class="btn-group mb-3" role="group">
+                                <a href="{{ route('operator.schedules.boarding-points', $schedule) }}"
+                                    class="btn btn-primary">
+                                    <i class="fas fa-map-marker-alt"></i> @lang('Manage Boarding Points')
+                                    <span class="badge badge-light">{{ $schedule->boardingPoints->count() }}</span>
+                                </a>
+                                <a href="{{ route('operator.schedules.dropping-points', $schedule) }}"
+                                    class="btn btn-success">
+                                    <i class="fas fa-map-marker"></i> @lang('Manage Dropping Points')
+                                    <span class="badge badge-light">{{ $schedule->droppingPoints->count() }}</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Action Buttons -->
                     <div class="row mt-4">
                         <div class="col-md-12">

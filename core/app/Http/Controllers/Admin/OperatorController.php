@@ -133,7 +133,7 @@ class OperatorController extends Controller
                     'name' => $operator->name,
                     'email' => $operator->email,
                     'password' => $validated['password'],
-                    'login_url' => url('/admin/login'),
+                    'login_url' => route('operator.login'),
                 ]));
 
                 Log::info('Operator created and welcome email sent', [

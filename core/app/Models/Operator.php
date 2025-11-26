@@ -178,6 +178,46 @@ class Operator extends Authenticatable
     }
 
     /**
+     * Get all bookings for this operator.
+     */
+    public function bookings()
+    {
+        return $this->hasMany(OperatorBooking::class);
+    }
+
+    /**
+     * Get active bookings for this operator.
+     */
+    public function activeBookings()
+    {
+        return $this->bookings()->where('status', 'active');
+    }
+
+    /**
+     * Get all payouts for this operator.
+     */
+    public function payouts()
+    {
+        return $this->hasMany(OperatorPayout::class);
+    }
+
+    /**
+     * Get pending payouts for this operator.
+     */
+    public function pendingPayouts()
+    {
+        return $this->payouts()->where('payment_status', 'pending');
+    }
+
+    /**
+     * Get paid payouts for this operator.
+     */
+    public function paidPayouts()
+    {
+        return $this->payouts()->where('payment_status', 'paid');
+    }
+
+    /**
      * Get the default travel name for this operator.
      */
     public function getDefaultTravelNameAttribute()

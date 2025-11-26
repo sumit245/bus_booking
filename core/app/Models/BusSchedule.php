@@ -54,6 +54,22 @@ class BusSchedule extends Model
         return $this->belongsTo(OperatorRoute::class);
     }
 
+    /**
+     * Get the boarding points for this schedule.
+     */
+    public function boardingPoints()
+    {
+        return $this->hasMany(BoardingPoint::class)->orderBy('point_index');
+    }
+
+    /**
+     * Get the dropping points for this schedule.
+     */
+    public function droppingPoints()
+    {
+        return $this->hasMany(DroppingPoint::class)->orderBy('point_index');
+    }
+
     // Scopes
     public function scopeActive($query)
     {

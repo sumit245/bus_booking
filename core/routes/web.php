@@ -1,16 +1,13 @@
 <?php
 
 use App\Http\Controllers\Admin\OperatorController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ManageTripController;
 use App\Http\Controllers\OtpController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\API\UserController;
 
-Route::get("/clear", function () {
-    \Illuminate\Support\Facades\Artisan::call("optimize:clear");
-});
 
 // Serve PWA manifest and service worker for Agent Panel
 // These are named so blade templates can reference route('agent.manifest') and route('agent.sw')
@@ -1077,15 +1074,7 @@ Route::name("operator.")
                 Route::resource(
                     "seat-layouts",
                     "Operator\SeatLayoutController",
-                )->names([
-                            "index" => "seat-layouts.index",
-                            "create" => "seat-layouts.create",
-                            "store" => "seat-layouts.store",
-                            "show" => "seat-layouts.show",
-                            "edit" => "seat-layouts.edit",
-                            "update" => "seat-layouts.update",
-                            "destroy" => "seat-layouts.destroy",
-                        ]);
+                );
                 Route::patch(
                     "seat-layouts/{seatLayout}/toggle-status",
                     "Operator\SeatLayoutController@toggleStatus",
@@ -1206,6 +1195,41 @@ Route::name("operator.")
                 "schedules/{schedule}/toggle-status",
                 "Operator\ScheduleController@toggleStatus",
             )->name("schedules.toggle-status");
+
+            // Schedule Boarding/Dropping Points Management
+            Route::get(
+                "schedules/{schedule}/boarding-points",
+                "Operator\ScheduleController@manageBoardingPoints"
+            )->name("schedules.boarding-points");
+            Route::post(
+                "schedules/{schedule}/boarding-points",
+                "Operator\ScheduleController@storeBoardingPoint"
+            )->name("schedules.boarding-points.store");
+            Route::patch(
+                "schedules/{schedule}/boarding-points/{boardingPoint}",
+                "Operator\ScheduleController@updateBoardingPoint"
+            )->name("schedules.boarding-points.update");
+            Route::delete(
+                "schedules/{schedule}/boarding-points/{boardingPoint}",
+                "Operator\ScheduleController@destroyBoardingPoint"
+            )->name("schedules.boarding-points.destroy");
+
+            Route::get(
+                "schedules/{schedule}/dropping-points",
+                "Operator\ScheduleController@manageDroppingPoints"
+            )->name("schedules.dropping-points");
+            Route::post(
+                "schedules/{schedule}/dropping-points",
+                "Operator\ScheduleController@storeDroppingPoint"
+            )->name("schedules.dropping-points.store");
+            Route::patch(
+                "schedules/{schedule}/dropping-points/{droppingPoint}",
+                "Operator\ScheduleController@updateDroppingPoint"
+            )->name("schedules.dropping-points.update");
+            Route::delete(
+                "schedules/{schedule}/dropping-points/{droppingPoint}",
+                "Operator\ScheduleController@destroyDroppingPoint"
+            )->name("schedules.dropping-points.destroy");
             // Route::get('schedules/get-for-date', 'Operator\ScheduleController@getSchedulesForDate')->name('schedules.get-for-date');
     
             // Operator Booking Management
@@ -1473,8 +1497,6 @@ Route::post("/verify-otp", [UserController::class, "verifyOtp"])->name(
 Route::post("/user/ticket/cancel", [TicketController::class, "cancelTicket"])
     ->name("user.ticket.cancel")
     ->middleware("auth");
-// Route::get('/ticket/get-price', 'SiteController@getTicketPrice')->name('ticket.get-price');
-// Route::post('/ticket/book/{id}', 'SiteController@bookTicket')->name('ticket.book');
 Route::post("/contact", "SiteController@contactSubmit");
 Route::get("/change/{lang?}", "SiteController@changeLanguage")->name("lang");
 Route::get("/cookie/accept", "SiteController@cookieAccept")->name(

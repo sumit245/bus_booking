@@ -150,9 +150,12 @@ class RevenueReport extends Model
         // Detailed breakdown
         $detailedBreakdown = [
             'user_bookings' => [
-                'count' => $userBookings->count(),
-                'revenue' => $userBookingsRevenue,
-                'breakdown' => $userBookings->groupBy('booking_type')->map(function ($group) {
+                'total' => [
+                    'count' => $userBookings->count(),
+                    'revenue' => $userBookingsRevenue,
+                    'avg_ticket_value' => $userBookings->count() > 0 ? $userBookingsRevenue / $userBookings->count() : 0
+                ],
+                'by_booking_type' => $userBookings->groupBy('booking_type')->map(function ($group) {
                     return [
                         'count' => $group->count(),
                         'revenue' => $group->sum('total_amount')
@@ -160,9 +163,12 @@ class RevenueReport extends Model
                 })
             ],
             'operator_bookings' => [
-                'count' => $operatorBookings->count(),
-                'revenue' => $operatorBookingsRevenue,
-                'breakdown' => $operatorBookings->groupBy('booking_reason')->map(function ($group) {
+                'total' => [
+                    'count' => $operatorBookings->count(),
+                    'revenue' => $operatorBookingsRevenue,
+                    'avg_booking_value' => $operatorBookings->count() > 0 ? $operatorBookingsRevenue / $operatorBookings->count() : 0
+                ],
+                'by_reason' => $operatorBookings->groupBy('booking_reason')->map(function ($group) {
                     return [
                         'count' => $group->count(),
                         'revenue' => $group->sum('blocked_amount')

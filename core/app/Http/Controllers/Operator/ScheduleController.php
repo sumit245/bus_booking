@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\BusSchedule;
 use App\Models\OperatorBus;
 use App\Models\OperatorRoute;
+use App\Models\BoardingPoint;
+use App\Models\DroppingPoint;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -23,7 +25,7 @@ class ScheduleController extends Controller
     {
         $operator = auth('operator')->user();
 
-        $query = BusSchedule::with(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity'])
+        $query = BusSchedule::with(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity', 'boardingPoints', 'droppingPoints'])
             ->byOperator($operator->id);
 
         // Filter by bus
@@ -134,7 +136,7 @@ class ScheduleController extends Controller
             abort(403, 'Unauthorized access to this schedule.');
         }
 
-        $schedule->load(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity']);
+        $schedule->load(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity', 'boardingPoints', 'droppingPoints']);
 
         return view('operator.schedules.show', compact('schedule'));
     }
@@ -314,5 +316,213 @@ class ScheduleController extends Controller
         if ($conflicts > 0) {
             throw new \Exception('Schedule conflict: Another schedule already exists for this bus at the same time and day(s).');
         }
+    }
+
+    /**
+     * Manage boarding points for a schedule.
+     */
+    public function manageBoardingPoints(BusSchedule $schedule)
+    {
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
+
+        $schedule->load(['boardingPoints', 'operatorRoute.boardingPoints']);
+
+        return view('operator.schedules.boarding-points', compact('schedule'));
+    }
+
+    /**
+     * Store a boarding point for a schedule.
+     */
+    public function storeBoardingPoint(Request $request, BusSchedule $schedule)
+    {
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
+
+        $request->validate([
+            'point_name' => 'required|string|max:255',
+            'point_address' => 'required|string',
+            'point_location' => 'required|string|max:255',
+            'point_landmark' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:20',
+            'point_index' => 'required|integer|min:1',
+            'point_time' => 'required|date_format:H:i',
+        ]);
+
+        BoardingPoint::create([
+            'bus_schedule_id' => $schedule->id,
+            'operator_route_id' => null,
+            'point_name' => $request->point_name,
+            'point_address' => $request->point_address,
+            'point_location' => $request->point_location,
+            'point_landmark' => $request->point_landmark,
+            'contact_number' => $request->contact_number,
+            'point_index' => $request->point_index,
+            'point_time' => $request->point_time,
+            'status' => 1
+        ]);
+
+        $notify[] = ['success', 'Boarding point added successfully.'];
+        return back()->withNotify($notify);
+    }
+
+    /**
+     * Update a boarding point for a schedule.
+     */
+    public function updateBoardingPoint(Request $request, BusSchedule $schedule, BoardingPoint $boardingPoint)
+    {
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id || $boardingPoint->bus_schedule_id !== $schedule->id) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $request->validate([
+            'point_name' => 'required|string|max:255',
+            'point_address' => 'required|string',
+            'point_location' => 'required|string|max:255',
+            'point_landmark' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:20',
+            'point_index' => 'required|integer|min:1',
+            'point_time' => 'required|date_format:H:i',
+            'status' => 'required|boolean'
+        ]);
+
+        $boardingPoint->update([
+            'point_name' => $request->point_name,
+            'point_address' => $request->point_address,
+            'point_location' => $request->point_location,
+            'point_landmark' => $request->point_landmark,
+            'contact_number' => $request->contact_number,
+            'point_index' => $request->point_index,
+            'point_time' => $request->point_time,
+            'status' => $request->status
+        ]);
+
+        $notify[] = ['success', 'Boarding point updated successfully.'];
+        return back()->withNotify($notify);
+    }
+
+    /**
+     * Delete a boarding point for a schedule.
+     */
+    public function destroyBoardingPoint(BusSchedule $schedule, BoardingPoint $boardingPoint)
+    {
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id || $boardingPoint->bus_schedule_id !== $schedule->id) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $boardingPoint->delete();
+
+        $notify[] = ['success', 'Boarding point deleted successfully.'];
+        return back()->withNotify($notify);
+    }
+
+    /**
+     * Manage dropping points for a schedule.
+     */
+    public function manageDroppingPoints(BusSchedule $schedule)
+    {
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
+
+        $schedule->load(['droppingPoints', 'operatorRoute.droppingPoints']);
+
+        return view('operator.schedules.dropping-points', compact('schedule'));
+    }
+
+    /**
+     * Store a dropping point for a schedule.
+     */
+    public function storeDroppingPoint(Request $request, BusSchedule $schedule)
+    {
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id) {
+            abort(403, 'Unauthorized access to this schedule.');
+        }
+
+        $request->validate([
+            'point_name' => 'required|string|max:255',
+            'point_address' => 'nullable|string',
+            'point_location' => 'required|string|max:255',
+            'point_landmark' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:20',
+            'point_index' => 'required|integer|min:1',
+            'point_time' => 'required|date_format:H:i',
+        ]);
+
+        DroppingPoint::create([
+            'bus_schedule_id' => $schedule->id,
+            'operator_route_id' => null,
+            'point_name' => $request->point_name,
+            'point_address' => $request->point_address,
+            'point_location' => $request->point_location,
+            'point_landmark' => $request->point_landmark,
+            'contact_number' => $request->contact_number,
+            'point_index' => $request->point_index,
+            'point_time' => $request->point_time,
+            'status' => 1
+        ]);
+
+        $notify[] = ['success', 'Dropping point added successfully.'];
+        return back()->withNotify($notify);
+    }
+
+    /**
+     * Update a dropping point for a schedule.
+     */
+    public function updateDroppingPoint(Request $request, BusSchedule $schedule, DroppingPoint $droppingPoint)
+    {
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id || $droppingPoint->bus_schedule_id !== $schedule->id) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $request->validate([
+            'point_name' => 'required|string|max:255',
+            'point_address' => 'nullable|string',
+            'point_location' => 'required|string|max:255',
+            'point_landmark' => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:20',
+            'point_index' => 'required|integer|min:1',
+            'point_time' => 'required|date_format:H:i',
+            'status' => 'required|boolean'
+        ]);
+
+        $droppingPoint->update([
+            'point_name' => $request->point_name,
+            'point_address' => $request->point_address,
+            'point_location' => $request->point_location,
+            'point_landmark' => $request->point_landmark,
+            'contact_number' => $request->contact_number,
+            'point_index' => $request->point_index,
+            'point_time' => $request->point_time,
+            'status' => $request->status
+        ]);
+
+        $notify[] = ['success', 'Dropping point updated successfully.'];
+        return back()->withNotify($notify);
+    }
+
+    /**
+     * Delete a dropping point for a schedule.
+     */
+    public function destroyDroppingPoint(BusSchedule $schedule, DroppingPoint $droppingPoint)
+    {
+        $operator = auth('operator')->user();
+        if ($schedule->operator_id !== $operator->id || $droppingPoint->bus_schedule_id !== $schedule->id) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        $droppingPoint->delete();
+
+        $notify[] = ['success', 'Dropping point deleted successfully.'];
+        return back()->withNotify($notify);
     }
 }

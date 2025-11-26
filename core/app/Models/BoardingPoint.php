@@ -11,6 +11,7 @@ class BoardingPoint extends Model
 
     protected $fillable = [
         'operator_route_id',
+        'bus_schedule_id',
         'point_name',
         'point_address',
         'point_location',
@@ -35,11 +36,35 @@ class BoardingPoint extends Model
     }
 
     /**
+     * Get the bus schedule that owns this boarding point.
+     */
+    public function busSchedule()
+    {
+        return $this->belongsTo(BusSchedule::class);
+    }
+
+    /**
      * Scope a query to only include active boarding points.
      */
     public function scopeActive($query)
     {
         return $query->where('status', 1);
+    }
+
+    /**
+     * Scope a query for a specific schedule.
+     */
+    public function scopeForSchedule($query, $scheduleId)
+    {
+        return $query->where('bus_schedule_id', $scheduleId);
+    }
+
+    /**
+     * Scope a query for a specific route.
+     */
+    public function scopeForRoute($query, $routeId)
+    {
+        return $query->where('operator_route_id', $routeId)->whereNull('bus_schedule_id');
     }
 
     /**

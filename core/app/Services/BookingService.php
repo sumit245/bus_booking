@@ -1824,12 +1824,21 @@ class BookingService
             if (str_starts_with($bookingData['result_index'], 'OP_')) {
                 $operatorBusId = (int) str_replace('OP_', '', $bookingData['result_index']);
 
+                // Format seats with passenger info for crew
+                $seatNumbers = is_array($bookedTicket->seats) ? implode(', ', $bookedTicket->seats) : $bookedTicket->seats;
+                $passengerName = is_array($bookedTicket->passenger_names) && !empty($bookedTicket->passenger_names)
+                    ? $bookedTicket->passenger_names[0]
+                    : ($bookedTicket->passenger_name ?? 'Passenger');
+                $passengerPhone = $bookedTicket->passenger_phone ?? 'N/A';
+
+                $seatInfo = "Seat No(s): {$seatNumbers} booked by {$passengerName}, call on {$passengerPhone}";
+
                 $whatsappBookingDetails = [
                     'source_name' => $ticketDetails['source_name'],
                     'destination_name' => $ticketDetails['destination_name'],
                     'date_of_journey' => $bookedTicket->date_of_journey,
                     'pnr' => $bookedTicket->pnr_number,
-                    'seats' => is_array($bookedTicket->seats) ? implode(', ', $bookedTicket->seats) : $bookedTicket->seats,
+                    'seats' => $seatInfo,
                     'boarding_details' => $ticketDetails['boarding_details'],
                     'drop_off_details' => $ticketDetails['drop_off_details'],
                     'travel_date' => $bookedTicket->date_of_journey,
@@ -2003,19 +2012,19 @@ class BookingService
             // Get company details
             $general = \App\Models\GeneralSetting::first();
             $companyName = $general->sitename ?? 'Ghumantoo';
-            
+
             // Get logo URL with proper error handling
             $logoPath = imagePath()['logoIcon']['path'] ?? 'assets/images/logoIcon';
             $logoFile = $logoPath . '/logo.png';
-            
+
             // Use absolute path for file existence check
             $absoluteLogoPath = public_path($logoFile);
-            
+
             // Only set logoUrl if file exists, otherwise use null
-            $logoUrl = (file_exists($absoluteLogoPath) && is_file($absoluteLogoPath)) 
-                ? asset($logoFile) 
+            $logoUrl = (file_exists($absoluteLogoPath) && is_file($absoluteLogoPath))
+                ? asset($logoFile)
                 : null;
-            
+
             Log::info('PDF logo check', [
                 'logo_file' => $logoFile,
                 'absolute_path' => $absoluteLogoPath,
@@ -2055,14 +2064,14 @@ class BookingService
 
             // Return public URL - use url() instead of asset() for subdirectory support
             $publicUrl = url('uploads/tickets/' . $filename);
-            
+
             Log::info('PDF generated successfully', [
                 'ticket_id' => $bookedTicket->id,
                 'file_path' => $filePath,
                 'public_url' => $publicUrl,
                 'file_exists' => file_exists($filePath)
             ]);
-            
+
             return $publicUrl;
 
         } catch (\Exception $e) {

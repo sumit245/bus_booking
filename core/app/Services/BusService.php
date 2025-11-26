@@ -162,6 +162,18 @@ class BusService
                 ->with([
                     'operatorRoute.originCity',
                     'operatorRoute.destinationCity',
+                    'operatorRoute.boardingPoints' => function ($query) {
+                        $query->where('status', 1)->orderBy('point_index');
+                    },
+                    'operatorRoute.droppingPoints' => function ($query) {
+                        $query->where('status', 1)->orderBy('point_index');
+                    },
+                    'boardingPoints' => function ($query) {
+                        $query->where('status', 1)->orderBy('point_index');
+                    },
+                    'droppingPoints' => function ($query) {
+                        $query->where('status', 1)->orderBy('point_index');
+                    },
                     'operatorBus.activeSeatLayout'
                 ])
                 ->ordered()
@@ -771,12 +783,13 @@ class BusService
      */
     private function getBoardingPointsForSchedule(BusSchedule $schedule, OperatorRoute $route, string $dateOfJourney): array
     {
-        // First, try to get schedule-specific boarding points
-        $boardingPoints = $schedule->boardingPoints()->active()->ordered()->get();
+        // Use already-loaded relationships to avoid N+1 queries
+        // The relationships are eager-loaded with status=1 and ordered in fetchOperatorBuses()
+        $boardingPoints = $schedule->boardingPoints;
 
         // Fallback to route-level points if no schedule-specific points
         if ($boardingPoints->isEmpty()) {
-            $boardingPoints = $route->boardingPoints()->active()->ordered()->get();
+            $boardingPoints = $route->boardingPoints;
         }
 
         return $boardingPoints->map(function ($point) use ($dateOfJourney) {
@@ -802,12 +815,13 @@ class BusService
      */
     private function getDroppingPointsForSchedule(BusSchedule $schedule, OperatorRoute $route, string $dateOfJourney): array
     {
-        // First, try to get schedule-specific dropping points
-        $droppingPoints = $schedule->droppingPoints()->active()->ordered()->get();
+        // Use already-loaded relationships to avoid N+1 queries
+        // The relationships are eager-loaded with status=1 and ordered in fetchOperatorBuses()
+        $droppingPoints = $schedule->droppingPoints;
 
         // Fallback to route-level points if no schedule-specific points
         if ($droppingPoints->isEmpty()) {
-            $droppingPoints = $route->droppingPoints()->active()->ordered()->get();
+            $droppingPoints = $route->droppingPoints;
         }
 
         return $droppingPoints->map(function ($point) use ($dateOfJourney, $route) {

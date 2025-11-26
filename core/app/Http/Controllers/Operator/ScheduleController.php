@@ -355,7 +355,7 @@ class ScheduleController extends Controller
 
         BoardingPoint::create([
             'bus_schedule_id' => $schedule->id,
-            'operator_route_id' => null,
+            'operator_route_id' => $schedule->operator_route_id,
             'point_name' => $request->point_name,
             'point_address' => $request->point_address,
             'point_location' => $request->point_location,
@@ -459,7 +459,7 @@ class ScheduleController extends Controller
 
         DroppingPoint::create([
             'bus_schedule_id' => $schedule->id,
-            'operator_route_id' => null,
+            'operator_route_id' => $schedule->operator_route_id,
             'point_name' => $request->point_name,
             'point_address' => $request->point_address,
             'point_location' => $request->point_location,

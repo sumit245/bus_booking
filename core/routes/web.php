@@ -1467,7 +1467,7 @@ Route::name("user.")
             Route::any(
                 "/book-by-razorpay",
                 "Gateway\PaymentController@depositNew",
-            )->name("deposit-new");
+            )->name(name: "deposit-new");
         });
     });
 

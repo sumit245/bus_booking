@@ -134,7 +134,8 @@
                         <input type="hidden" name="dropping_point_time" id="form_dropping_point_time">
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="book-bus-btn btn-primary" disabled>@lang('Continue to Booking')</button>
+                        <button type="submit" class="book-bus-btn btn-primary" id="continueToBookingBtn"
+                            disabled>@lang('Continue to Booking')</button>
                     </div>
                 </form>
             </div>
@@ -168,216 +169,282 @@
             </div>
         </div>
     </div>
-    <!-- Add this flyout for booking process -->
-    <div class="booking-flyout" id="bookingFlyout">
-        <div class="flyout-overlay" id="flyoutOverlay"></div>
-        <div class="flyout-content">
-            <div class="flyout-header">
-                <h5 class="flyout-title">@lang('Complete Your Booking')</h5>
-                <button type="button" class="flyout-close" id="closeFlyout">
-                    <i class="las la-times"></i>
+@endsection
+
+<!-- Flyout Modal (outside content section to avoid footer inclusion) -->
+<div class="booking-flyout" id="bookingFlyout">
+    <div class="flyout-overlay" id="flyoutOverlay"></div>
+    <div class="flyout-content">
+        <div class="flyout-header">
+            <h5 class="flyout-title">@lang('Complete Your Booking')</h5>
+            <button type="button" class="flyout-close" id="closeFlyout">
+                <i class="las la-times"></i>
+            </button>
+        </div>
+        <!-- Step indicator tabs at top -->
+        <ul class="nav nav-tabs justify-content-center mb-3" id="bookingSteps" role="tablist"
+            style="justify-content: left!important;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="boarding-tab" data-bs-toggle="tab"
+                    data-bs-target="#boarding-content" type="button" role="tab">
+                    @lang('Boarding & Dropping')
                 </button>
-            </div>
-            <!-- Step indicator tabs at top -->
-            <ul class="nav nav-tabs justify-content-center mb-3" id="bookingSteps" role="tablist"
-                style="justify-content: left!important;">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="boarding-tab" data-bs-toggle="tab"
-                        data-bs-target="#boarding-content" type="button" role="tab">
-                        @lang('Boarding & Dropping')
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="passenger-tab" data-bs-toggle="tab" data-bs-target="#passenger-content"
-                        type="button" role="tab">
-                        @lang('Passenger Details')
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment-content"
-                        type="button" role="tab">
-                        @lang('Payment')
-                    </button>
-                </li>
-            </ul>
-            <div class="flyout-body">
-                <div class="tab-content">
-                    <!-- Step 1: Boarding & Dropping Points -->
-                    <div class="tab-pane fade show active" id="boarding-content" role="tabpanel">
-                        {{-- <div class="step-title">@lang('Select Boarding & Dropping Points')</div> --}}
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="mb-3">@lang('Boarding Points')</h6>
-                                <div class="boarding-points-container">
-                                    <!-- Boarding points will be loaded here -->
-                                    <div class="py-5 text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="mb-3">@lang('Dropping Points')</h6>
-                                <div class="dropping-points-container">
-                                    <!-- Dropping points will be loaded here -->
-                                    <div class="py-5 text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="passenger-tab" data-bs-toggle="tab" data-bs-target="#passenger-content"
+                    type="button" role="tab">
+                    @lang('Passenger Details')
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment-content"
+                    type="button" role="tab">
+                    @lang('Payment')
+                </button>
+            </li>
+        </ul>
+        <div class="flyout-body">
+            <div class="tab-content">
+                <!-- Step 1: Boarding & Dropping Points -->
+                <div class="tab-pane fade show active" id="boarding-content" role="tabpanel">
+                    {{-- <div class="step-title">@lang('Select Boarding & Dropping Points')</div> --}}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">@lang('Boarding Points')</h6>
+                            <div class="boarding-points-container">
+                                <!-- Boarding points will be loaded here -->
+                                <div class="py-5 text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <input type="hidden" name="selected_boarding_point" id="selected_boarding_point">
-                        <input type="hidden" name="selected_dropping_point" id="selected_dropping_point">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">@lang('Dropping Points')</h6>
+                            <div class="dropping-points-container">
+                                <!-- Dropping points will be loaded here -->
+                                <div class="py-5 text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <!-- Step 2: Passenger Details -->
-                    <div class="tab-pane fade" id="passenger-content" role="tabpanel">
-                        <div class="step-title">@lang('Passenger Details')</div>
-                        <div class="passenger-details">
-                            {{-- <h6 class="mb-3">@lang('Passenger Information')</h6> --}}
-                            <div class="row gy-3">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label">@lang('Title')<span
-                                                class="text-danger">*</span></label>
-                                        <select class="form--control" name="passenger_title" id="passenger_title">
-                                            <option value="Mr" selected>@lang('Mr')</option>
-                                            <option value="Ms">@lang('Ms')</option>
-                                            <option value="Other">@lang('Other')</option>
-                                        </select>
-                                        <div class="invalid-feedback">This field is required!</div>
-                                    </div>
+                    <input type="hidden" name="selected_boarding_point" id="selected_boarding_point">
+                    <input type="hidden" name="selected_dropping_point" id="selected_dropping_point">
+                </div>
+                <!-- Step 2: Passenger Details -->
+                <div class="tab-pane fade" id="passenger-content" role="tabpanel">
+                    <div class="passenger-details">
+                        {{-- <h6 class="mb-3">@lang('Passenger Information')</h6> --}}
+                        <div class="row gy-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">@lang('Title')<span
+                                            class="text-danger">*</span></label>
+                                    <select class="form--control" name="passenger_title" id="passenger_title">
+                                        <option value="Mr" selected>@lang('Mr')</option>
+                                        <option value="Ms">@lang('Ms')</option>
+                                        <option value="Other">@lang('Other')</option>
+                                    </select>
+                                    <div class="invalid-feedback">This field is required!</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label">@lang('Age')<span
-                                                class="text-danger">*</span></label>
-                                        <input type="number" class="form--control" id="passenger_age"
-                                            placeholder="@lang('Enter Age')" min="1" max="120"
-                                            value="29">
-                                        <div class="invalid-feedback">This field is required!</div>
-                                    </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">@lang('Age')<span
+                                            class="text-danger">*</span></label>
+                                    <input type="number" class="form--control" id="passenger_age"
+                                        placeholder="@lang('Enter Age')" min="1" max="120"
+                                        value="29">
+                                    <div class="invalid-feedback">This field is required!</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label">@lang('First Name')
-                                            <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="text" class="form--control" id="passenger_firstname"
-                                            placeholder="@lang('Enter First Name')"
-                                            value="{{ auth()->check() ? auth()->user()->firstname : '' }}">
-                                        <div class="invalid-feedback">This field is required!</div>
-                                    </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">@lang('First Name')
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form--control" id="passenger_firstname"
+                                        placeholder="@lang('Enter First Name')"
+                                        value="{{ auth()->check() ? auth()->user()->firstname : '' }}">
+                                    <div class="invalid-feedback">This field is required!</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label">@lang('Last Name')
-                                            <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="text" class="form--control" id="passenger_lastname"
-                                            placeholder="@lang('Enter Last Name')"
-                                            value="{{ auth()->check() ? auth()->user()->lastname : '' }}">
-                                        <div class="invalid-feedback">This field is required!</div>
-                                    </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">@lang('Last Name')
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form--control" id="passenger_lastname"
+                                        placeholder="@lang('Enter Last Name')"
+                                        value="{{ auth()->check() ? auth()->user()->lastname : '' }}">
+                                    <div class="invalid-feedback">This field is required!</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label">@lang('Email')
-                                            {{-- <span class="text-danger">*</span> --}}
-                                        </label>
-                                        <input type="email" class="form--control" id="passenger_email"
-                                            placeholder="@lang('Enter Email')"
-                                            value="{{ auth()->check() ? auth()->user()->email : '' }}">
-                                        {{-- <div class="invalid-feedback">This field is required!</div> --}}
-                                    </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">@lang('Email')
+                                        {{-- <span class="text-danger">*</span> --}}
+                                    </label>
+                                    <input type="email" class="form--control" id="passenger_email"
+                                        placeholder="@lang('Enter Email')"
+                                        value="{{ auth()->check() ? auth()->user()->email : '' }}">
+                                    {{-- <div class="invalid-feedback">This field is required!</div> --}}
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label">@lang('Phone Number')
-                                            <span class="text-danger">*</span>
-                                        </label>
-                                        <div class="input-group">
-                                            <input type="tel" class="form--control my-2" id="passenger_phone"
-                                                name="passenger_phone" placeholder="@lang('Enter your WhatsApp mobile number')"
-                                                value="{{ auth()->check() && auth()->user()->mobile ? str_replace('91', '', auth()->user()->mobile) : '' }}">
-                                            @if (!auth()->check())
-                                                <button type="button" class="btn btn-primary btn-sm otp-btn"
-                                                    id="sendOtpBtn">
-                                                    @lang('Send OTP to WhatsApp')
-                                                </button>
-                                            @endif
-                                        </div>
-                                        <div class="invalid-feedback">This field is required!</div>
-                                    </div>
-                                </div>
-                                <!-- Add OTP verification field (initially hidden) -->
-                                <div class="col-md-6 d-none" id="otpVerificationContainer">
-                                    <div class="form-group">
-                                        <label class="form-label">@lang('Enter OTP')
-                                            <span class="text-danger">*</span>
-                                        </label>
-                                        <div class="input-group">
-                                            <input type="text" class="form--control my-2" id="otp_code"
-                                                name="otp_code" placeholder="@lang('Enter 6-digit OTP received on WhatsApp')" maxlength="6">
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">@lang('Phone Number')
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="tel" class="form--control my-2" id="passenger_phone"
+                                            name="passenger_phone" placeholder="@lang('Enter your WhatsApp mobile number')"
+                                            value="{{ auth()->check() && auth()->user()->mobile ? str_replace('91', '', auth()->user()->mobile) : '' }}">
+                                        @if (!auth()->check())
                                             <button type="button" class="btn btn-primary btn-sm otp-btn"
-                                                id="verifyOtpBtn">
-                                                @lang('Verify OTP')
+                                                id="sendOtpBtn">
+                                                @lang('Send OTP to WhatsApp')
                                             </button>
-                                        </div>
-                                        <div class="invalid-feedback">Invalid OTP!</div>
-                                        <small class="text-muted">OTP sent to your WhatsApp number</small>
+                                        @endif
                                     </div>
-                                </div>
-                                <!-- Add hidden field to track OTP verification status -->
-                                <input type="hidden" name="is_otp_verified" id="is_otp_verified"
-                                    value="{{ auth()->check() ? '1' : '0' }}">
-                                <div class="col-12">
-                                    <div class="form-group">
-                                        <label class="form-label">@lang('Address')
-                                            <span class="text-danger">*</span>
-                                        </label>
-                                        <textarea class="form--control" id="passenger_address" placeholder="@lang('Enter Address')"></textarea>
-                                        <div class="invalid-feedback">This field is required!</div>
-                                    </div>
+                                    <div class="invalid-feedback">This field is required!</div>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-between mt-3">
-                                <button type="button" class="btn btn--danger btn--sm mx-2" id="backToBoardingBtn">
-                                    @lang('Back')
-                                </button>
-                                <button type="submit" class="btn btn-primary btn-sm mx-2" id="confirmPassengerBtn">
-                                    @lang('Proceed to Payment')
-                                </button>
+                            <!-- Add OTP verification field (initially hidden) -->
+                            <div class="col-md-6 d-none" id="otpVerificationContainer">
+                                <div class="form-group">
+                                    <label class="form-label">@lang('Enter OTP')
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form--control my-2" id="otp_code"
+                                            name="otp_code" placeholder="@lang('Enter 6-digit OTP received on WhatsApp')" maxlength="6">
+                                        <button type="button" class="btn btn-primary btn-sm otp-btn"
+                                            id="verifyOtpBtn">
+                                            @lang('Verify OTP')
+                                        </button>
+                                    </div>
+                                    <div class="invalid-feedback">Invalid OTP!</div>
+                                    <small class="text-muted">OTP sent to your WhatsApp number</small>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <!-- Step 3: Payment -->
-                    <div class="tab-pane fade" id="payment-content" role="tabpanel">
-                        <div class="step-title">@lang('Payment & Confirmation')</div>
-                        <!-- Payment content will be handled by Razorpay -->
-                        <div class="text-center">
-                            <p>@lang('Please review your booking details below and proceed to payment.')</p>
-                            <div class="booking-summary-card my-4">
-                                <div id="payment-summary"></div>
+                            <!-- Add hidden field to track OTP verification status -->
+                            <input type="hidden" name="is_otp_verified" id="is_otp_verified"
+                                value="{{ auth()->check() ? '1' : '0' }}">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label">@lang('Address')
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <textarea class="form--control" id="passenger_address" placeholder="@lang('Enter Address')"></textarea>
+                                    <div class="invalid-feedback">This field is required!</div>
+                                </div>
                             </div>
-                            <button type="button" class="btn btn-primary btn-lg w-100" id="payNowBtn">
-                                @lang('Pay Now') <span id="payment-total-display"></span></button>
                         </div>
                     </div>
                 </div>
-            </div>
-            <!-- Continue button at bottom -->
-            <div class="flyout-bottom-nav">
-                <button type="button" class="btn btn-primary w-100 continue-btn" id="nextToPassengerBtn">
-                    @lang('Continue')
-                </button>
+                <!-- Step 2: Bottom action buttons (fixed at bottom) -->
+                <div class="passenger-bottom-nav">
+                    <div class="d-flex justify-content-between w-100">
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="backToBoardingBtn">
+                            <i class="las la-arrow-left"></i> @lang('Back')
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-lg ml-2" id="confirmPassengerBtn">
+                            @lang('Proceed to Pay') <i class="las la-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Step 3: Payment -->
+                <div class="tab-pane fade" id="payment-content" role="tabpanel">
+                    <!-- Payment Invoice -->
+                    <div class="payment-invoice">
+                        <!-- Journey Details -->
+                        <div class="invoice-section">
+                            <h6 class="section-title">@lang('Journey Details')</h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div>
+                                        <span class="detail-label">@lang('Route'):</span>
+                                        <span class="detail-value" id="invoice-route"></span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div>
+                                        <span class="detail-label">@lang('Date'):</span>
+                                        <span class="detail-value" id="invoice-date"></span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="detail-label">@lang('Boarding'):</span>
+                                    <span class="detail-value" id="invoice-boarding"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="detail-label">@lang('Dropping'):</span>
+                                    <span class="detail-value" id="invoice-dropping"></span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Passenger Details -->
+                        <div class="invoice-section">
+                            <h6 class="section-title">@lang('Passenger Details')</h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <span class="detail-label">@lang('Name'):</span>
+                                    <span class="detail-value" id="invoice-passenger-name"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="detail-label">@lang('Phone'):</span>
+                                    <span class="detail-value" id="invoice-passenger-phone"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="detail-label">@lang('Age'):</span>
+                                    <span class="detail-value" id="invoice-passenger-age"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="detail-label">@lang('Seat(s)'):</span>
+                                    <span class="detail-value" id="invoice-seats"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fare Details -->
+                        <div class="invoice-section fare-section">
+                            <h6 class="section-title">@lang('Fare Details')</h6>
+                            <div id="invoice-fare-details"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Step 3: Bottom action buttons (fixed at bottom) -->
+                <div class="payment-bottom-nav">
+                    <div class="d-flex justify-content-between w-100">
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2" id="backToPassengerBtn">
+                            <i class="las la-arrow-left"></i> @lang('Back')
+                        </button>
+                        <button type="button" class="btn btn-primary btn-lg ms-2" id="payNowBtn">
+                            <i class="las la-credit-card"></i> @lang('Pay Now') <span
+                                id="payment-total-display"></span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Continue button at bottom (shown on boarding/dropping tab only) -->
+                <div class="flyout-bottom-nav" id="flyoutBottomNav">
+                    <button type="button" class="btn btn-primary w-100 continue-btn" id="nextToPassengerBtn"
+                        disabled>
+                        @lang('Continue')
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-    {{-- End of Booking Form flyout --}}
-@endsection
+</div>
+</div>
+<!-- End of Booking Flyout -->
 
 @php
     use Carbon\Carbon;
@@ -415,7 +482,8 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         let selectedSeats = [];
-        let finalTotalPrice = 0;
+        let baseFareTotal = 0; // Sum of all seat prices (with markup, after coupon)
+        let finalTotalPrice = 0; // Final total with all fees
         let totalCouponDiscountApplied = 0; // Track total discount applied across all seats
         let subtotalAmount = 0; // Track subtotal before fees
         let serviceChargeAmount = 0;
@@ -465,8 +533,8 @@
         }
 
         function updatePriceDisplays() {
-            // Calculate fees
-            subtotalAmount = finalTotalPrice;
+            // Use baseFareTotal as subtotal (not finalTotalPrice which gets overwritten)
+            subtotalAmount = baseFareTotal;
 
             // Service Charge
             serviceChargeAmount = (subtotalAmount * serviceChargePercentage / 100);
@@ -478,7 +546,7 @@
             const amountBeforeGST = subtotalAmount + serviceChargeAmount + platformFeeAmount;
             gstAmount = (amountBeforeGST * gstPercentage / 100);
 
-            // Final total
+            // Final total with all fees
             finalTotalPrice = amountBeforeGST + gstAmount;
 
             // Update displays with currency symbol
@@ -534,17 +602,22 @@
 
             if (!alreadySelected) {
                 selectedSeats.push(seatNumber);
-                finalTotalPrice += priceAfterCouponPerSeat;
+                baseFareTotal += priceAfterCouponPerSeat; // Add to base fare
                 totalCouponDiscountApplied += discountAmountPerSeat; // Add to total discount
                 $('.selected-seat-details').append(
-                    `<span class="list-group-item d-flex justify-content-between" data-seat-id="${seatNumber}" data-discount-applied="${discountAmountPerSeat.toFixed(2)}">
+                    `<span class="list-group-item d-flex justify-content-between" data-seat-id="${seatNumber}" data-price="${priceAfterCouponPerSeat.toFixed(2)}" data-discount-applied="${discountAmountPerSeat.toFixed(2)}">
                         @lang('Seat') ${seatNumber} <span>{{ __($general->cur_sym) }}${priceAfterCouponPerSeat.toFixed(2)}</span>
                     </span>`
                 );
             } else {
                 selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
-                finalTotalPrice -= priceAfterCouponPerSeat;
-                totalCouponDiscountApplied -= discountAmountPerSeat; // Subtract from total discount
+                // Get the stored price from the data attribute to avoid recalculation issues
+                const storedPrice = parseFloat($(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).data(
+                    'price'));
+                const storedDiscount = parseFloat($(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).data(
+                    'discount-applied'));
+                baseFareTotal -= storedPrice; // Subtract from base fare
+                totalCouponDiscountApplied -= storedDiscount;
                 $(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).remove(); // Remove specific seat display
             }
 
@@ -556,10 +629,16 @@
             } else {
                 $('.booked-seat-details').removeClass('d-block').addClass('d-none');
             }
-            // Toggle booking button enabled state based on seat selection
+            // Toggle booking button enabled state and gray out based on seat selection
             const bookBtn = document.querySelector('.book-bus-btn');
             if (bookBtn) {
-                bookBtn.disabled = selectedSeats.length === 0;
+                if (selectedSeats.length === 0) {
+                    bookBtn.disabled = true;
+                    bookBtn.classList.add('disabled');
+                } else {
+                    bookBtn.disabled = false;
+                    bookBtn.classList.remove('disabled');
+                }
             }
             updatePriceDisplays(); // Update all displayed prices
         }
@@ -708,12 +787,43 @@
 
         // Handle next button click to go to passenger details
         $('#nextToPassengerBtn').on('click', function() {
+            // Validate that both boarding and dropping points are selected
+            const boardingSelected = $('#selected_boarding_point').val();
+            const droppingSelected = $('#selected_dropping_point').val();
+
+            if (!boardingSelected || !droppingSelected) {
+                alert('@lang('Please select both boarding and dropping points before continuing.')');
+                return;
+            }
+
             $('#passenger-tab').tab('show');
         });
 
-        // Handle back button click
+        // Enable/disable continue button based on point selection
+        function updateContinueButtonState() {
+            const boardingSelected = $('#selected_boarding_point').val();
+            const droppingSelected = $('#selected_dropping_point').val();
+            const continueBtn = $('#nextToPassengerBtn');
+
+            if (boardingSelected && droppingSelected) {
+                continueBtn.prop('disabled', false).removeClass('disabled');
+            } else {
+                continueBtn.prop('disabled', true).addClass('disabled');
+            }
+        }
+
+        // Call this function whenever a point is selected
+        $(document).on('click', '.boarding-point-card, .dropping-point-card', function() {
+            setTimeout(updateContinueButtonState, 100);
+        });
+
+        // Handle back button clicks
         $('#backToBoardingBtn').on('click', function() {
             $('#boarding-tab').tab('show');
+        });
+
+        $('#backToPassengerBtn').on('click', function() {
+            $('#passenger-tab').tab('show');
         });
 
         // Handle passenger details form submission
@@ -728,11 +838,7 @@
                 }
             @endif
 
-            $('#payment-tab').tab('show');
-
-            // Update hidden form fields with passenger and point details
-            $('#form_boarding_point_index').val($('#selected_boarding_point').val());
-            $('#form_dropping_point_index').val($('#selected_dropping_point').val());
+            // Update passenger data in hidden form fields
             $('#form_passenger_title').val($('#passenger_title').val());
 
             // Also update the main gender input for the form
@@ -747,13 +853,60 @@
             $('#form_passenger_age').val($('#passenger_age').val());
             $('#form_passenger_address').val($('#passenger_address').val());
 
-            // Submit the booking form before opening the payment tab
-            // Update the payment summary display
-            $('#payment-summary').html($('.booking-summary-card').html());
-            $('#payment-total-display').text('(' + $('#totalPriceDisplay').text() + ')');
+            // Update the payment invoice with all details
+            updatePaymentInvoice();
 
             // Switch to the payment tab
             $('#payment-tab').tab('show');
+        });
+
+        // Function to update payment invoice
+        function updatePaymentInvoice() {
+            // Journey details
+            $('#invoice-route').text($('#origin-id').val() + ' → ' + $('#destination-id').val());
+            $('#invoice-date').text($('#date_of_journey').val());
+            $('#invoice-seats').text(selectedSeats.join(', '));
+
+            // Boarding & Dropping points
+            const boardingPoint = $('.boarding-point-card.selected .point-name').text() || 'Not selected';
+            const boardingTime = $('.boarding-point-card.selected .point-time').text() || '';
+            $('#invoice-boarding').text(boardingPoint + (boardingTime ? ' - ' + boardingTime : ''));
+
+            const droppingPoint = $('.dropping-point-card.selected .point-name').text() || 'Not selected';
+            const droppingTime = $('.dropping-point-card.selected .point-time').text() || '';
+            $('#invoice-dropping').text(droppingPoint + (droppingTime ? ' - ' + droppingTime : ''));
+
+            // Passenger details
+            const passengerName = $('#passenger_title').val() + '. ' + $('#passenger_firstname').val() + ' ' + $(
+                '#passenger_lastname').val();
+            $('#invoice-passenger-name').text(passengerName);
+            $('#invoice-passenger-phone').text($('#passenger_phone').val());
+            $('#invoice-passenger-age').text($('#passenger_age').val() + ' years');
+
+            // Fare details - clone from booking summary
+            const fareHTML = $('.fare-breakdown').html() + '<div class="total-section mt-3">' + $('.total-section').html() +
+                '</div>';
+            $('#invoice-fare-details').html(fareHTML);
+
+            // Update total display
+            $('#payment-total-display').text('(' + $('#totalPriceDisplay').text() + ')');
+        }
+
+        // Show/hide bottom nav buttons based on active tab
+        $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+            const targetTab = $(e.target).attr('data-bs-target');
+
+            // Hide all bottom navs first
+            $('#flyoutBottomNav, .passenger-bottom-nav, .payment-bottom-nav').hide();
+
+            // Show appropriate bottom nav
+            if (targetTab === '#boarding-content') {
+                $('#flyoutBottomNav').show();
+            } else if (targetTab === '#passenger-content') {
+                $('.passenger-bottom-nav').show();
+            } else if (targetTab === '#payment-content') {
+                $('.payment-bottom-nav').show();
+            }
         });
 
         // Handle the final payment submission
@@ -974,26 +1127,47 @@
 
         // When a boarding point is selected, store its details
         $(document).on('click', '.boarding-point-card', function() {
-            // Get the boarding point details
-            const pointName = $(this).find('.card-title').text();
-            const pointLocation = $(this).find('.card-text:first').text();
-            const pointTime = $(this).find('.card-text:contains("clock")').text();
+
+            // Get the boarding point details from the card
+            const pointName = $(this).find('.point-name').text().trim();
+            const pointLocation = $(this).find('.point-location').text().trim();
+            const pointTime = $(this).find('.point-time').text().trim();
+            const pointIndex = $(this).data('index');
+
             // Store in hidden fields for later use
+            $('#form_boarding_point_index').val(pointIndex);
             $('#form_boarding_point_name').val(pointName);
             $('#form_boarding_point_location').val(pointLocation);
             $('#form_boarding_point_time').val(pointTime);
+
+            console.log('Boarding point selected:', {
+                index: pointIndex,
+                name: pointName,
+                location: pointLocation,
+                time: pointTime
+            });
         });
 
         // When a dropping point is selected, store its details
         $(document).on('click', '.dropping-point-card', function() {
-            // Get the dropping point details
-            const pointName = $(this).find('.card-title').text();
-            const pointLocation = $(this).find('.card-text:first').text();
-            const pointTime = $(this).find('.card-text:contains("clock")').text();
+            // Get the dropping point details from the card
+            const pointName = $(this).find('.point-name').text().trim();
+            const pointLocation = $(this).find('.point-location').text().trim();
+            const pointTime = $(this).find('.point-time').text().trim();
+            const pointIndex = $(this).data('index');
+
             // Store in hidden fields for later use
+            $('#form_dropping_point_index').val(pointIndex);
             $('#form_dropping_point_name').val(pointName);
             $('#form_dropping_point_location').val(pointLocation);
             $('#form_dropping_point_time').val(pointTime);
+
+            console.log('Dropping point selected:', {
+                index: pointIndex,
+                name: pointName,
+                location: pointLocation,
+                time: pointTime
+            });
         });
     </script>
 
@@ -1116,6 +1290,7 @@
             margin: 0;
             font-size: 1.25rem;
             font-weight: 600;
+            color: white;
         }
 
         .flyout-close {
@@ -1356,15 +1531,24 @@
             color: white;
             border: none;
             border-radius: 6px;
-            padding: 12px 24px;
+            padding: 10px 20px;
+            font-size: 14px;
             font-weight: 600;
             transition: all 0.3s ease;
         }
 
-        .book-bus-btn:hover {
+        .book-bus-btn:hover:not(:disabled):not(.disabled) {
             background: #c32d36;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(214, 57, 66, 0.3);
+        }
+
+        .book-bus-btn:disabled,
+        .book-bus-btn.disabled {
+            background: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         /* Professional Boarding/Dropping Point Cards */
@@ -1476,15 +1660,22 @@
 
         /* Flyout bottom navigation (tabs + continue button) */
         .flyout-bottom-nav {
-            position: sticky;
+            position: fixed;
             bottom: 0;
-            left: 0;
+            left: auto;
             right: 0;
+            width: 500px;
             background: white;
             padding: 16px 20px;
             border-top: 2px solid #e9ecef;
             z-index: 100;
             box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        @media (max-width: 768px) {
+            .flyout-bottom-nav {
+                width: 100%;
+            }
         }
 
         .flyout-bottom-nav .nav-tabs {
@@ -1493,8 +1684,8 @@
         }
 
         .flyout-bottom-nav .continue-btn {
-            padding: 14px 24px;
-            font-size: 1rem;
+            padding: 12px 20px;
+            font-size: 14px;
             font-weight: 600;
             border-radius: 8px;
             transition: all 0.3s ease;
@@ -1504,16 +1695,115 @@
             width: 100%;
         }
 
-        .flyout-bottom-nav .continue-btn:hover {
+        .flyout-bottom-nav .continue-btn:hover:not(:disabled):not(.disabled) {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(214, 57, 66, 0.3);
             background: #c32d36;
+        }
+
+        .flyout-bottom-nav .continue-btn:disabled,
+        .flyout-bottom-nav .continue-btn.disabled {
+            background: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Passenger bottom nav - same styling as flyout bottom nav */
+        .passenger-bottom-nav,
+        .payment-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: auto;
+            right: 0;
+            width: 500px;
+            background: white;
+            padding: 12px 16px;
+            border-top: 2px solid #e9ecef;
+            z-index: 100;
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+
+            .passenger-bottom-nav,
+            .payment-bottom-nav {
+                width: 100%;
+            }
+        }
+
+        /* Ensure all flyout buttons have consistent font size */
+        .passenger-bottom-nav button,
+        .payment-bottom-nav button,
+        .flyout-bottom-nav button {
+            font-size: 14px;
+        }
+
+        /* Payment Invoice Styles */
+        .payment-invoice {
+            padding: 0;
+        }
+
+        .invoice-title {
+            color: #333;
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #D63942;
+        }
+
+        .invoice-section {
+            background: #fff;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .invoice-section.fare-section {
+            background: #f8f9fa;
+        }
+
+        .section-title {
+            color: #D63942;
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            line-height: 1.3;
+        }
+
+        .detail-label {
+            color: #666;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #333;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: right;
         }
 
         /* Adjust flyout body padding to account for fixed bottom nav */
         .flyout-body {
             padding: 24px 24px 100px 24px;
             overflow-y: auto;
+            max-height: calc(100vh - 120px);
+        }
+
+        /* Ensure tab content has enough bottom padding */
+        #passenger-content,
+        #payment-content {
+            padding-bottom: 80px;
         }
 
         /* Better section spacing */

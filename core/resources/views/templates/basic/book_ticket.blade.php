@@ -1757,6 +1757,7 @@
         .invoice-section {
             background: #fff;
             padding: 12px;
+            padding-top: 0px;
             margin-bottom: 12px;
         }
 
@@ -1801,8 +1802,7 @@
         }
 
         /* Ensure tab content has enough bottom padding */
-        #passenger-content,
-        #payment-content {
+        #passenger-content {
             padding-bottom: 80px;
         }
 

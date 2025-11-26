@@ -752,6 +752,7 @@ function sendMailjetMail(
             ],
         ],
     ];
+    $response = $mj->post(["body" => $body]);
     if (!$response->success()) {
         Log::error("Mailjet Error: " . $response->getReasonPhrase());
     }
@@ -1130,10 +1131,19 @@ function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
     // Clean mobile number - remove country code if present since template already has 91 prefix
     $cleanNumber = preg_replace("/^(\+91|91)/", "", $mobileNumber);
 
+    // Prepare media object if PDF URL is available
+    $media = [];
+    if (isset($ticketDetails['pdf_url']) && $ticketDetails['pdf_url']) {
+        $media = [
+            'url' => $ticketDetails['pdf_url'],
+            'filename' => 'Ghumantoo_' . ($ticketDetails['pnr'] ?? 'ticket')
+        ];
+    }
+
     // Prepare payload
     $payload = [
         "apiKey" => $apiKey,
-        "campaignName" => "ticket-booking",
+        "campaignName" => "ticket_pdf_user",
         "destination" => $cleanNumber,
         "userName" => $ticketDetails["passenger_name"],
         "templateParams" => [
@@ -1144,9 +1154,10 @@ function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
             $ticketDetails["seats"] ?? "N/A",
             $ticketDetails["boarding_details"], // Boarding Details
             $ticketDetails["drop_off_details"], // Drop-Off Details
+            "from ghumantoo" // 8th parameter
         ],
         "source" => "new-landing-page form",
-        "media" => [], // No media provided
+        "media" => $media,
         "buttons" => [], // No buttons provided
         "carouselCards" => [], // No carousel cards provided
         "location" => [], // No location provided
@@ -1156,11 +1167,15 @@ function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
     ];
 
     $response = Http::post($apiUrl, $payload);
-
+    Log::info("WhatsApp API response", [
+        "url" => $apiUrl,
+        "payload" => $payload,
+        "response" => $response->json(),
+    ]);
     if ($response->successful()) {
-        return true; // Return OTP if the API call succeeds
+        return true; // Return true if the API call succeeds
     } else {
-        throw new \Exception("Failed to send OTP. Error: " . $response->body());
+        throw new \Exception("Failed to send WhatsApp message. Error: " . $response->body());
     }
 }
 

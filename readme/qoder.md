@@ -2,6 +2,82 @@
 
 ---
 
+## WhatsApp PDF Integration - Permission & Rendering Fix
+
+**Date**: November 27, 2025
+
+### Issue 1: Permission Denied Error
+
+After implementing the WhatsApp PDF ticket feature, encountered a **Permission Denied** error when attempting to create the `/public/uploads/tickets/` directory:
+
+```
+[2025-11-26 21:17:02] Failed to generate ticket PDF: "mkdir(): Permission denied"
+[2025-11-26 21:17:02] WhatsApp notification failed: "Media URL Missing"
+```
+
+**Root Cause**:
+
+- The `public/uploads` directory did not exist
+- Laravel's `File::makeDirectory()` couldn't create it due to missing parent directory
+
+**Solution Applied**:
+
+```bash
+mkdir -p /Applications/XAMPP/xamppfiles/htdocs/bus_booking/core/public/uploads/tickets
+chmod -R 777 /Applications/XAMPP/xamppfiles/htdocs/bus_booking/core/public/uploads
+```
+
+### Issue 2: PDF Rendering Problem
+
+**Problem**: Generated PDF was not rendering properly - completely different from the HTML template
+
+**Root Cause**:
+
+- Dompdf has **very limited CSS support**
+- Doesn't support modern CSS properties:
+  - ❌ CSS Grid (`display: grid`)
+  - ❌ Flexbox (`display: flex`)
+  - ❌ Complex positioning
+  - ❌ Modern CSS selectors
+
+**Solution**: Created a PDF-optimized template using **table-based layout**
+
+**Files Created**:
+
+- `/core/resources/views/templates/basic/ticket/print_pdf.blade.php` - New PDF-specific template using tables
+
+**Changes Made**:
+
+- Updated `BookingService::generateTicketPDF()` to use `print_pdf.blade.php` instead of `print_only.blade.php`
+- Added Dompdf configuration options:
+  ```php
+  $pdf->setOptions([
+      'isHtml5ParserEnabled' => true,
+      'isRemoteEnabled' => true,
+      'defaultFont' => 'DejaVu Sans'
+  ]);
+  ```
+
+**Key Differences Between Templates**:
+
+| Feature        | print_only.blade.php (Web) | print_pdf.blade.php (PDF) |
+| -------------- | -------------------------- | ------------------------- |
+| Layout System  | CSS Grid + Flexbox         | HTML Tables               |
+| Font           | System fonts               | DejaVu Sans (embedded)    |
+| Responsive     | Media queries              | Fixed width               |
+| Print Button   | Yes                        | No                        |
+| CSS Complexity | Modern CSS3                | Dompdf-compatible CSS     |
+
+**Key Points**:
+
+- `sendWhatsAppNotifications()` is a **method in BookingService**, NOT in helpers.php
+- `sendTicketDetailsWhatsApp()` is the **helper function** in helpers.php (lines 1126-1176)
+- PDF generation requires write permissions to `public/uploads/tickets/`
+- WhatsApp API requires valid PDF URL; if PDF generation fails, media attachment is skipped gracefully
+- Always use table-based layouts for PDF generation with Dompdf
+
+---
+
 # Operator Management System - Full Analysis
 
 ## Date: November 26, 2025
@@ -617,3 +693,148 @@ All changes were made to a single file: `/assets/admin/js/seat-layout-editor.js`
 - ✅ Green `+` button indicates safe drop areas
 - ✅ Red highlighting indicates invalid positions
 - ✅ Grayscale effect shows seat will be deleted
+
+---
+
+# WhatsApp Ticket PDF Integration
+
+## Date: November 27, 2025
+
+### Feature: Automated PDF Generation for WhatsApp Notifications
+
+**Objective**: Automatically generate and attach ticket PDFs to WhatsApp notifications sent to passengers after successful booking.
+
+**Implementation Details**:
+
+#### 1. PDF Library Installation
+
+**Package**: `barryvdh/laravel-dompdf` (v2.2)
+
+- Pure PHP PDF generator (no external dependencies)
+- Compatible with PHP 8.1.33 and 8.3.7
+- Automatically discovered by Laravel package discovery
+
+**Installation**:
+
+```bash
+composer require barryvdh/laravel-dompdf
+```
+
+#### 2. PDF Generation Flow
+
+**File**: `/core/app/Services/BookingService.php`
+
+**New Method**: `generateTicketPDF(BookedTicket $bookedTicket)`
+
+**Process**:
+
+1. Call `TicketController->formatTicketForPrint()` to get formatted ticket data
+2. Get company details (name, logo) from GeneralSetting
+3. Render `templates.basic.ticket.print_only` blade view to HTML
+4. Convert HTML to PDF using Dompdf with A4 portrait orientation
+5. Ensure `public/uploads/tickets` directory exists (create with 755 permissions if needed)
+6. Save PDF as `Ghumantoo_{PNR}.pdf`
+7. Return public asset URL for WhatsApp media attachment
+8. On failure, log error and return null (WhatsApp will still send without PDF)
+
+**Enhanced Method**: `prepareTicketDetailsForWhatsApp()`
+
+- Now calls `generateTicketPDF()` before preparing ticket details
+- Adds `pdf_url` to returned ticket details array
+
+#### 3. WhatsApp Campaign Update
+
+**File**: `/core/app/Http/Helpers/helpers.php`
+
+**Function**: `sendTicketDetailsWhatsApp()`
+
+**Changes**:
+
+- **Campaign Name**: Changed from `ticket-booking` to `ticket_pdf_user`
+- **Template Parameters**: Added 8th parameter `"from ghumantoo"`
+- **Media Object**:
+  ```php
+  $media = [
+      'url' => $ticketDetails['pdf_url'],
+      'filename' => 'Ghumantoo_{PNR}'
+  ];
+  ```
+- Media is only attached if `pdf_url` is available (graceful fallback)
+
+#### 4. TicketController Enhancement
+
+**File**: `/core/app/Http/Controllers/TicketController.php`
+
+**Change**: Made `formatTicketForPrint()` method **public** (was private)
+
+- Allows BookingService to call this method for PDF generation
+- No functionality changes, just visibility modifier update
+
+#### 5. Directory Structure
+
+**Created**: `/public/uploads/tickets/`
+
+- Permissions: 755 (readable by web server)
+- Auto-created if missing via `File::makeDirectory($path, 0755, true)`
+- Stores generated PDFs for WhatsApp media URLs
+
+### Files Modified
+
+1. **BookingService.php** (+58 lines)
+
+   - Added `generateTicketPDF()` method
+   - Enhanced `prepareTicketDetailsForWhatsApp()` to include PDF URL
+
+2. **helpers.php** (+14 lines, -4 lines)
+
+   - Updated `sendTicketDetailsWhatsApp()` campaign to `ticket_pdf_user`
+   - Added 8th template parameter
+   - Added dynamic media object with PDF URL
+
+3. **TicketController.php** (+1 line, -1 line)
+   - Changed `formatTicketForPrint()` from private to public
+
+### Technical Benefits
+
+- ✅ Passengers receive downloadable PDF directly in WhatsApp
+- ✅ No need to open app to view/download ticket
+- ✅ PDF matches exact print layout from web interface
+- ✅ Graceful fallback if PDF generation fails
+- ✅ No external dependencies (pure PHP solution)
+- ✅ Compatible with shared hosting environments
+- ✅ Automatic directory creation with proper permissions
+- ✅ Error logging for troubleshooting
+
+### WhatsApp Payload Structure
+
+```json
+{
+  "apiKey": "...",
+  "campaignName": "ticket_pdf_user",
+  "destination": "9649240944",
+  "userName": "Passenger Name",
+  "templateParams": [
+    "Satna", // Source
+    "Rewa", // Destination
+    "05 Dec 2025", // Journey Date
+    "QP3VX6VP3J", // PNR
+    "31", // Seats
+    "Satna Railway Station...", // Boarding Details
+    "New Bus Stand, Rewa", // Dropping Details
+    "from ghumantoo" // 8th param (new)
+  ],
+  "media": {
+    "url": "https://domain.com/uploads/tickets/Ghumantoo_QP3VX6VP3J.pdf",
+    "filename": "Ghumantoo_QP3VX6VP3J"
+  }
+}
+```
+
+### Error Handling
+
+- PDF generation wrapped in try-catch block
+- Errors logged with ticket ID, message, and stack trace
+- Returns null on failure (booking continues, WhatsApp sends without PDF)
+- Non-blocking: Failed PDF generation doesn't stop booking process
+
+---

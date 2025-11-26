@@ -84,7 +84,7 @@ class TicketController extends Controller
     /**
      * Format ticket data for printing
      */
-    private function formatTicketForPrint($ticket)
+    public function formatTicketForPrint($ticket)
     {
         // Get seats
         $seats = is_array($ticket->seats) ? $ticket->seats : (is_string($ticket->seats) ? explode(',', $ticket->seats) : []);

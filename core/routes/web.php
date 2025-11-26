@@ -27,6 +27,15 @@ Route::get('/agent-sw.js', function () {
     return response()->file($path, ['Content-Type' => 'application/javascript']);
 })->name('agent.sw');
 
+// Serve ticket PDFs publicly
+Route::get('/uploads/tickets/{filename}', function ($filename) {
+    $path = public_path('uploads/tickets/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path, ['Content-Type' => 'application/pdf']);
+})->where('filename', '.*\.pdf');
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes

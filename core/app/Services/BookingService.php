@@ -1744,11 +1744,24 @@ class BookingService
             // Prepare ticket details for WhatsApp
             $ticketDetails = $this->prepareTicketDetailsForWhatsApp($bookedTicket, $apiResponse, $bookingData);
 
-            // Send ticket details to passenger (user who booked)
-            $passengerWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $bookedTicket->user->mobile ?? null);
+            // Send ticket details to passenger (use passenger_phone from booking, fallback to user mobile)
+            $passengerMobile = $bookedTicket->passenger_phone ?? ($bookedTicket->user->mobile ?? null);
+            $passengerWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $passengerMobile);
+
+            Log::info('Passenger WhatsApp notification attempted', [
+                'ticket_id' => $bookedTicket->id,
+                'passenger_phone' => $passengerMobile,
+                'success' => $passengerWhatsAppSuccess
+            ]);
 
             // Send ticket details to admin (always notify admin)
             $adminWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, "8269566034");
+
+            Log::info('Admin WhatsApp notification attempted', [
+                'ticket_id' => $bookedTicket->id,
+                'admin_phone' => '8269566034',
+                'success' => $adminWhatsAppSuccess
+            ]);
 
             // Send ticket details to agent if booking was made by agent
             $agentWhatsAppSuccess = true;
@@ -1877,6 +1890,9 @@ class BookingService
      */
     private function prepareTicketDetailsForWhatsApp(BookedTicket $bookedTicket, array $apiResponse, array $bookingData)
     {
+        // Generate PDF and get media URL
+        $pdfUrl = $this->generateTicketPDF($bookedTicket);
+
         // Get origin and destination cities
         $originCity = $bookedTicket->origin_city ?? 'Origin City';
         $destinationCity = $bookedTicket->destination_city ?? 'Destination City';
@@ -1970,7 +1986,95 @@ class BookingService
             'passenger_name' => $bookedTicket->passenger_name ?? 'Guest',
             'boarding_details' => $boardingDetailsString,
             'drop_off_details' => $droppingDetailsString,
+            'pdf_url' => $pdfUrl,
         ];
+    }
+
+    /**
+     * Generate ticket PDF and save to public uploads directory
+     */
+    private function generateTicketPDF(BookedTicket $bookedTicket)
+    {
+        try {
+            // Call the print ticket controller to get HTML
+            $ticketController = new \App\Http\Controllers\TicketController();
+            $formattedTicket = $ticketController->formatTicketForPrint($bookedTicket);
+
+            // Get company details
+            $general = \App\Models\GeneralSetting::first();
+            $companyName = $general->sitename ?? 'Ghumantoo';
+            
+            // Get logo URL with proper error handling
+            $logoPath = imagePath()['logoIcon']['path'] ?? 'assets/images/logoIcon';
+            $logoFile = $logoPath . '/logo.png';
+            
+            // Use absolute path for file existence check
+            $absoluteLogoPath = public_path($logoFile);
+            
+            // Only set logoUrl if file exists, otherwise use null
+            $logoUrl = (file_exists($absoluteLogoPath) && is_file($absoluteLogoPath)) 
+                ? asset($logoFile) 
+                : null;
+            
+            Log::info('PDF logo check', [
+                'logo_file' => $logoFile,
+                'absolute_path' => $absoluteLogoPath,
+                'exists' => file_exists($absoluteLogoPath),
+                'logo_url' => $logoUrl
+            ]);
+
+            // Render the PDF-optimized view to HTML
+            $html = view('templates.basic.ticket.print_pdf', [
+                'ticket' => (object) $formattedTicket,
+                'companyName' => $companyName,
+                'logoUrl' => $logoUrl,
+            ])->render();
+
+            // Generate PDF using Dompdf with options
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => false,
+                'defaultFont' => 'sans-serif',
+                'isFontSubsettingEnabled' => false
+            ]);
+
+            // Ensure uploads/tickets directory exists (use core/public which is Laravel's public directory)
+            $uploadPath = public_path('uploads/tickets');
+            if (!\File::exists($uploadPath)) {
+                \File::makeDirectory($uploadPath, 0755, true);
+            }
+
+            // Generate filename
+            $filename = 'Ghumantoo_' . $bookedTicket->pnr_number . '.pdf';
+            $filePath = $uploadPath . '/' . $filename;
+
+            // Save PDF
+            $pdf->save($filePath);
+
+            // Return public URL - use url() instead of asset() for subdirectory support
+            $publicUrl = url('uploads/tickets/' . $filename);
+            
+            Log::info('PDF generated successfully', [
+                'ticket_id' => $bookedTicket->id,
+                'file_path' => $filePath,
+                'public_url' => $publicUrl,
+                'file_exists' => file_exists($filePath)
+            ]);
+            
+            return $publicUrl;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to generate ticket PDF', [
+                'ticket_id' => $bookedTicket->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Return null if PDF generation fails (WhatsApp will still send without PDF)
+            return null;
+        }
     }
 
     /**

@@ -305,6 +305,24 @@
                 left: 0;
                 color: #007bff;
             }
+
+            .footer-wrapper {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+                border-top: 1px solid #e0e0e0 !important;
+            }
+
+            .footer-left {
+                text-align: left !important;
+            }
+
+            .footer-right {
+                text-align: right !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-end !important;
+            }
         }
 
         /* Ticket Container */
@@ -622,12 +640,30 @@
         }
 
         /* Footer */
-        .ticket-footer {
-            text-align: center;
+        .footer-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-top: 25px;
             padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .ticket-footer {
             font-size: 11px;
             color: #888;
+        }
+
+        .footer-left {
+            text-align: left;
+            flex: 1;
+        }
+
+        .footer-right {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
         }
 
         /* Print Button (Hidden when printing) */
@@ -889,14 +925,14 @@
 
 
         <!-- Footer -->
-        <div class="d-flex justify-content-between">
-            <div class="ticket-footer">
-                <p>{{ $companyName ?? 'Ghumantoo' }} | E-Ticket Generated on {{ now()->format('d M Y, h:i A') }}</p>
+        <div class="footer-wrapper">
+            <div class="ticket-footer footer-left">
+                <p>Ghumantoo | E-Ticket Generated on {{ now()->format('d M Y, h:i A') }}</p>
                 <p style="margin-top: 5px;">© {{ date('Y') }} All rights reserved.</p>
             </div>
-            <div class="ticket-footer">
+            <div class="ticket-footer footer-right">
                 <p>Download Ghumantoo From Play Store</p>
-                <i class="fa fa-google-play"></i>
+                <i class="fab fa-google-play" style="font-size: 24px; color: #007bff; margin-top: 5px;"></i>
             </div>
         </div>
     </div>
@@ -904,33 +940,7 @@
     <!-- Print Actions (Hidden when printing) -->
     <div class="print-actions no-print">
         <button class="btn-print" onclick="window.print()">Print Ticket</button>
-        <button class="btn-print btn-download" onclick="downloadAsPDF()">Download PDF</button>
     </div>
-
-    <!-- PDF Download Script -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script>
-        function downloadAsPDF() {
-            const element = document.querySelector('.ticket-container');
-            const opt = {
-                margin: 0.5,
-                filename: 'ticket_{{ $ticket->pnr_number ?? 'ticket' }}.pdf',
-                image: {
-                    type: 'jpeg',
-                    quality: 0.98
-                },
-                html2canvas: {
-                    scale: 2
-                },
-                jsPDF: {
-                    unit: 'in',
-                    format: 'a4',
-                    orientation: 'portrait'
-                }
-            };
-            html2pdf().set(opt).from(element).save();
-        }
-    </script>
 </body>
 
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -39,7 +40,261 @@
             .ticket-container {
                 page-break-inside: avoid;
                 box-shadow: none;
-                border: none;
+                border: 2px solid #e0e0e0;
+                max-width: 100%;
+            }
+
+            /* Copy exact normal styles */
+            .ticket-header {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                border-bottom: 3px solid #007bff !important;
+                padding-bottom: 20px !important;
+                margin-bottom: 25px !important;
+            }
+
+            .ticket-header .logo {
+                max-width: 120px !important;
+                height: auto !important;
+                flex-shrink: 0 !important;
+            }
+
+            .ticket-header .header-center {
+                flex-grow: 1 !important;
+                text-align: center !important;
+                padding: 0 20px !important;
+            }
+
+            .ticket-header .header-center .subtitle {
+                color: #666 !important;
+                font-size: 14px !important;
+                text-transform: uppercase !important;
+                letter-spacing: 1px !important;
+                margin: 0 !important;
+                line-height: 1.4 !important;
+            }
+
+            .ticket-header .header-right {
+                flex-shrink: 0 !important;
+                text-align: right !important;
+            }
+
+            .status-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                margin: 0;
+            }
+
+            .status-badge.confirmed {
+                background: transparent;
+                color: #28a745;
+                border: 1px solid #28a745;
+            }
+
+            .status-badge.cancelled {
+                background: transparent;
+                color: #dc3545;
+                border: 1px solid #dc3545;
+            }
+
+            .status-badge.pending {
+                background: transparent;
+                color: #ffc107;
+                border: 1px solid #ffc107;
+            }
+
+            .ticket-info {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 15px 20px !important;
+                margin-bottom: 20px !important;
+            }
+
+            .info-item {
+                display: flex !important;
+                flex-direction: column !important;
+            }
+
+            .info-label {
+                font-size: 9px;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 4px;
+                font-weight: 600;
+            }
+
+            .info-value {
+                font-size: 12px;
+                color: #333;
+                font-weight: 600;
+            }
+
+            .info-value.highlight {
+                color: #007bff;
+                font-size: 14px;
+            }
+
+            .journey-section {
+                background: #f8f9fa !important;
+                border-radius: 8px !important;
+                padding: 12px 4px !important;
+                margin: 20px 0 !important;
+            }
+
+            .journey-section h3 {
+                color: #007bff !important;
+                font-size: 16px !important;
+                margin-bottom: 12px !important;
+                font-weight: 700 !important;
+            }
+
+            .journey-details {
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 12px 20px !important;
+            }
+
+            .journey-item {
+                display: flex !important;
+                flex-direction: column !important;
+            }
+
+            .journey-label {
+                font-size: 9px;
+                color: #888;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 4px;
+                font-weight: 600;
+            }
+
+            .journey-value {
+                font-size: 13px;
+                color: #333;
+                font-weight: 600;
+            }
+
+            .passenger-section {
+                background: #f8f9fa !important;
+                border-radius: 8px !important;
+                padding: 12px 4px !important;
+                margin: 20px 0 !important;
+            }
+
+            .passenger-section h3 {
+                color: #007bff !important;
+                font-size: 16px !important;
+                margin-bottom: 12px !important;
+                font-weight: 700 !important;
+                padding-left: 4px !important;
+            }
+
+            .passenger-list {
+                display: grid !important;
+                gap: 8px !important;
+            }
+
+            .passenger-item {
+                padding: 12px !important;
+                border-radius: 6px !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+            }
+
+            .passenger-name {
+                font-weight: 600;
+                font-size: 13px;
+                color: #333;
+            }
+
+            .passenger-item>div>div:last-child {
+                font-size: 11px;
+                color: #666;
+                margin-top: 3px;
+            }
+
+            .seat-badge {
+                background: #007bff;
+                color: #fff;
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+
+            .terms-fare-wrapper {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+                gap: 30px !important;
+                margin: 20px 0 !important;
+            }
+
+            .fare-breakdown-list {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 2px !important;
+                max-width: 280px !important;
+                margin-left: 0 !important;
+            }
+
+            .fare-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .fare-label {
+                font-size: 11px;
+                color: #666;
+                font-weight: 500;
+            }
+
+            .fare-value {
+                font-size: 13px;
+                color: #333;
+                font-weight: 600;
+                text-align: right;
+                min-width: 80px;
+            }
+
+            .fare-total {
+                border-top: 2px solid #007bff;
+                margin-top: 8px;
+                padding-top: 10px;
+            }
+
+            .fare-total .fare-label {
+                font-size: 13px;
+                font-weight: 700;
+                color: #007bff;
+            }
+
+            .fare-total .fare-value {
+                font-size: 16px;
+                font-weight: 700;
+                color: #007bff;
+            }
+
+            .terms-section li {
+                font-size: 0.5rem;
+                color: #666;
+                padding-left: 15px;
+                position: relative;
+            }
+
+            .terms-section li:before {
+                content: "•";
+                position: absolute;
+                left: 0;
+                color: #007bff;
             }
         }
 
@@ -51,68 +306,79 @@
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             padding: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         /* Header Section */
         .ticket-header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 3px solid #007bff;
             padding-bottom: 20px;
             margin-bottom: 25px;
         }
 
         .ticket-header .logo {
-            max-width: 150px;
+            max-width: 120px;
             height: auto;
-            margin-bottom: 10px;
+            flex-shrink: 0;
         }
 
-        .ticket-header h1 {
-            color: #007bff;
-            font-size: 24px;
-            margin: 10px 0 5px;
-            font-weight: 700;
+        .ticket-header .header-center {
+            flex-grow: 1;
+            text-align: center;
+            padding: 0 20px;
         }
 
-        .ticket-header .subtitle {
+        .ticket-header .header-center .subtitle {
             color: #666;
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .ticket-header .header-right {
+            flex-shrink: 0;
+            text-align: right;
         }
 
         .status-badge {
             display: inline-block;
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
-            margin-top: 10px;
+            margin: 0;
         }
 
         .status-badge.confirmed {
-            background: #28a745;
-            color: #fff;
+            background: transparent;
+            color: #28a745;
+            border: 1px solid #28a745;
         }
 
         .status-badge.cancelled {
-            background: #dc3545;
-            color: #fff;
+            background: transparent;
+            color: #dc3545;
+            border: 1px solid #dc3545;
         }
 
         .status-badge.pending {
-            background: #ffc107;
-            color: #000;
+            background: transparent;
+            color: #ffc107;
+            border: 1px solid #ffc107;
         }
 
         /* Ticket Info Grid */
         .ticket-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px 20px;
+            margin-bottom: 20px;
         }
 
         .info-item {
@@ -121,93 +387,90 @@
         }
 
         .info-label {
-            font-size: 11px;
+            font-size: 9px;
             color: #888;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             font-weight: 600;
         }
 
         .info-value {
-            font-size: 16px;
+            font-size: 12px;
             color: #333;
             font-weight: 600;
         }
 
         .info-value.highlight {
             color: #007bff;
-            font-size: 18px;
+            font-size: 14px;
         }
 
         /* Journey Section */
         .journey-section {
             background: #f8f9fa;
             border-radius: 8px;
-            padding: 20px;
-            margin: 25px 0;
-            border-left: 4px solid #007bff;
+            padding: 12px 4px;
+            margin: 20px 0;
         }
 
         .journey-section h3 {
             color: #007bff;
-            font-size: 18px;
-            margin-bottom: 15px;
+            font-size: 16px;
+            margin-bottom: 12px;
             font-weight: 700;
         }
 
         .journey-details {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px 20px;
         }
 
         .journey-item {
             display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px dashed #ddd;
-        }
-
-        .journey-item:last-child {
-            border-bottom: none;
+            flex-direction: column;
         }
 
         .journey-label {
-            font-size: 13px;
-            color: #666;
-            font-weight: 500;
+            font-size: 9px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            font-weight: 600;
         }
 
         .journey-value {
-            font-size: 14px;
+            font-size: 13px;
             color: #333;
             font-weight: 600;
-            text-align: right;
         }
 
         /* Passenger Section */
         .passenger-section {
-            margin: 25px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 4px;
+            margin: 20px 0;
         }
 
         .passenger-section h3 {
-            color: #333;
-            font-size: 18px;
-            margin-bottom: 15px;
+            color: #007bff;
+            font-size: 16px;
+            margin-bottom: 12px;
             font-weight: 700;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
+            padding-left: 4px;
         }
 
         .passenger-list {
             display: grid;
-            gap: 10px;
+            gap: 8px;
         }
 
         .passenger-item {
-            background: #f8f9fa;
-            padding: 15px;
+
+            padding: 12px;
             border-radius: 6px;
             display: flex;
             justify-content: space-between;
@@ -216,16 +479,79 @@
 
         .passenger-name {
             font-weight: 600;
+            font-size: 13px;
             color: #333;
+        }
+
+        .passenger-item>div>div:last-child {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
         }
 
         .seat-badge {
             background: #007bff;
             color: #fff;
-            padding: 5px 12px;
+            padding: 4px 10px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 600;
+        }
+
+        /* Fare Breakdown List */
+        .fare-breakdown-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 280px;
+            margin-left: 0;
+        }
+
+        .terms-fare-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .fare-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* padding: 6px 0; */
+        }
+
+        .fare-label {
+            font-size: 11px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .fare-value {
+            font-size: 13px;
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+            min-width: 80px;
+        }
+
+        .fare-total {
+            border-top: 2px solid #007bff;
+            margin-top: 8px;
+            padding-top: 10px;
+        }
+
+        .fare-total .fare-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #007bff;
+        }
+
+        .fare-total .fare-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #007bff;
         }
 
         /* QR Code Section */
@@ -254,9 +580,9 @@
 
         /* Terms Section */
         .terms-section {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 2px solid #e0e0e0;
+            /* margin-top: 12px; */
+            /* padding-top: 20px; */
+            /* border-top: 2px solid #e0e0e0; */
         }
 
         .terms-section h4 {
@@ -272,9 +598,9 @@
         }
 
         .terms-section li {
-            font-size: 11px;
+            font-size: 0.5rem;
             color: #666;
-            margin-bottom: 5px;
+            /* margin-bottom: 5px; */
             padding-left: 15px;
             position: relative;
         }
@@ -330,33 +656,69 @@
         /* Responsive */
         @media (max-width: 768px) {
             .ticket-container {
-                padding: 20px;
+                padding: 15px;
+            }
+
+            .ticket-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .ticket-header .header-center {
+                text-align: left;
+                padding: 0;
+            }
+
+            .ticket-header .header-right {
+                text-align: left;
             }
 
             .ticket-info {
                 grid-template-columns: 1fr;
+                gap: 12px;
             }
 
             .journey-details {
                 grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .terms-fare-wrapper {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .fare-breakdown-list {
+                max-width: 100%;
+            }
+
+            .journey-section,
+            .passenger-section {
+                padding: 12px;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="ticket-container">
         <!-- Header -->
         <div class="ticket-header">
-            @if(isset($logoUrl) && $logoUrl)
-                <img src="{{ $logoUrl }}" alt="Logo" class="logo">
-            @endif
-            <h1>{{ $companyName ?? 'Bus Booking' }}</h1>
-            <p class="subtitle">E-Ticket / Reservation Voucher</p>
-            @if(isset($ticket->status))
-                <span class="status-badge {{ $ticket->status == 1 ? 'confirmed' : ($ticket->status == 3 ? 'cancelled' : 'pending') }}">
-                    {{ $ticket->status == 1 ? 'Confirmed' : ($ticket->status == 3 ? 'Cancelled' : 'Pending') }}
-                </span>
-            @endif
+            <div class="header-left">
+                @if (isset($logoUrl) && $logoUrl)
+                    <img src="{{ $logoUrl }}" alt="Logo" class="logo">
+                @endif
+            </div>
+            <div class="header-right">
+                <p class="subtitle">E-Ticket / Reservation Voucher</p>
+                @if (isset($ticket->status))
+                    <span
+                        class="status-badge {{ $ticket->status == 1 ? 'confirmed' : ($ticket->status == 3 ? 'cancelled' : 'pending') }}">
+                        {{ $ticket->status == 1 ? 'Confirmed' : ($ticket->status == 3 ? 'Cancelled' : 'Pending') }}
+                    </span>
+                @endif
+            </div>
         </div>
 
         <!-- Ticket Info -->
@@ -367,24 +729,23 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Booking Date</span>
-                <span class="info-value">{{ isset($ticket->created_at) ? \Carbon\Carbon::parse($ticket->created_at)->format('d M Y, h:i A') : 'N/A' }}</span>
+                <span
+                    class="info-value">{{ isset($ticket->created_at) ? \Carbon\Carbon::parse($ticket->created_at)->format('d M Y, h:i A') : 'N/A' }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Passenger Name</span>
-                <span class="info-value">{{ $ticket->passenger_name ?? ($ticket->passengers[0]['FirstName'] ?? 'N/A') }} {{ $ticket->passengers[0]['LastName'] ?? '' }}</span>
+                <span class="info-value">{{ $ticket->passenger_name }}
+                </span>
             </div>
             <div class="info-item">
                 <span class="info-label">Contact Number</span>
-                <span class="info-value">{{ $ticket->passenger_phone ?? ($ticket->passengers[0]['Phoneno'] ?? 'N/A') }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Total Amount</span>
-                <span class="info-value highlight">₹{{ number_format($ticket->total_fare ?? $ticket->sub_total ?? 0, 2) }}</span>
+                <span
+                    class="info-value">{{ $ticket->passenger_phone ?? ($ticket->passengers[0]['Phoneno'] ?? 'N/A') }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Seats</span>
                 <span class="info-value">
-                    @if(isset($ticket->seats) && is_array($ticket->seats))
+                    @if (isset($ticket->seats) && is_array($ticket->seats))
                         {{ implode(', ', $ticket->seats) }}
                     @elseif(isset($ticket->seats))
                         {{ $ticket->seats }}
@@ -392,6 +753,11 @@
                         N/A
                     @endif
                 </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Total Amount</span>
+                <span
+                    class="info-value highlight">₹{{ number_format($ticket->total_amount ?? ($ticket->total_fare ?? ($ticket->sub_total ?? 0)), 2) }}</span>
             </div>
         </div>
 
@@ -409,7 +775,8 @@
                 </div>
                 <div class="journey-item">
                     <span class="journey-label">Date of Journey</span>
-                    <span class="journey-value">{{ isset($ticket->date_of_journey) ? \Carbon\Carbon::parse($ticket->date_of_journey)->format('d M Y, l') : 'N/A' }}</span>
+                    <span
+                        class="journey-value">{{ isset($ticket->date_of_journey) ? \Carbon\Carbon::parse($ticket->date_of_journey)->format('d M Y, l') : 'N/A' }}</span>
                 </div>
                 <div class="journey-item">
                     <span class="journey-label">Departure Time</span>
@@ -435,52 +802,83 @@
         </div>
 
         <!-- Passenger Details -->
-        @if(isset($ticket->passengers) && is_array($ticket->passengers) && count($ticket->passengers) > 0)
-        <div class="passenger-section">
-            <h3>Passenger Details</h3>
-            <div class="passenger-list">
-                @foreach($ticket->passengers as $passenger)
-                <div class="passenger-item">
-                    <div>
-                        <div class="passenger-name">{{ ($passenger['FirstName'] ?? '') }} {{ ($passenger['LastName'] ?? '') }}</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                            @if(isset($passenger['Age'])) Age: {{ $passenger['Age'] }} @endif
-                            @if(isset($passenger['Gender'])) | Gender: {{ $passenger['Gender'] == 1 ? 'Male' : 'Female' }} @endif
+        @if (isset($ticket->passengers) && is_array($ticket->passengers) && count($ticket->passengers) > 0)
+            <div class="passenger-section">
+                <h3>Passenger Details</h3>
+                <div class="passenger-list">
+                    @foreach ($ticket->passengers as $passenger)
+                        <div class="passenger-item">
+                            <div>
+                                <div class="passenger-name">{{ $passenger['FirstName'] ?? '' }}
+                                    {{ $passenger['LastName'] ?? '' }}</div>
+                                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                                    @if (isset($passenger['Age']))
+                                        Age: {{ $passenger['Age'] }}
+                                    @endif
+                                    @if (isset($passenger['Gender']))
+                                        | Gender: {{ $passenger['Gender'] == 1 ? 'Male' : 'Female' }}
+                                    @endif
+                                </div>
+                            </div>
+                            @if (isset($passenger['Seat']['SeatName']))
+                                <span class="seat-badge">Seat {{ $passenger['Seat']['SeatName'] }}</span>
+                            @endif
                         </div>
-                    </div>
-                    @if(isset($passenger['Seat']['SeatName']))
-                    <span class="seat-badge">Seat {{ $passenger['Seat']['SeatName'] }}</span>
-                    @endif
+                    @endforeach
                 </div>
-                @endforeach
             </div>
-        </div>
         @endif
 
-        <!-- QR Code (if available) -->
-        @if(isset($qrCodeUrl) && $qrCodeUrl)
-        <div class="qr-section">
-            <h4>Scan for Ticket Verification</h4>
-            <div class="qr-code">
-                <img src="{{ $qrCodeUrl }}" alt="QR Code">
+        <!-- Terms and Fare Breakdown -->
+        <div class="terms-fare-wrapper">
+            <!-- Terms and Conditions -->
+            <div class="terms-section">
+                <h6>Terms & Conditions</h6>
+                <ul>
+                    <li>Please arrive at the boarding point at least 15 minutes before departure time.</li>
+                    <li>This ticket is non-transferable. Valid ID proof required for verification.</li>
+                    <li>Cancellation policy applies as per company terms and conditions.</li>
+                    <li>Passengers must carry a valid ID proof matching the booking details.</li>
+                    <li>Company reserves the right to change bus type or departure time in unavoidable circumstances.
+                    </li>
+                    <li>Luggage allowance: 15kg per passenger. Extra luggage charges may apply.</li>
+                    <li>For assistance, contact customer support.</li>
+                </ul>
             </div>
-            <p style="font-size: 11px; color: #666; margin-top: 10px;">PNR: {{ $ticket->pnr_number ?? 'N/A' }}</p>
+            <!-- Fare Breakdown -->
+            <div class="fare-breakdown-list">
+                <div class="fare-item">
+                    <span class="fare-label">Sub Total</span>
+                    <span class="fare-value">₹{{ number_format($ticket->sub_total ?? 0, 2) }}</span>
+                </div>
+                @if (isset($ticket->service_charge) && $ticket->service_charge > 0)
+                    <div class="fare-item">
+                        <span class="fare-label">Service Charge ({{ $ticket->service_charge_percentage ?? 0 }}%)</span>
+                        <span class="fare-value">₹{{ number_format($ticket->service_charge, 2) }}</span>
+                    </div>
+                @endif
+                @if (isset($ticket->platform_fee) && $ticket->platform_fee > 0)
+                    <div class="fare-item">
+                        <span class="fare-label">Platform Fee ({{ $ticket->platform_fee_percentage ?? 0 }}% +
+                            ₹{{ number_format($ticket->platform_fee_fixed ?? 0, 2) }})</span>
+                        <span class="fare-value">₹{{ number_format($ticket->platform_fee, 2) }}</span>
+                    </div>
+                @endif
+                @if (isset($ticket->gst) && $ticket->gst > 0)
+                    <div class="fare-item">
+                        <span class="fare-label">GST ({{ $ticket->gst_percentage ?? 0 }}%)</span>
+                        <span class="fare-value">₹{{ number_format($ticket->gst, 2) }}</span>
+                    </div>
+                @endif
+                <div class="fare-item fare-total">
+                    <span class="fare-label">Total Amount</span>
+                    <span
+                        class="fare-value">₹{{ number_format($ticket->total_amount ?? ($ticket->total_fare ?? ($ticket->sub_total ?? 0)), 2) }}</span>
+                </div>
+            </div>
         </div>
-        @endif
 
-        <!-- Terms and Conditions -->
-        <div class="terms-section">
-            <h4>Important Terms & Conditions</h4>
-            <ul>
-                <li>Please arrive at the boarding point at least 15 minutes before departure time.</li>
-                <li>This ticket is non-transferable. Valid ID proof required for verification.</li>
-                <li>Cancellation policy applies as per company terms and conditions.</li>
-                <li>Passengers must carry a valid ID proof matching the booking details.</li>
-                <li>Company reserves the right to change bus type or departure time in unavoidable circumstances.</li>
-                <li>Luggage allowance: 15kg per passenger. Extra luggage charges may apply.</li>
-                <li>For assistance, contact customer support.</li>
-            </ul>
-        </div>
+
 
         <!-- Footer -->
         <div class="ticket-footer">
@@ -503,13 +901,22 @@
             const opt = {
                 margin: 0.5,
                 filename: 'ticket_{{ $ticket->pnr_number ?? 'ticket' }}.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                image: {
+                    type: 'jpeg',
+                    quality: 0.98
+                },
+                html2canvas: {
+                    scale: 2
+                },
+                jsPDF: {
+                    unit: 'in',
+                    format: 'a4',
+                    orientation: 'portrait'
+                }
             };
             html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>
-</html>
 
+</html>

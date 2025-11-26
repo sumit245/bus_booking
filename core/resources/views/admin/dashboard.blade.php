@@ -2,18 +2,18 @@
 @section('panel')
     <!-- @if (@json_decode($general->sys_version)->version > systemDetails()['version'])
     <div class="row">
-                <div class="col-md-12">
-                    <div class="card text-white bg-warning mb-3">
-                        <div class="card-header">
-                            <h3 class="card-title"> @lang('New Version Available') <button class="btn btn--dark float-right">@lang('Version') {{ json_decode($general->sys_version)->version }}</button> </h3>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="card-title text-dark">@lang('What is the Update ?')</h5>
-                            <p><pre class="f-size--24">{{ json_decode($general->sys_version)->details }}</pre></p>
+                    <div class="col-md-12">
+                        <div class="card text-white bg-warning mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title"> @lang('New Version Available') <button class="btn btn--dark float-right">@lang('Version') {{ json_decode($general->sys_version)->version }}</button> </h3>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title text-dark">@lang('What is the Update ?')</h5>
+                                <p><pre class="f-size--24">{{ json_decode($general->sys_version)->details }}</pre></p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
     @endif -->
     @if (@json_decode($general->sys_version)->message)
         <div class="row">
@@ -336,7 +336,8 @@
 
                                         </td>
                                         <td data-label="@lang('Amount')">
-                                            {{ showAmount($item->sub_total) }} {{ __($general->cur_text) }}
+                                            {{ showAmount($item->total_amount > 0 ? $item->total_amount : $item->sub_total) }}
+                                            {{ __($general->cur_text) }}
                                         </td>
                                         <td data-label="@lang('Action')">
                                             <a href="{{ route('admin.vehicle.ticket.booked') }}" class="icon-btn ml-1 "

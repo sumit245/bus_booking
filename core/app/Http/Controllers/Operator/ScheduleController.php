@@ -25,7 +25,14 @@ class ScheduleController extends Controller
     {
         $operator = auth('operator')->user();
 
-        $query = BusSchedule::with(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity', 'boardingPoints', 'droppingPoints'])
+        $query = BusSchedule::with([
+            'operatorBus',
+            'operatorRoute' => function ($query) {
+                $query->with(['originCity', 'destinationCity']);
+            },
+            'boardingPoints',
+            'droppingPoints'
+        ])
             ->byOperator($operator->id);
 
         // Filter by bus

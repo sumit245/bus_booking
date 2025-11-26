@@ -34,6 +34,13 @@ class BookedTicket extends Model
         'ticket_count',
         'unit_price',
         'sub_total',
+        'service_charge',
+        'service_charge_percentage',
+        'platform_fee',
+        'platform_fee_percentage',
+        'platform_fee_fixed',
+        'gst',
+        'gst_percentage',
         'total_amount',
         'paid_amount',
         'date_of_journey',
@@ -125,12 +132,12 @@ class BookedTicket extends Model
                 }
             }
         }
-        
+
         // Fallback to pickup_point column if it exists
         if (isset($this->attributes['pickup_point']) && $this->attributes['pickup_point']) {
             return Counter::find($this->attributes['pickup_point']);
         }
-        
+
         return null;
     }
 
@@ -148,7 +155,7 @@ class BookedTicket extends Model
         if ($this->relationLoaded('drop') && $this->getRelation('drop')) {
             return $this->getRelation('drop');
         }
-        
+
         // Try to get from JSON details
         if ($this->dropping_point_details) {
             $details = json_decode($this->dropping_point_details, true);
@@ -159,12 +166,12 @@ class BookedTicket extends Model
                 }
             }
         }
-        
+
         // Fallback to dropping_point column
         if (isset($this->attributes['dropping_point']) && $this->attributes['dropping_point']) {
             return Counter::find($this->attributes['dropping_point']);
         }
-        
+
         return null;
     }
 

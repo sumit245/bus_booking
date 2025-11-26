@@ -42,11 +42,12 @@ class BookingService
                 ];
             }
 
-            // Calculate base fare (before fees)
-            $baseFare = $this->calculateTotalFare($blockResponse['Result']);
+            // Calculate base fare with markup and coupon
+            $fareCalculation = $this->calculateTotalFare($blockResponse['Result']);
+            $baseFare = $fareCalculation['base_fare_after_coupon']; // Use fare after markup AND coupon for fee calculation
 
             // Create pending ticket record (will calculate fees and total_amount internally)
-            $bookedTicket = $this->createPendingTicket($requestData, $blockResponse, $baseFare, $user->id);
+            $bookedTicket = $this->createPendingTicket($requestData, $blockResponse, $fareCalculation, $user->id);
 
             // Create Razorpay order using the calculated total_amount from ticket
             $razorpayOrder = $this->createRazorpayOrder($bookedTicket, $bookedTicket->total_amount ?? $baseFare);
@@ -439,29 +440,40 @@ class BookingService
             // Fix: BoardingPointId/DroppingPointId from API is point_index, not database id
             $boardingPoint = null;
             $droppingPoint = null;
+            $scheduleRoute = null;
 
             if ($scheduleId) {
-                $schedule = \App\Models\BusSchedule::with(['boardingPoints', 'droppingPoints'])->find($scheduleId);
+                $schedule = \App\Models\BusSchedule::with(['boardingPoints', 'droppingPoints', 'operatorRoute.boardingPoints', 'operatorRoute.droppingPoints'])->find($scheduleId);
                 if ($schedule) {
                     // Try schedule-specific points first
                     $boardingPoint = $schedule->boardingPoints->firstWhere('point_index', $boardingPointId);
                     $droppingPoint = $schedule->droppingPoints->firstWhere('point_index', $droppingPointId);
+
+                    // Store schedule's route for fallback
+                    $scheduleRoute = $schedule->operatorRoute;
                 }
             }
 
             // Fallback to route-level points if no schedule-specific points found
-            if (!$boardingPoint) {
-                $boardingPoint = $operatorBus->currentRoute->boardingPoints->firstWhere('point_index', $boardingPointId)
-                    ?? $operatorBus->currentRoute->boardingPoints->find($boardingPointId);
+            // Use schedule's route if available, otherwise use bus's current route
+            $routeToSearch = $scheduleRoute ?? $operatorBus->currentRoute;
+
+            if (!$boardingPoint && $routeToSearch) {
+                $boardingPoint = $routeToSearch->boardingPoints->firstWhere('point_index', $boardingPointId)
+                    ?? $routeToSearch->boardingPoints->find($boardingPointId);
             }
-            if (!$droppingPoint) {
-                $droppingPoint = $operatorBus->currentRoute->droppingPoints->firstWhere('point_index', $droppingPointId)
-                    ?? $operatorBus->currentRoute->droppingPoints->find($droppingPointId);
+            if (!$droppingPoint && $routeToSearch) {
+                $droppingPoint = $routeToSearch->droppingPoints->firstWhere('point_index', $droppingPointId)
+                    ?? $routeToSearch->droppingPoints->find($droppingPointId);
             }
 
             Log::info('BookingService: Found boarding/dropping points', [
                 'boarding_point_id' => $boardingPointId,
                 'dropping_point_id' => $droppingPointId,
+                'schedule_id' => $scheduleId,
+                'schedule_route_id' => $scheduleRoute ? $scheduleRoute->id : null,
+                'bus_current_route_id' => $operatorBus->currentRoute ? $operatorBus->currentRoute->id : null,
+                'route_searched' => $routeToSearch ? $routeToSearch->id : null,
                 'boarding_point_found' => $boardingPoint ? $boardingPoint->point_name : 'NOT FOUND',
                 'dropping_point_found' => $droppingPoint ? $droppingPoint->point_name : 'NOT FOUND',
                 'boarding_point_details' => $boardingPoint ? [
@@ -471,7 +483,9 @@ class BookingService
                     'point_address' => $boardingPoint->point_address,
                     'point_location' => $boardingPoint->point_location,
                     'contact_number' => $boardingPoint->contact_number,
-                    'point_landmark' => $boardingPoint->point_landmark
+                    'point_landmark' => $boardingPoint->point_landmark,
+                    'bus_schedule_id' => $boardingPoint->bus_schedule_id,
+                    'operator_route_id' => $boardingPoint->operator_route_id
                 ] : null
             ]);
 
@@ -481,7 +495,10 @@ class BookingService
                 Log::error('BookingService: Boarding point not found', [
                     'boarding_point_id' => $boardingPointId,
                     'operator_bus_id' => $operatorBusId,
-                    'route_id' => $operatorBus->currentRoute->id ?? null
+                    'schedule_id' => $scheduleId,
+                    'schedule_route_id' => $scheduleRoute ? $scheduleRoute->id : null,
+                    'bus_current_route_id' => $operatorBus->currentRoute ? $operatorBus->currentRoute->id : null,
+                    'route_searched' => $routeToSearch ? $routeToSearch->id : null
                 ]);
             }
 
@@ -503,7 +520,10 @@ class BookingService
                 Log::error('BookingService: Dropping point not found', [
                     'dropping_point_id' => $droppingPointId,
                     'operator_bus_id' => $operatorBusId,
-                    'route_id' => $operatorBus->currentRoute->id ?? null
+                    'schedule_id' => $scheduleId,
+                    'schedule_route_id' => $scheduleRoute ? $scheduleRoute->id : null,
+                    'bus_current_route_id' => $operatorBus->currentRoute ? $operatorBus->currentRoute->id : null,
+                    'route_searched' => $routeToSearch ? $routeToSearch->id : null
                 ]);
             }
 
@@ -609,13 +629,65 @@ class BookingService
     }
 
     /**
-     * Calculate total fare from block response (base fare only)
+     * Calculate total fare from block response with markup and coupon applied
+     * Returns: ['base_fare_before_markup' => X, 'markup_amount' => Y, 'base_fare_after_markup' => Z, 'coupon_discount' => W, 'base_fare_after_coupon' => V]
      */
     private function calculateTotalFare(array $blockResult)
     {
-        return collect($blockResult['Passenger'])->sum(function ($passenger) {
-            return $passenger['Seat']['Price']['PublishedPrice'] ?? 0;
-        });
+        // Get markup settings
+        $markupData = \App\Models\MarkupTable::orderBy('id', 'desc')->first();
+        $flatMarkup = isset($markupData->flat_markup) ? (float) $markupData->flat_markup : 0;
+        $percentageMarkup = isset($markupData->percentage_markup) ? (float) $markupData->percentage_markup : 0;
+        $threshold = isset($markupData->threshold) ? (float) $markupData->threshold : 0;
+
+        // Get active coupon settings
+        $currentCoupon = \App\Models\CouponTable::where('status', 1)
+            ->where('expiry_date', '>=', \Carbon\Carbon::today())
+            ->first();
+
+        $baseFareBeforeMarkup = 0;
+        $totalMarkupAmount = 0;
+        $totalCouponDiscount = 0;
+
+        foreach ($blockResult['Passenger'] as $passenger) {
+            $seatPrice = $passenger['Seat']['Price']['PublishedPrice'] ?? 0;
+            $baseFareBeforeMarkup += $seatPrice;
+
+            // Apply markup per seat (matching frontend logic)
+            $markupAmount = $seatPrice < $threshold ? $flatMarkup : ($seatPrice * $percentageMarkup / 100);
+            $totalMarkupAmount += $markupAmount;
+
+            // Apply coupon discount per seat (matching frontend logic)
+            $priceWithMarkup = $seatPrice + $markupAmount;
+            if ($currentCoupon && $currentCoupon->status == 1) {
+                $couponThreshold = (float) $currentCoupon->coupon_threshold;
+                $couponValue = (float) $currentCoupon->coupon_value;
+
+                // Apply discount ONLY if price is ABOVE the threshold
+                if ($priceWithMarkup > $couponThreshold) {
+                    $discountAmount = 0;
+                    if ($currentCoupon->discount_type === 'fixed') {
+                        $discountAmount = $couponValue;
+                    } elseif ($currentCoupon->discount_type === 'percentage') {
+                        $discountAmount = ($priceWithMarkup * $couponValue / 100);
+                    }
+                    // Ensure discount doesn't exceed the price
+                    $discountAmount = min($discountAmount, $priceWithMarkup);
+                    $totalCouponDiscount += $discountAmount;
+                }
+            }
+        }
+
+        $baseFareAfterMarkup = $baseFareBeforeMarkup + $totalMarkupAmount;
+        $baseFareAfterCoupon = $baseFareAfterMarkup - $totalCouponDiscount;
+
+        return [
+            'base_fare_before_markup' => round($baseFareBeforeMarkup, 2),
+            'markup_amount' => round($totalMarkupAmount, 2),
+            'base_fare_after_markup' => round($baseFareAfterMarkup, 2),
+            'coupon_discount' => round($totalCouponDiscount, 2),
+            'base_fare_after_coupon' => round($baseFareAfterCoupon, 2)
+        ];
     }
 
     /**
@@ -743,7 +815,7 @@ class BookingService
     /**
      * Create pending ticket record
      */
-    private function createPendingTicket(array $requestData, array $blockResponse, float $baseFare, int $userId)
+    private function createPendingTicket(array $requestData, array $blockResponse, array $fareCalculation, int $userId)
     {
         $seats = is_array($requestData['Seats'] ?? $requestData['seats'])
             ? $requestData['Seats'] ?? $requestData['seats']
@@ -778,13 +850,18 @@ class BookingService
             }
         }
 
-        // Calculate unit price per seat
+        // Calculate unit price per seat (API price, before markup)
         $totalUnitPrice = collect($blockResponse['Result']['Passenger'])->sum(function ($passenger) {
             return $passenger['Seat']['Price']['OfferedPrice'] ?? 0;
         });
         $unitPrice = count($seats) > 0 ? round($totalUnitPrice / count($seats), 2) : round($totalUnitPrice, 2);
 
-        // Calculate fees and total amount
+        // Extract fare breakdown
+        $baseFare = $fareCalculation['base_fare_after_coupon']; // Base fare after markup AND coupon
+        $markupAmount = $fareCalculation['markup_amount'];
+        $couponDiscount = $fareCalculation['coupon_discount'];
+
+        // Calculate fees and total amount (on base fare after markup)
         $agentCommission = isset($requestData['agent_id']) && isset($requestData['commission_rate'])
             ? round($baseFare * $requestData['commission_rate'], 2)
             : null;
@@ -923,11 +1000,22 @@ class BookingService
         $bookedTicket->seats = $seats;
 
         $bookedTicket->ticket_count = count($seats);
-        $bookedTicket->unit_price = $unitPrice;
-        $bookedTicket->sub_total = round($baseFare, 2);
+        $bookedTicket->unit_price = $unitPrice; // API price per seat (before markup)
+        // sub_total = unit_price + markup (base fare after markup, before fees)
+        $bookedTicket->sub_total = round($baseFare, 2); // This is base_fare_after_markup
 
-        // Fix: Calculate and set total_amount correctly
+        // Save fee breakdown with amounts and percentages
+        $bookedTicket->service_charge = $feeCalculation['service_charge'];
+        $bookedTicket->service_charge_percentage = $feeCalculation['service_charge_percentage'];
+        $bookedTicket->platform_fee = $feeCalculation['platform_fee'];
+        $bookedTicket->platform_fee_percentage = $feeCalculation['platform_fee_percentage'];
+        $bookedTicket->platform_fee_fixed = $feeCalculation['platform_fee_fixed'];
+        $bookedTicket->gst = $feeCalculation['gst'];
+        $bookedTicket->gst_percentage = $feeCalculation['gst_percentage'];
+        // total_amount = sub_total + service_charge + platform_fee + gst
         $bookedTicket->total_amount = $feeCalculation['total_amount'];
+        // paid_amount is set when payment is confirmed
+        $bookedTicket->paid_amount = $feeCalculation['total_amount'];
 
         $bookedTicket->pnr_number = getTrx(10);
 

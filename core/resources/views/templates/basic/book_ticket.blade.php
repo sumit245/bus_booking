@@ -923,8 +923,8 @@
                 dataType: "json",
                 success: function(response) {
                     if (response.success) {
-                        // Call Payment Handler
-                        const amount = parseFloat($('input[name="price"]').val());
+                        // Call Payment Handler with total_amount from server (includes all fees)
+                        const amount = parseFloat(response.amount || finalTotalPrice);
                         createPaymentOrder(response.order_id, response.ticket_id, amount);
                     } else {
                         $btn.prop('disabled', false).html(

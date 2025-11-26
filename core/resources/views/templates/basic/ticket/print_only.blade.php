@@ -231,18 +231,27 @@
 
             .terms-fare-wrapper {
                 display: flex !important;
+                flex-direction: row !important;
                 justify-content: space-between !important;
                 align-items: flex-start !important;
-                gap: 30px !important;
+                gap: 20px !important;
                 margin: 20px 0 !important;
+                width: 100% !important;
+            }
+
+            .terms-section {
+                flex: 1 !important;
+                max-width: 60% !important;
             }
 
             .fare-breakdown-list {
                 display: flex !important;
                 flex-direction: column !important;
                 gap: 2px !important;
-                max-width: 280px !important;
+                min-width: 250px !important;
+                max-width: 35% !important;
                 margin-left: 0 !important;
+                flex-shrink: 0 !important;
             }
 
             .fare-item {
@@ -617,7 +626,6 @@
             text-align: center;
             margin-top: 25px;
             padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
             font-size: 11px;
             color: #888;
         }
@@ -881,9 +889,15 @@
 
 
         <!-- Footer -->
-        <div class="ticket-footer">
-            <p>{{ $companyName ?? 'Bus Booking' }} | E-Ticket Generated on {{ now()->format('d M Y, h:i A') }}</p>
-            <p style="margin-top: 5px;">© {{ date('Y') }} All rights reserved.</p>
+        <div class="d-flex justify-content-between">
+            <div class="ticket-footer">
+                <p>{{ $companyName ?? 'Ghumantoo' }} | E-Ticket Generated on {{ now()->format('d M Y, h:i A') }}</p>
+                <p style="margin-top: 5px;">© {{ date('Y') }} All rights reserved.</p>
+            </div>
+            <div class="ticket-footer">
+                <p>Download Ghumantoo From Play Store</p>
+                <i class="fa fa-google-play"></i>
+            </div>
         </div>
     </div>
 

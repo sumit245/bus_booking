@@ -95,89 +95,117 @@
             @if ($bookings->count() > 0)
                 <div class="bookings-grid">
                     @foreach ($bookings as $booking)
+                        @php
+                            // Parse boarding and dropping point details
+                            $boardingPointDetails = null;
+                            if ($booking->boarding_point_details) {
+                                $boardingDetails = is_string($booking->boarding_point_details)
+                                    ? json_decode($booking->boarding_point_details, true)
+                                    : $booking->boarding_point_details;
+                                if (is_array($boardingDetails)) {
+                                    $boardingPointDetails = isset($boardingDetails[0])
+                                        ? $boardingDetails[0]
+                                        : $boardingDetails;
+                                }
+                            }
+
+                            $droppingPointDetails = null;
+                            if ($booking->dropping_point_details) {
+                                $droppingDetails = is_string($booking->dropping_point_details)
+                                    ? json_decode($booking->dropping_point_details, true)
+                                    : $booking->dropping_point_details;
+                                if (is_array($droppingDetails)) {
+                                    $droppingPointDetails = isset($droppingDetails[0])
+                                        ? $droppingDetails[0]
+                                        : $droppingDetails;
+                                }
+                            }
+
+                            // Format seats
+                            $seats = $booking->seats;
+                            $seatDisplay = 'N/A';
+                            if (is_string($seats)) {
+                                $decoded = json_decode($seats, true);
+                                if (is_array($decoded)) {
+                                    $seatDisplay = implode(', ', $decoded);
+                                } else {
+                                    $seatDisplay = $seats;
+                                }
+                            } elseif (is_object($seats)) {
+                                $converted = json_decode(json_encode($seats), true);
+                                if (is_array($converted) && !empty($converted)) {
+                                    $seatDisplay = implode(', ', $converted);
+                                }
+                            } elseif (is_array($seats) && !empty($seats)) {
+                                $seatDisplay = implode(', ', $seats);
+                            }
+                        @endphp
+
                         <div class="booking-card">
+                            <!-- Top Header: Status only -->
                             <div class="booking-header">
-                                <div class="booking-id">
-                                    <h4>{{ $booking->pnr_number }}</h4>
-                                    @if ($booking->operator_pnr)
-                                        <span class="operator-pnr">{{ $booking->operator_pnr }}</span>
-                                    @endif
-                                </div>
-                                <div class="booking-status">
+                                <div class="status-section">
                                     @if ($booking->status == 1)
-                                        <span class="status-badge status-confirmed">Confirmed</span>
+                                        <span class="status-badge status-confirmed">CONFIRMED</span>
                                     @elseif($booking->status == 2)
-                                        <span class="status-badge status-pending">Pending</span>
+                                        <span class="status-badge status-pending">PENDING</span>
                                     @else
-                                        <span class="status-badge status-cancelled">Cancelled</span>
+                                        <span class="status-badge status-cancelled">CANCELLED</span>
                                     @endif
                                 </div>
                             </div>
 
-                            <div class="booking-route">
-                                <div class="route-info">
-                                    <div class="route-cities">
-                                        <span class="origin">{{ $booking->origin_city ?? 'N/A' }}</span>
-                                        <i class="las la-arrow-right"></i>
-                                        <span class="destination">{{ $booking->destination_city ?? 'N/A' }}</span>
+                            <!-- Compact Two-Column Content -->
+                            <div class="booking-content">
+                                <div class="content-left">
+                                    <div class="pnr-line">
+                                        <span class="pnr-label">PNR</span>
+                                        <span class="pnr-number">{{ $booking->pnr_number }}</span>
                                     </div>
-                                    @if ($booking->travel_name)
-                                        <p class="operator-name">{{ $booking->travel_name }}</p>
+                                    @if ($booking->operator_pnr)
+                                        <div class="ticket-id-line">Ticket ID: {{ $booking->operator_pnr }}</div>
                                     @endif
+                                    <div class="route-inline">
+                                        <span class="city-name">{{ $booking->origin_city ?? 'N/A' }}</span>
+                                        <i class="las la-arrow-right"></i>
+                                        <span class="city-name">{{ $booking->destination_city ?? 'N/A' }}</span>
+                                    </div>
+                                    <div class="operator-type">
+                                        <span>{{ $booking->travel_name ?? 'N/A' }}</span>
+                                        <span class="type-sep">•</span>
+                                        <span>{{ $booking->bus_type ?? 'N/A' }}</span>
+                                    </div>
+                                    <div class="amount-block">
+                                        <span class="amount-label">Total Amount</span>
+                                        <span
+                                            class="amount-value">{{ $general->cur_sym }}{{ number_format($booking->total_amount ?? $booking->sub_total, 2) }}</span>
+                                    </div>
+                                </div>
+                                <div class="content-right">
+                                    <div class="date-line">
+                                        {{ \Carbon\Carbon::parse($booking->date_of_journey)->format('d M, Y') }}</div>
+                                    <div class="boarding-line">Boarding details:
+                                        {{ $boardingPointDetails['CityPointName'] ?? 'N/A' }}</div>
+                                    <div class="dropping-line">Dropping Details:
+                                        {{ $droppingPointDetails['CityPointName'] ?? 'N/A' }}</div>
                                 </div>
                             </div>
 
-                            <div class="booking-details">
-                                <div class="detail-item">
-                                    <i class="las la-calendar"></i>
-                                    <span>{{ \Carbon\Carbon::parse($booking->date_of_journey)->format('M d, Y') }}</span>
+                            <!-- Actions -->
+                            <div class="card-actions">
+                                <div class="action-buttons">
+                                    @if ($booking->status == 1)
+                                        <button type="button" class="btn-action btn-cancel"
+                                            onclick="cancelBooking({{ $booking->id }})">
+                                            <i class="las la-times"></i>
+                                            Cancel
+                                        </button>
+                                    @endif
+                                    <a href="{{ route('user.booking.show', $booking->id) }}" class="btn-action btn-view">
+                                        <i class="las la-eye"></i>
+                                        View Booking
+                                    </a>
                                 </div>
-                                <div class="detail-item">
-                                    <i class="las la-chair"></i>
-                                    <span>
-                                        @php
-                                            $seats = $booking->seats;
-                                            $seatDisplay = 'N/A';
-
-                                            // Handle different data types for seats
-                                            if (is_string($seats)) {
-                                                $decoded = json_decode($seats, true);
-                                                if (is_array($decoded)) {
-                                                    $seatDisplay = implode(', ', $decoded);
-                                                } else {
-                                                    $seatDisplay = $seats; // Use the string as-is
-                                                }
-                                            } elseif (is_object($seats)) {
-                                                $converted = json_decode(json_encode($seats), true);
-                                                if (is_array($converted) && !empty($converted)) {
-                                                    $seatDisplay = implode(', ', $converted);
-                                                }
-                                            } elseif (is_array($seats) && !empty($seats)) {
-                                                $seatDisplay = implode(', ', $seats);
-                                            }
-                                        @endphp
-                                        {{ $seatDisplay }}
-                                    </span>
-                                </div>
-                                <div class="detail-item">
-                                    <i class="las la-rupee-sign"></i>
-                                    <span
-                                        class="amount">{{ $general->cur_sym }}{{ number_format($booking->sub_total, 2) }}</span>
-                                </div>
-                            </div>
-
-                            <div class="booking-actions">
-                                <a href="{{ route('user.booking.show', $booking->id) }}" class="btn-action btn-view">
-                                    <i class="las la-eye"></i>
-                                    View Details
-                                </a>
-                                @if ($booking->status == 1)
-                                    <button type="button" class="btn-action btn-cancel"
-                                        onclick="cancelBooking({{ $booking->id }})">
-                                        <i class="las la-times"></i>
-                                        Cancel
-                                    </button>
-                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -645,19 +673,19 @@
         /* Bookings Section */
         .bookings-section {
             background: white;
-            border-radius: 20px;
-            padding: 2rem;
+            border-radius: 12px;
+            padding: 1rem;
             box-shadow: var(--shadow);
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--light-bg);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--light-bg);
         }
 
         .section-title {
@@ -685,17 +713,16 @@
         /* Bookings Grid */
         .bookings-grid {
             display: grid;
-            gap: 1.5rem;
+            gap: 1rem;
         }
 
         .booking-card {
             background: white;
             border: 2px solid var(--border-color);
-            border-radius: 6px;
-            padding: 1.5rem;
+            border-radius: 12px;
+            overflow: hidden;
             transition: all 0.3s ease;
             position: relative;
-            overflow: hidden;
         }
 
         .booking-card:hover {
@@ -710,114 +737,246 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 4px;
+            height: 2px;
             background: var(--primary-color);
         }
 
+        /* PNR Header Section */
         .booking-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: transparent;
         }
 
-        .booking-id h4 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.25rem;
+        .pnr-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
         }
 
-        .operator-pnr {
-            font-size: 0.8rem;
+        .pnr-label {
+            font-size: 0.7rem;
             color: var(--text-muted);
-            background: var(--light-bg);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .pnr-number {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .ticket-id {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: white;
             padding: 0.25rem 0.5rem;
-            border-radius: 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .status-section {
+            display: flex;
+            align-items: center;
         }
 
         .status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .status-confirmed {
-            background: rgba(40, 167, 69, 0.1);
-            color: var(--success-color);
+            background: var(--success-color);
+            color: white;
         }
 
         .status-pending {
-            background: rgba(255, 193, 7, 0.1);
-            color: var(--warning-color);
-        }
-
-        .status-cancelled {
-            background: rgba(220, 53, 69, 0.1);
-            color: var(--danger-color);
-        }
-
-        .booking-route {
-            margin-bottom: 1rem;
-        }
-
-        .route-cities {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .route-cities .origin,
-        .route-cities .destination {
-            font-weight: 600;
+            background: var(--warning-color);
             color: #333;
         }
 
-        .route-cities i {
-            color: var(--primary-color);
+        .status-cancelled {
+            background: var(--danger-color);
+            color: white;
         }
 
-        .operator-name {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin: 0;
+        /* Route Section */
+        .route-section {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .booking-details {
+        .route-cities {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            background: var(--light-bg);
-            border-radius: 10px;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 0.5rem;
+            align-items: center;
         }
 
-        .detail-item {
+        .city-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .city-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .point-name {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .point-time {
+            font-size: 0.7rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .route-arrow {
             display: flex;
             align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        /* Compact two-column content */
+        .booking-content {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
             gap: 0.5rem;
+            padding: 0.75rem;
+        }
+
+        .content-left,
+        .content-right {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .content-right {
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        .pnr-line {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .route-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+        }
+
+        .operator-type {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #333;
             font-size: 0.9rem;
         }
 
-        .detail-item i {
-            color: var(--primary-color);
-            width: 16px;
+        .ticket-id-line {
+            font-size: 0.75rem;
+            color: var(--text-muted);
         }
 
-        .amount {
+        .card-actions {
+            padding: 0.75rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Travel Info Grid */
+        .travel-info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--light-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 0.9rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .seats-value {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        /* Card Footer */
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: white;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .amount-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .amount-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .amount-value {
+            font-size: 1.2rem;
+            font-weight: 700;
             color: var(--success-color);
         }
 
-        .booking-actions {
+        .action-buttons {
             display: flex;
             gap: 0.75rem;
             flex-wrap: nowrap;
-            justify-content: flex-start;
         }
 
         .btn-action {
@@ -826,11 +985,15 @@
             border: 2px solid;
             text-decoration: none;
             font-size: 0.9rem;
-            font-weight: 500;
+            font-weight: 600;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
+            white-space: nowrap;
+            width: 180px;
+            text-align: center;
         }
 
         .btn-view {
@@ -968,7 +1131,7 @@
         /* Responsive Design */
         @media (max-width: 768px) {
             .user-dashboard {
-                padding: 1rem 0;
+                padding: 1rem 0.5rem;
             }
 
             .header-content {
@@ -990,13 +1153,51 @@
                 grid-template-columns: 1fr;
             }
 
-            .booking-details {
-                grid-template-columns: 1fr;
-            }
-
             .booking-header {
                 flex-direction: column;
                 gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .pnr-number {
+                font-size: 1.2rem;
+            }
+
+            .route-cities {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .route-arrow {
+                transform: rotate(90deg);
+            }
+
+            .travel-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-buttons {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .btn-action {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .booking-content {
+                grid-template-columns: 1fr;
+            }
+
+            .content-right {
+                align-items: flex-start;
+                text-align: left;
             }
         }
     </style>

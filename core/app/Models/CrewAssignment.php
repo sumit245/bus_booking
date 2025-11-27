@@ -13,7 +13,7 @@ class CrewAssignment extends Model
 
     protected $fillable = [
         'operator_id',
-        'operator_bus_id',
+        'bus_schedule_id',
         'staff_id',
         'role',
         'assignment_date',
@@ -41,9 +41,14 @@ class CrewAssignment extends Model
         return $this->belongsTo(Operator::class);
     }
 
+    public function busSchedule(): BelongsTo
+    {
+        return $this->belongsTo(BusSchedule::class);
+    }
+
     public function operatorBus(): BelongsTo
     {
-        return $this->belongsTo(OperatorBus::class);
+        return $this->belongsTo(OperatorBus::class, 'operator_bus_id');
     }
 
     public function staff(): BelongsTo
@@ -69,7 +74,14 @@ class CrewAssignment extends Model
 
     public function scopeByBus($query, $busId)
     {
-        return $query->where('operator_bus_id', $busId);
+        return $query->whereHas('busSchedule', function ($q) use ($busId) {
+            $q->where('operator_bus_id', $busId);
+        });
+    }
+
+    public function scopeBySchedule($query, $scheduleId)
+    {
+        return $query->where('bus_schedule_id', $scheduleId);
     }
 
     public function scopeByRole($query, $role)

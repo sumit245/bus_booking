@@ -36,13 +36,20 @@
                                 <div class="form-group">
                                     <label>@lang('Assignment Date') <span class="text-danger">*</span></label>
                                     <input type="date" name="assignment_date" class="form-control"
-                                        value="{{ old('assignment_date', $crewAssignment->assignment_date) }}" required>
+                                        value="{{ old('assignment_date', $crewAssignment->assignment_date ? $crewAssignment->assignment_date->format('Y-m-d') : now()->format('Y-m-d')) }}"
+                                        required>
                                     @error('assignment_date')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Hidden fields for backward compatibility with validation -->
+                        <input type="hidden" name="staff_id" value="{{ $crewAssignment->staff_id }}">
+                        <input type="hidden" name="role" value="{{ $crewAssignment->role }}">
+                        <input type="hidden" name="start_date"
+                            value="{{ old('start_date', $crewAssignment->start_date ? $crewAssignment->start_date->format('Y-m-d') : now()->format('Y-m-d')) }}">
 
                         <div class="row">
                             <div class="col-md-4">
@@ -52,7 +59,7 @@
                                         <option value="">@lang('Select Driver')</option>
                                         @foreach ($drivers as $driver)
                                             <option value="{{ $driver->id }}"
-                                                {{ old('driver_id', $crewAssignment->driver_id) == $driver->id ? 'selected' : '' }}>
+                                                {{ old('driver_id', optional($currentDriver)->staff_id) == $driver->id ? 'selected' : '' }}>
                                                 {{ $driver->first_name }} {{ $driver->last_name }}
                                             </option>
                                         @endforeach
@@ -70,7 +77,7 @@
                                         <option value="">@lang('Select Conductor')</option>
                                         @foreach ($conductors as $conductor)
                                             <option value="{{ $conductor->id }}"
-                                                {{ old('conductor_id', $crewAssignment->conductor_id) == $conductor->id ? 'selected' : '' }}>
+                                                {{ old('conductor_id', optional($currentConductor)->staff_id) == $conductor->id ? 'selected' : '' }}>
                                                 {{ $conductor->first_name }} {{ $conductor->last_name }}
                                             </option>
                                         @endforeach
@@ -88,7 +95,7 @@
                                         <option value="">@lang('Select Attendant')</option>
                                         @foreach ($attendants as $attendant)
                                             <option value="{{ $attendant->id }}"
-                                                {{ old('attendant_id', $crewAssignment->attendant_id) == $attendant->id ? 'selected' : '' }}>
+                                                {{ old('attendant_id', optional($currentAttendant)->staff_id) == $attendant->id ? 'selected' : '' }}>
                                                 {{ $attendant->first_name }} {{ $attendant->last_name }}
                                             </option>
                                         @endforeach

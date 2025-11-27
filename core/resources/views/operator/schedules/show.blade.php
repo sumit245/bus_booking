@@ -4,148 +4,162 @@
     <div class="row">
         <div class="col-lg-12">
             <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">@lang('Schedule Details')</h4>
-                    <div class="card-tools">
-                        <a href="{{ route('operator.schedules.edit', $schedule) }}" class="btn btn-warning btn-sm">
-                            <i class="fas fa-edit"></i> @lang('Edit')
-                        </a>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="card-title mb-0">@lang('Schedule Details')</h4>
                         <a href="{{ route('operator.schedules.index') }}" class="btn btn-secondary btn-sm">
                             <i class="fas fa-arrow-left"></i> @lang('Back')
                         </a>
+                    </div>
+                    <div>
+                        <a href="{{ route('operator.schedules.edit', $schedule) }}" class="btn btn-warning btn-sm mr-2">
+                            <i class="fas fa-edit"></i> @lang('Edit')
+                        </a>
+                        <button type="button"
+                            class="btn btn-{{ $schedule->is_active ? 'secondary' : 'success' }} btn-sm mr-2"
+                            onclick="toggleStatus({{ $schedule->id }})">
+                            <i class="fas fa-{{ $schedule->is_active ? 'pause' : 'play' }}"></i>
+                            @lang($schedule->is_active ? 'Deactivate' : 'Activate')
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSchedule({{ $schedule->id }})">
+                            <i class="fas fa-trash"></i> @lang('Delete')
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <!-- Schedule Information -->
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <h5 class="text-primary mb-3">@lang('Schedule Information')</h5>
-                            <table class="table table-borderless">
-                                <tr>
-                                    <td><strong>@lang('Schedule Name'):</strong></td>
-                                    <td>{{ $schedule->schedule_name ?: 'Schedule #' . $schedule->id }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Departure Time'):</strong></td>
-                                    <td><span class="badge badge-info">{{ $schedule->formatted_departure_time }}</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Arrival Time'):</strong></td>
-                                    <td><span class="badge badge-success">{{ $schedule->formatted_arrival_time }}</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Duration'):</strong></td>
-                                    <td>{{ $schedule->duration }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Days of Operation'):</strong></td>
-                                    <td>{{ $schedule->days_of_operation_text }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Status'):</strong></td>
-                                    <td>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Schedule Name'):</strong><br>{{ $schedule->schedule_name ?: 'Schedule #' . $schedule->id }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Departure Time'):</strong><br><span
+                                            class="badge badge-info">{{ $schedule->formatted_departure_time }}</span></p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Arrival Time'):</strong><br><span
+                                            class="badge badge-success">{{ $schedule->formatted_arrival_time }}</span></p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Duration'):</strong><br>{{ $schedule->duration }}</p>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Days of Operation'):</strong><br>{{ $schedule->days_of_operation_text }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Status'):</strong><br>
                                         @if ($schedule->is_active)
                                             <span class="badge badge-success">@lang('Active')</span>
                                         @else
                                             <span class="badge badge-danger">@lang('Inactive')</span>
                                         @endif
-                                        <span class="badge badge-secondary">{{ ucfirst($schedule->status) }}</span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Sort Order'):</strong></td>
-                                    <td>{{ $schedule->sort_order }}</td>
-                                </tr>
-                            </table>
-                        </div>
-
-                        <!-- Date Range -->
-                        <div class="col-md-6">
-                            <h5 class="text-primary mb-3">@lang('Date Range')</h5>
-                            <table class="table table-borderless">
-                                <tr>
-                                    <td><strong>@lang('Start Date'):</strong></td>
-                                    <td>{{ $schedule->start_date ? $schedule->start_date->format('M d, Y') : 'Immediate' }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('End Date'):</strong></td>
-                                    <td>{{ $schedule->end_date ? $schedule->end_date->format('M d, Y') : 'Indefinite' }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Created'):</strong></td>
-                                    <td>{{ $schedule->created_at->format('M d, Y H:i') }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Last Updated'):</strong></td>
-                                    <td>{{ $schedule->updated_at->format('M d, Y H:i') }}</td>
-                                </tr>
-                            </table>
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Sort Order'):</strong><br>{{ $schedule->sort_order }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <!-- Empty for now -->
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Start Date'):</strong><br>{{ $schedule->start_date ? $schedule->start_date->format('M d, Y') : 'Immediate' }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('End Date'):</strong><br>{{ $schedule->end_date ? $schedule->end_date->format('M d, Y') : 'Indefinite' }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Created'):</strong><br>{{ $schedule->created_at->format('M d, Y H:i') }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Last Updated'):</strong><br>{{ $schedule->updated_at->format('M d, Y H:i') }}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Bus Information -->
+                    <!-- Bus & Route Information -->
                     <div class="row mt-4">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <h5 class="text-primary mb-3">@lang('Bus Information')</h5>
-                            <table class="table table-borderless">
-                                <tr>
-                                    <td><strong>@lang('Travel Name'):</strong></td>
-                                    <td>{{ $schedule->operatorBus->travel_name }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Bus Type'):</strong></td>
-                                    <td>{{ $schedule->operatorBus->bus_type }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Total Seats'):</strong></td>
-                                    <td>{{ $schedule->operatorBus->total_seats }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Bus Status'):</strong></td>
-                                    <td>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Travel Name'):</strong><br>{{ $schedule->operatorBus->travel_name }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Bus Type'):</strong><br>{{ $schedule->operatorBus->bus_type }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Total Seats'):</strong><br>{{ $schedule->operatorBus->total_seats }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Bus Status'):</strong><br>
                                         @if ($schedule->operatorBus->is_active)
                                             <span class="badge badge-success">@lang('Active')</span>
                                         @else
                                             <span class="badge badge-danger">@lang('Inactive')</span>
                                         @endif
-                                    </td>
-                                </tr>
-                            </table>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <!-- Route Information -->
-                        <div class="col-md-6">
+                    <div class="row mt-3">
+                        <div class="col-md-12">
                             <h5 class="text-primary mb-3">@lang('Route Information')</h5>
-                            <table class="table table-borderless">
-                                <tr>
-                                    <td><strong>@lang('Route'):</strong></td>
-                                    <td>{{ $schedule->operatorRoute->originCity->city_name }} →
-                                        {{ $schedule->operatorRoute->destinationCity->city_name }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Distance'):</strong></td>
-                                    <td>{{ $schedule->operatorRoute->distance ? $schedule->operatorRoute->distance . ' km' : 'Not specified' }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Estimated Duration'):</strong></td>
-                                    <td>{{ $schedule->operatorRoute->estimated_duration ? $schedule->operatorRoute->estimated_duration . ' hours' : 'Not specified' }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>@lang('Route Status'):</strong></td>
-                                    <td>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-2">
+                                        <strong>@lang('Route'):</strong><br>{{ $schedule->operatorRoute->originCity->city_name }}
+                                        → {{ $schedule->operatorRoute->destinationCity->city_name }}
+                                    </p>
+                                </div>
+                                <div class="col-md-2">
+                                    <p class="mb-2">
+                                        <strong>@lang('Distance'):</strong><br>{{ $schedule->operatorRoute->distance ? $schedule->operatorRoute->distance . ' km' : 'Not specified' }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Estimated Duration'):</strong><br>{{ $schedule->operatorRoute->estimated_duration ? $schedule->operatorRoute->estimated_duration . ' hours' : 'Not specified' }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Route Status'):</strong><br>
                                         @if ($schedule->operatorRoute->is_active)
                                             <span class="badge badge-success">@lang('Active')</span>
                                         @else
                                             <span class="badge badge-danger">@lang('Inactive')</span>
                                         @endif
-                                    </td>
-                                </tr>
-                            </table>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -165,41 +179,17 @@
                     <div class="row mt-4">
                         <div class="col-md-12">
                             <h5 class="text-primary mb-3">@lang('Boarding & Dropping Points Management')</h5>
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i>
-                                @lang('Manage schedule-specific boarding and dropping points. If not set, route-level points will be used as fallback.')
-                            </div>
-                            <div class="btn-group mb-3" role="group">
+                            <div class="mb-3">
                                 <a href="{{ route('operator.schedules.boarding-points', $schedule) }}"
-                                    class="btn btn-primary">
+                                    class="btn btn-primary mr-3">
                                     <i class="fas fa-map-marker-alt"></i> @lang('Manage Boarding Points')
-                                    <span class="badge badge-light">{{ $schedule->boardingPoints->count() }}</span>
+                                    <span class="badge badge-light ml-2">{{ $schedule->boardingPoints->count() }}</span>
                                 </a>
                                 <a href="{{ route('operator.schedules.dropping-points', $schedule) }}"
                                     class="btn btn-success">
                                     <i class="fas fa-map-marker"></i> @lang('Manage Dropping Points')
-                                    <span class="badge badge-light">{{ $schedule->droppingPoints->count() }}</span>
+                                    <span class="badge badge-light ml-2">{{ $schedule->droppingPoints->count() }}</span>
                                 </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <div class="btn-group" role="group">
-                                <a href="{{ route('operator.schedules.edit', $schedule) }}" class="btn btn-warning">
-                                    <i class="fas fa-edit"></i> @lang('Edit Schedule')
-                                </a>
-                                <button type="button" class="btn btn-{{ $schedule->is_active ? 'secondary' : 'success' }}"
-                                    onclick="toggleStatus({{ $schedule->id }})">
-                                    <i class="fas fa-{{ $schedule->is_active ? 'pause' : 'play' }}"></i>
-                                    @lang($schedule->is_active ? 'Deactivate' : 'Activate')
-                                </button>
-                                <button type="button" class="btn btn-danger"
-                                    onclick="deleteSchedule({{ $schedule->id }})">
-                                    <i class="fas fa-trash"></i> @lang('Delete')
-                                </button>
                             </div>
                         </div>
                     </div>

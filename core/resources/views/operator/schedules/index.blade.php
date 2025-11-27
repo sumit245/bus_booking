@@ -130,7 +130,8 @@
                                                 </a>
                                                 <button type="button"
                                                     class="btn btn-{{ $schedule->is_active ? 'btn--secondary' : 'btn--success' }} btn-sm"
-                                                    onclick="toggleStatus({{ $schedule->id }})" title="@lang('Toggle Status')">
+                                                    onclick="toggleStatus({{ $schedule->id }}, {{ $schedule->is_active ? 'true' : 'false' }})"
+                                                    title="@lang('Toggle Status')">
                                                     <i class="fa fa-{{ $schedule->is_active ? 'pause' : 'play' }}"></i>
                                                 </button>
                                                 <button type="button" class="btn btn--danger btn-sm"
@@ -199,6 +200,11 @@
     </div>
 @endsection
 
+@push('script-lib')
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@endpush
+
 @push('script')
     <script>
         // Filter functionality
@@ -233,28 +239,175 @@
             window.location.href = '{{ route('operator.schedules.index') }}?' + params.toString();
         }
 
-        function toggleStatus(scheduleId) {
-            if (confirm('@lang('Are you sure you want to toggle the status of this schedule?')')) {
-                fetch(`/operator/schedules/${scheduleId}/toggle-status`, {
-                        method: 'POST',
+        function toggleStatus(scheduleId, isCurrentlyActive) {
+            if (isCurrentlyActive) {
+                // Fetch revenue impact data
+                fetch(`{{ url('operator/schedules') }}/${scheduleId}/revenue-impact`, {
+                        method: 'GET',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                             'Content-Type': 'application/json',
                         },
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                console.error('Server response:', text);
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('Revenue data:', data);
                         if (data.success) {
-                            location.reload();
+                            const revenuePerTrip = data.total_revenue_per_trip;
+                            const averagePrice = data.average_price_per_seat;
+                            const totalSeats = data.total_seats;
+
+                            // Show revenue warning with SweetAlert2
+                            Swal.fire({
+                                title: 'Deactivate Schedule?',
+                                html: `<div class="text-left">
+                                        <p><strong>Potential Revenue Loss Per Trip:</strong></p>
+                                        <h4 class="text-danger">₹${revenuePerTrip.toLocaleString('en-IN')}</h4>
+                                        <hr>
+                                        <p><small>Average Price: ₹${averagePrice} × ${totalSeats} seats</small></p>
+                                        <p class="mb-3"><small>Route: ${data.route}</small></p>
+                                        <p class="text-warning"><i class="fa fa-exclamation-triangle"></i> This schedule will no longer be available for booking.</p>
+                                    </div>`,
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#3085d6',
+                                cancelButtonColor: '#d33',
+                                confirmButtonText: 'Continue',
+                                cancelButtonText: 'Cancel'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    // Show date range input
+                                    showDeactivationDateInput(scheduleId);
+                                }
+                            });
                         } else {
-                            alert('Error: ' + data.message);
+                            Swal.fire('Error', data.message || 'Could not fetch revenue data', 'error');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('An error occurred while updating the schedule status.');
+                        Swal.fire('Error', 'An error occurred while fetching revenue data: ' + error.message, 'error');
                     });
+            } else {
+                // Activating - simple confirmation
+                Swal.fire({
+                    title: 'Activate Schedule?',
+                    text: 'This schedule will become available for booking.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, Activate',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        submitToggleStatus(scheduleId, null, null);
+                    }
+                });
             }
+        }
+
+        function showDeactivationDateInput(scheduleId) {
+            // Get tomorrow's date as default
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            Swal.fire({
+                title: 'Deactivation Period',
+                html: `
+                    <div class="form-group text-left">
+                        <label for="deactivation_start" class="form-label">Start Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="deactivation_start" value="${tomorrowStr}" min="${tomorrowStr}" required>
+                        <small class="text-muted">Schedule will be deactivated from this date</small>
+                    </div>
+                    <div class="form-group text-left mt-3">
+                        <label for="deactivation_end" class="form-label">End Date (Optional)</label>
+                        <input type="date" class="form-control" id="deactivation_end" min="${tomorrowStr}">
+                        <small class="text-muted">Leave empty for lifetime deactivation</small>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Deactivate',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const startDate = document.getElementById('deactivation_start').value;
+                    const endDate = document.getElementById('deactivation_end').value;
+
+                    if (!startDate) {
+                        Swal.showValidationMessage('Start date is required');
+                        return false;
+                    }
+
+                    if (endDate && endDate <= startDate) {
+                        Swal.showValidationMessage('End date must be after start date');
+                        return false;
+                    }
+
+                    return {
+                        start: startDate,
+                        end: endDate
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitToggleStatus(scheduleId, result.value.start, result.value.end);
+                }
+            });
+        }
+
+        function submitToggleStatus(scheduleId, startDate, endDate) {
+            const formData = new FormData();
+            formData.append('_method', 'PATCH');
+            if (startDate) {
+                formData.append('deactivation_start', startDate);
+            }
+            if (endDate) {
+                formData.append('deactivation_end', endDate);
+            }
+
+            fetch(`{{ url('operator/schedules') }}/${scheduleId}/toggle-status`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Success!', data.message, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', data.message || 'An error occurred', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    let errorMessage = 'An error occurred while updating the schedule status.';
+                    if (error.errors) {
+                        errorMessage = Object.values(error.errors).flat().join('<br>');
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+                    Swal.fire('Error', errorMessage, 'error');
+                });
         }
 
         function deleteSchedule(scheduleId) {

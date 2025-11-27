@@ -134,6 +134,14 @@ class OperatorBus extends Model
     }
 
     /**
+     * Get is_active attribute (alias for status).
+     */
+    public function getIsActiveAttribute()
+    {
+        return (bool) $this->status;
+    }
+
+    /**
      * Get formatted base price.
      */
     public function getFormattedBasePriceAttribute()

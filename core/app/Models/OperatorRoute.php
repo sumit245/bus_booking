@@ -116,6 +116,14 @@ class OperatorRoute extends Model
     }
 
     /**
+     * Get is_active attribute (alias for status).
+     */
+    public function getIsActiveAttribute()
+    {
+        return (bool) $this->status;
+    }
+
+    /**
      * Get the route display name.
      */
     public function getDisplayNameAttribute()

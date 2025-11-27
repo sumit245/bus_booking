@@ -277,7 +277,25 @@ class CrewAssignmentController extends Controller
         $conductors = $staff->where('role', 'conductor');
         $attendants = $staff->where('role', 'attendant');
 
-        return view('operator.crew.edit', compact('assignment', 'buses', 'drivers', 'conductors', 'attendants'))->with('crewAssignment', $assignment);
+        // Get all crew assignments for this bus to populate driver, conductor, attendant
+        $busCrewAssignments = CrewAssignment::where('operator_bus_id', $assignment->operator_bus_id)
+            ->where('status', 'active')
+            ->get();
+
+        $currentDriver = $busCrewAssignments->where('role', 'driver')->first();
+        $currentConductor = $busCrewAssignments->where('role', 'conductor')->first();
+        $currentAttendant = $busCrewAssignments->where('role', 'attendant')->first();
+
+        return view('operator.crew.edit', compact(
+            'assignment',
+            'buses',
+            'drivers',
+            'conductors',
+            'attendants',
+            'currentDriver',
+            'currentConductor',
+            'currentAttendant'
+        ))->with('crewAssignment', $assignment);
     }
 
     /**
@@ -288,65 +306,168 @@ class CrewAssignmentController extends Controller
         $operator = Auth::guard('operator')->user();
         $assignment = CrewAssignment::where('operator_id', $operator->id)->findOrFail($id);
 
+        \Log::info('Crew Assignment Update Started', [
+            'assignment_id' => $id,
+            'operator_id' => $operator->id,
+            'request_data' => $request->all()
+        ]);
+
+        // Update all crew assignments for this bus
         $validator = Validator::make($request->all(), [
             'operator_bus_id' => 'required|exists:operator_buses,id',
-            'staff_id' => 'required|exists:staff,id',
-            'role' => 'required|in:driver,conductor,attendant',
             'assignment_date' => 'required|date',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
             'shift_start_time' => 'nullable|date_format:H:i',
             'shift_end_time' => 'nullable|date_format:H:i|after:shift_start_time',
+            'driver_id' => 'nullable|exists:staff,id',
+            'conductor_id' => 'nullable|exists:staff,id',
+            'attendant_id' => 'nullable|exists:staff,id',
             'status' => 'required|in:active,inactive,completed,cancelled',
             'notes' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
+            \Log::error('Crew Assignment Validation Failed', [
+                'errors' => $validator->errors()->toArray()
+            ]);
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
         }
 
-        // Check for conflicts only if changing staff or date
-        if ($request->staff_id != $assignment->staff_id || $request->assignment_date != $assignment->assignment_date) {
-            $existingAssignment = CrewAssignment::where('staff_id', $request->staff_id)
-                ->where('assignment_date', $request->assignment_date)
+        try {
+            // Get all current assignments for this bus
+            $currentAssignments = CrewAssignment::where('operator_bus_id', $assignment->operator_bus_id)
                 ->where('status', 'active')
-                ->where('id', '!=', $id)
-                ->first();
+                ->get();
 
-            if ($existingAssignment) {
-                return redirect()->back()
-                    ->with('error', 'This staff member is already assigned to another bus on this date.')
-                    ->withInput();
+            \Log::info('Current Assignments Found', [
+                'count' => $currentAssignments->count(),
+                'assignments' => $currentAssignments->map(function ($a) {
+                    return ['id' => $a->id, 'role' => $a->role, 'staff_id' => $a->staff_id];
+                })
+            ]);
+
+            $updatedCount = 0;
+            $errors = [];
+
+            // Update or create driver assignment
+            if ($request->driver_id) {
+                $driverAssignment = $currentAssignments->where('role', 'driver')->first();
+                if ($driverAssignment) {
+                    $driverAssignment->update([
+                        'operator_bus_id' => $request->operator_bus_id,
+                        'staff_id' => $request->driver_id,
+                        'assignment_date' => $request->assignment_date,
+                        'start_date' => $request->assignment_date,
+                        'shift_start_time' => $request->shift_start_time,
+                        'shift_end_time' => $request->shift_end_time,
+                        'status' => $request->status,
+                        'notes' => $request->notes,
+                    ]);
+                    \Log::info('Driver Assignment Updated', ['id' => $driverAssignment->id]);
+                    $updatedCount++;
+                } else {
+                    $driverAssignment = CrewAssignment::create([
+                        'operator_id' => $operator->id,
+                        'operator_bus_id' => $request->operator_bus_id,
+                        'staff_id' => $request->driver_id,
+                        'role' => 'driver',
+                        'assignment_date' => $request->assignment_date,
+                        'start_date' => $request->assignment_date,
+                        'shift_start_time' => $request->shift_start_time,
+                        'shift_end_time' => $request->shift_end_time,
+                        'status' => $request->status,
+                        'notes' => $request->notes,
+                    ]);
+                    \Log::info('Driver Assignment Created', ['id' => $driverAssignment->id]);
+                    $updatedCount++;
+                }
             }
-        }
 
-        // Check for role conflicts only if changing bus, role, or date
-        if (
-            $request->operator_bus_id != $assignment->operator_bus_id ||
-            $request->role != $assignment->role ||
-            $request->assignment_date != $assignment->assignment_date
-        ) {
-
-            $existingRoleAssignment = CrewAssignment::where('operator_bus_id', $request->operator_bus_id)
-                ->where('role', $request->role)
-                ->where('assignment_date', $request->assignment_date)
-                ->where('status', 'active')
-                ->where('id', '!=', $id)
-                ->first();
-
-            if ($existingRoleAssignment) {
-                return redirect()->back()
-                    ->with('error', "A {$request->role} is already assigned to this bus on this date.")
-                    ->withInput();
+            // Update or create conductor assignment
+            if ($request->conductor_id) {
+                $conductorAssignment = $currentAssignments->where('role', 'conductor')->first();
+                if ($conductorAssignment) {
+                    $conductorAssignment->update([
+                        'operator_bus_id' => $request->operator_bus_id,
+                        'staff_id' => $request->conductor_id,
+                        'assignment_date' => $request->assignment_date,
+                        'start_date' => $request->assignment_date,
+                        'shift_start_time' => $request->shift_start_time,
+                        'shift_end_time' => $request->shift_end_time,
+                        'status' => $request->status,
+                        'notes' => $request->notes,
+                    ]);
+                    \Log::info('Conductor Assignment Updated', ['id' => $conductorAssignment->id]);
+                    $updatedCount++;
+                } else {
+                    $conductorAssignment = CrewAssignment::create([
+                        'operator_id' => $operator->id,
+                        'operator_bus_id' => $request->operator_bus_id,
+                        'staff_id' => $request->conductor_id,
+                        'role' => 'conductor',
+                        'assignment_date' => $request->assignment_date,
+                        'start_date' => $request->assignment_date,
+                        'shift_start_time' => $request->shift_start_time,
+                        'shift_end_time' => $request->shift_end_time,
+                        'status' => $request->status,
+                        'notes' => $request->notes,
+                    ]);
+                    \Log::info('Conductor Assignment Created', ['id' => $conductorAssignment->id]);
+                    $updatedCount++;
+                }
             }
+
+            // Update or create attendant assignment
+            if ($request->attendant_id) {
+                $attendantAssignment = $currentAssignments->where('role', 'attendant')->first();
+                if ($attendantAssignment) {
+                    $attendantAssignment->update([
+                        'operator_bus_id' => $request->operator_bus_id,
+                        'staff_id' => $request->attendant_id,
+                        'assignment_date' => $request->assignment_date,
+                        'start_date' => $request->assignment_date,
+                        'shift_start_time' => $request->shift_start_time,
+                        'shift_end_time' => $request->shift_end_time,
+                        'status' => $request->status,
+                        'notes' => $request->notes,
+                    ]);
+                    \Log::info('Attendant Assignment Updated', ['id' => $attendantAssignment->id]);
+                    $updatedCount++;
+                } else {
+                    $attendantAssignment = CrewAssignment::create([
+                        'operator_id' => $operator->id,
+                        'operator_bus_id' => $request->operator_bus_id,
+                        'staff_id' => $request->attendant_id,
+                        'role' => 'attendant',
+                        'assignment_date' => $request->assignment_date,
+                        'start_date' => $request->assignment_date,
+                        'shift_start_time' => $request->shift_start_time,
+                        'shift_end_time' => $request->shift_end_time,
+                        'status' => $request->status,
+                        'notes' => $request->notes,
+                    ]);
+                    \Log::info('Attendant Assignment Created', ['id' => $attendantAssignment->id]);
+                    $updatedCount++;
+                }
+            }
+
+            \Log::info('Crew Assignment Update Completed', [
+                'updated_count' => $updatedCount,
+                'total_assignments' => $currentAssignments->count()
+            ]);
+
+            $notify[] = ['success', "Crew assignment updated successfully! {$updatedCount} crew member(s) updated."];
+            return redirect()->route('operator.crew.index')->withNotify($notify);
+
+        } catch (\Exception $e) {
+            \Log::error('Crew Assignment Update Failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $notify[] = ['error', 'Failed to update crew assignment: ' . $e->getMessage()];
+            return redirect()->back()->withNotify($notify)->withInput();
         }
-
-        $assignment->update($request->all());
-
-        return redirect()->route('operator.crew.index')
-            ->with('success', 'Crew assignment updated successfully!');
     }
 
     /**

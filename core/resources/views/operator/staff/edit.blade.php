@@ -18,7 +18,7 @@
                             <div class="row mb-4">
                                 <div class="col-12">
                                     <h5 class="text-primary">Personal Information</h5>
-                                    <hr>
+                                    {{-- <hr> --}}
                                 </div>
                             </div>
 

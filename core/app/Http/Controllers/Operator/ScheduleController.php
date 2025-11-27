@@ -246,7 +246,7 @@ class ScheduleController extends Controller
     /**
      * Toggle schedule status.
      */
-    public function toggleStatus(BusSchedule $schedule)
+    public function toggleStatus(Request $request, BusSchedule $schedule)
     {
         // Check if the schedule belongs to the authenticated operator
         $operator = auth('operator')->user();
@@ -254,15 +254,125 @@ class ScheduleController extends Controller
             abort(403, 'Unauthorized access to this schedule.');
         }
 
-        $schedule->update([
-            'is_active' => !$schedule->is_active,
-            'status' => $schedule->is_active ? 'inactive' : 'active'
+        // If activating, just toggle the status
+        if (!$schedule->is_active) {
+            $schedule->update([
+                'is_active' => true,
+                'status' => 'active',
+                'start_date' => null,
+                'end_date' => null
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Schedule activated successfully.'
+            ]);
+        }
+
+        // If deactivating, validate date range
+        $request->validate([
+            'deactivation_start' => 'required|date|after_or_equal:today',
+            'deactivation_end' => 'nullable|date|after:deactivation_start'
         ]);
 
-        $status = $schedule->is_active ? 'activated' : 'deactivated';
-        $notify[] = ['success', "Schedule {$status} successfully."];
+        $deactivationStart = $request->deactivation_start;
+        $deactivationEnd = $request->deactivation_end;
 
-        return back()->withNotify($notify);
+        // Update schedule with deactivation dates
+        $schedule->update([
+            'is_active' => false,
+            'status' => 'inactive',
+            'start_date' => null, // Keep original start date
+            'end_date' => $deactivationEnd ?? null // Set end date if provided
+        ]);
+
+        // Here you could also create a ScheduleDeactivation record to track deactivation periods
+        // For now, we'll just update the schedule itself
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Schedule deactivated successfully.',
+            'deactivation_start' => $deactivationStart,
+            'deactivation_end' => $deactivationEnd
+        ]);
+    }
+
+    /**
+     * Calculate potential revenue loss for deactivation.
+     */
+    public function getRevenueImpact(BusSchedule $schedule)
+    {
+        try {
+            $operator = auth('operator')->user();
+            if ($schedule->operator_id !== $operator->id) {
+                abort(403, 'Unauthorized access to this schedule.');
+            }
+
+            // Get the bus and seat layout
+            $bus = $schedule->operatorBus;
+            if (!$bus) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bus not found for this schedule.'
+                ]);
+            }
+
+            $seatLayout = $bus->seatLayouts()->where('is_active', true)->first();
+
+            if (!$seatLayout) {
+                // If no seat layout, use bus base price and total seats
+                $totalRevenue = ($bus->base_price ?? 0) * ($bus->total_seats ?? 0);
+                $averagePrice = $bus->base_price ?? 0;
+                $totalSeats = $bus->total_seats ?? 0;
+
+                return response()->json([
+                    'success' => true,
+                    'total_revenue_per_trip' => round($totalRevenue, 2),
+                    'average_price_per_seat' => round($averagePrice, 2),
+                    'total_seats' => $totalSeats,
+                    'schedule_name' => $schedule->schedule_name,
+                    'route' => $schedule->operatorRoute->route_name ?? 'N/A'
+                ]);
+            }
+
+            // Calculate total seat revenue from layout
+            $totalPrice = 0;
+            $seatCount = 0;
+
+            if ($seatLayout->layout_data) {
+                foreach (['upper_deck', 'lower_deck'] as $deck) {
+                    if (isset($seatLayout->layout_data[$deck]['seats'])) {
+                        foreach ($seatLayout->layout_data[$deck]['seats'] as $seat) {
+                            $totalPrice += $seat['price'] ?? 0;
+                            $seatCount++;
+                        }
+                    }
+                }
+            }
+
+            // If no seats found in layout, fallback to bus data
+            if ($seatCount === 0) {
+                $totalPrice = ($bus->base_price ?? 0) * ($bus->total_seats ?? 0);
+                $seatCount = $bus->total_seats ?? 0;
+            }
+
+            $averagePrice = $seatCount > 0 ? round($totalPrice / $seatCount, 2) : 0;
+
+            return response()->json([
+                'success' => true,
+                'total_revenue_per_trip' => round($totalPrice, 2),
+                'average_price_per_seat' => $averagePrice,
+                'total_seats' => $seatCount,
+                'schedule_name' => $schedule->schedule_name,
+                'route' => $schedule->operatorRoute->route_name ?? 'N/A'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching revenue impact: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating revenue: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

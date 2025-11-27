@@ -26,7 +26,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Origin City') <span class="text-danger">*</span></label>
-                                    <select class="form-control @error('origin_city_id') is-invalid @enderror"
+                                    <select class="form-control select2 @error('origin_city_id') is-invalid @enderror"
                                         name="origin_city_id" id="origin_city_id" required>
                                         <option value="">@lang('Select Origin City')</option>
                                         @foreach ($cities as $city)
@@ -44,7 +44,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Destination City') <span class="text-danger">*</span></label>
-                                    <select class="form-control @error('destination_city_id') is-invalid @enderror"
+                                    <select class="form-control select2 @error('destination_city_id') is-invalid @enderror"
                                         name="destination_city_id" id="destination_city_id" required>
                                         <option value="">@lang('Select Destination City')</option>
                                         @foreach ($cities as $city)
@@ -286,6 +286,17 @@
 
 @push('script')
     <script>
+        $(document).ready(function() {
+            // Initialize Select2 for city dropdowns
+            $('.select2').select2({
+                placeholder: function() {
+                    return $(this).data('placeholder');
+                },
+                allowClear: true,
+                width: '100%'
+            });
+        });
+
         let boardingPointCount = {{ $route->boardingPoints->count() }};
         let droppingPointCount = {{ $route->droppingPoints->count() }};
 

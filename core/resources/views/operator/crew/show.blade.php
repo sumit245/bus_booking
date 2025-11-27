@@ -4,84 +4,101 @@
     <div class="row">
         <div class="col-lg-12">
             <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">@lang('Crew Assignment Details')</h4>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="{{ route('operator.crew.index') }}" class="btn btn-secondary btn-sm">
+                            <i class="las la-arrow-left"></i> @lang('Back')
+                        </a>
+                        <span class="ml-3">
+                            <h4 class="card-title mb-0 d-inline">@lang('Crew Assignment Details')</h4>
+                        </span>
+                    </div>
+                    <div>
+                        <a href="{{ route('operator.crew.edit', $crewAssignment->id) }}" class="btn btn-warning btn-sm">
+                            <i class="las la-edit"></i> @lang('Edit')
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
+                    <!-- Assignment Information -->
                     <div class="row">
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="40%">@lang('Bus')</th>
-                                    <td>{{ $crewAssignment->operatorBus->travel_name }} -
-                                        {{ $crewAssignment->operatorBus->bus_number }}</td>
-                                </tr>
-                                <tr>
-                                    <th>@lang('Assignment Date')</th>
-                                    <td>{{ \Carbon\Carbon::parse($crewAssignment->assignment_date)->format('d M Y') }}</td>
-                                </tr>
-                                <tr>
-                                    <th>@lang('Status')</th>
-                                    <td>
+                        <div class="col-md-12">
+                            <h5 class="text-primary mb-3">@lang('Assignment Information')</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-2">
+                                        <strong>@lang('Bus'):</strong><br>{{ $crewAssignment->operatorBus->travel_name }}
+                                        - {{ $crewAssignment->operatorBus->bus_number }}</p>
+                                </div>
+                                <div class="col-md-2">
+                                    <p class="mb-2">
+                                        <strong>@lang('Assignment Date'):</strong><br>{{ \Carbon\Carbon::parse($crewAssignment->assignment_date)->format('d M Y') }}
+                                    </p>
+                                </div>
+                                <div class="col-md-2">
+                                    <p class="mb-2"><strong>@lang('Status'):</strong><br>
                                         <span
                                             class="badge badge-{{ $crewAssignment->status == 'active' ? 'success' : ($crewAssignment->status == 'completed' ? 'info' : 'warning') }}">
                                             {{ ucfirst($crewAssignment->status) }}
                                         </span>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
-                                <tr>
-                                    <th width="40%">@lang('Start Time')</th>
-                                    <td>{{ $crewAssignment->shift_start_time ? \Carbon\Carbon::parse($crewAssignment->shift_start_time)->format('h:i A') : 'N/A' }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>@lang('End Time')</th>
-                                    <td>{{ $crewAssignment->shift_end_time ? \Carbon\Carbon::parse($crewAssignment->shift_end_time)->format('h:i A') : 'N/A' }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>@lang('Created At')</th>
-                                    <td>{{ $crewAssignment->created_at->format('d M Y h:i A') }}</td>
-                                </tr>
-                            </table>
+                                    </p>
+                                </div>
+                                <div class="col-md-2">
+                                    <p class="mb-2">
+                                        <strong>@lang('Start Time'):</strong><br>{{ $crewAssignment->shift_start_time ? \Carbon\Carbon::parse($crewAssignment->shift_start_time)->format('h:i A') : 'N/A' }}
+                                    </p>
+                                </div>
+                                <div class="col-md-2">
+                                    <p class="mb-2">
+                                        <strong>@lang('End Time'):</strong><br>{{ $crewAssignment->shift_end_time ? \Carbon\Carbon::parse($crewAssignment->shift_end_time)->format('h:i A') : 'N/A' }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Created At'):</strong><br>{{ $crewAssignment->created_at->format('d M Y h:i A') }}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <hr>
-
-                    <h5>@lang('Assigned Crew')</h5>
-                    <div class="row">
-                        @if ($crewAssignment->staff)
-                            <div class="col-md-4">
-                                <div class="card">
-                                    <div class="card-body text-center">
-                                        <h6 class="card-title">@lang(ucfirst($crewAssignment->role))</h6>
-                                        <p class="card-text">
-                                            <strong>{{ $crewAssignment->staff->first_name }}
-                                                {{ $crewAssignment->staff->last_name }}</strong><br>
-                                            <small class="text-muted">{{ $crewAssignment->staff->phone }}</small>
-                                        </p>
+                    <!-- Assigned Crew -->
+                    @if ($crewAssignment->staff)
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <h5 class="text-primary mb-3">@lang('Assigned Crew')</h5>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <p class="mb-2"><strong>@lang('Role'):</strong><br><span
+                                                class="badge badge-info">{{ ucfirst($crewAssignment->role) }}</span></p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p class="mb-2">
+                                            <strong>@lang('Name'):</strong><br>{{ $crewAssignment->staff->first_name }}
+                                            {{ $crewAssignment->staff->last_name }}</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p class="mb-2">
+                                            <strong>@lang('Phone'):</strong><br>{{ $crewAssignment->staff->phone }}</p>
                                     </div>
                                 </div>
                             </div>
-                        @endif
-                    </div>
-
-                    @if ($crewAssignment->notes)
-                        <hr>
-                        <h5>@lang('Notes')</h5>
-                        <p>{{ $crewAssignment->notes }}</p>
+                        </div>
                     @endif
 
-                    <div class="form-group mt-4">
-                        <a href="{{ route('operator.crew.edit', $crewAssignment->id) }}"
-                            class="btn btn-primary">@lang('Edit Assignment')</a>
-                        <a href="{{ route('operator.crew.index') }}" class="btn btn-secondary">@lang('Back to List')</a>
-                    </div>
+                    <!-- Notes -->
+                    @if ($crewAssignment->notes)
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">@lang('Notes')</h5>
+                                <div class="alert alert-info">
+                                    {{ $crewAssignment->notes }}
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

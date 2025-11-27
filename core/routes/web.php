@@ -1204,6 +1204,10 @@ Route::name("operator.")
                 "schedules/{schedule}/toggle-status",
                 "Operator\ScheduleController@toggleStatus",
             )->name("schedules.toggle-status");
+            Route::get(
+                "schedules/{schedule}/revenue-impact",
+                "Operator\ScheduleController@getRevenueImpact",
+            )->name("schedules.revenue-impact");
 
             // Schedule Boarding/Dropping Points Management
             Route::get(

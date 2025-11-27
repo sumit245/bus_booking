@@ -1,172 +1,163 @@
 @extends('operator.layouts.app')
 
 @section('panel')
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
                         <h4 class="card-title mb-0">{{ $pageTitle }}</h4>
-                        <div class="d-flex gap-2">
-                            <a href="{{ route('operator.buses.seat-layouts.index', $bus) }}"
-                                class="btn btn-outline-secondary">
-                                <i class="las la-arrow-left"></i> Back to Layouts
-                            </a>
-                            <a href="{{ route('operator.buses.seat-layouts.edit', [$bus, $seatLayout]) }}"
-                                class="btn btn-primary">
-                                <i class="las la-edit"></i> Edit Layout
-                            </a>
+                        <a href="{{ route('operator.buses.seat-layouts.index', $bus) }}" class="btn btn-secondary btn-sm">
+                            <i class="las la-arrow-left"></i> @lang('Back')
+                        </a>
+                        {{-- <span class="ml-3"> --}}
+
+                        {{-- </span> --}}
+                    </div>
+                    <div>
+                        <a href="{{ route('operator.buses.seat-layouts.edit', [$bus, $seatLayout]) }}"
+                            class="btn btn-warning btn-sm">
+                            <i class="las la-edit"></i> @lang('Edit')
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Layout Details -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="text-primary mb-3">@lang('Layout Details')</h5>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Layout Name')</strong><br>{{ $seatLayout->layout_name }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Bus Type')</strong><br>
+                                        <span
+                                            class="badge badge-{{ $seatLayout->deck_type == 'single' ? 'info' : 'primary' }}">
+                                            {{ ucfirst($seatLayout->deck_type) }} Decker
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Total Seats')</strong><br>{{ $seatLayout->total_seats }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Status')</strong><br>
+                                        @if ($seatLayout->is_active)
+                                            <span class="badge badge-success">@lang('Active')</span>
+                                        @else
+                                            <span class="badge badge-secondary">@lang('Inactive')</span>
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                @if ($seatLayout->deck_type == 'double')
+                                    <div class="col-md-3">
+                                        <p class="mb-2">
+                                            <strong>@lang('Upper Deck Seats')</strong><br>{{ $seatLayout->upper_deck_seats }}
+                                        </p>
+                                    </div>
+                                @endif
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang($seatLayout->deck_type == 'single' ? 'Main Deck Seats' : 'Lower Deck Seats')</strong><br>{{ $seatLayout->lower_deck_seats }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Created')</strong><br>{{ $seatLayout->created_at->format('M d, Y H:i') }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Updated')</strong><br>{{ $seatLayout->updated_at->format('M d, Y H:i') }}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <!-- Layout Information -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="card-title mb-0">Layout Details</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <table class="table table-borderless">
-                                            <tr>
-                                                <td><strong>Layout Name:</strong></td>
-                                                <td>{{ $seatLayout->layout_name }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Bus Type:</strong></td>
-                                                <td>
-                                                    <span
-                                                        class="badge {{ $seatLayout->deck_type == 'single' ? 'bg-info' : 'bg-primary' }}">
-                                                        {{ ucfirst($seatLayout->deck_type) }} Decker
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Total Seats:</strong></td>
-                                                <td>{{ $seatLayout->total_seats }}</td>
-                                            </tr>
-                                            @if ($seatLayout->deck_type == 'double')
-                                                <tr>
-                                                    <td><strong>Upper Deck Seats:</strong></td>
-                                                    <td>{{ $seatLayout->upper_deck_seats }}</td>
-                                                </tr>
-                                            @endif
-                                            <tr>
-                                                <td><strong>{{ $seatLayout->deck_type == 'single' ? 'Main' : 'Lower' }} Deck
-                                                        Seats:</strong></td>
-                                                <td>{{ $seatLayout->lower_deck_seats }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Status:</strong></td>
-                                                <td>
-                                                    @if ($seatLayout->is_active)
-                                                        <span class="badge bg-success">Active</span>
-                                                    @else
-                                                        <span class="badge bg-secondary">Inactive</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Created:</strong></td>
-                                                <td>{{ $seatLayout->created_at->format('M d, Y H:i') }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Updated:</strong></td>
-                                                <td>{{ $seatLayout->updated_at->format('M d, Y H:i') }}</td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="card-title mb-0">Seat Statistics</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        @php
-                                            $seatStats = [
-                                                'seater' => 0,
-                                                'sleeper' => 0,
-                                                'total_price' => 0,
-                                            ];
 
-                                            if ($seatLayout->layout_data) {
-                                                foreach (['upper_deck', 'lower_deck'] as $deck) {
-                                                    if (isset($seatLayout->layout_data[$deck]['seats'])) {
-                                                        foreach ($seatLayout->layout_data[$deck]['seats'] as $seat) {
-                                                            if ($seat['category'] === 'seater') {
-                                                                $seatStats['seater']++;
-                                                            } else {
-                                                                $seatStats['sleeper']++;
-                                                            }
-                                                            $seatStats['total_price'] += $seat['price'] ?? 0;
-                                                        }
-                                                    }
+                    <!-- Seat Statistics -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h5 class="text-primary mb-3">@lang('Seat Statistics')</h5>
+                            @php
+                                $seatStats = [
+                                    'seater' => 0,
+                                    'sleeper' => 0,
+                                    'total_price' => 0,
+                                ];
+
+                                if ($seatLayout->layout_data) {
+                                    foreach (['upper_deck', 'lower_deck'] as $deck) {
+                                        if (isset($seatLayout->layout_data[$deck]['seats'])) {
+                                            foreach ($seatLayout->layout_data[$deck]['seats'] as $seat) {
+                                                if ($seat['category'] === 'seater') {
+                                                    $seatStats['seater']++;
+                                                } else {
+                                                    $seatStats['sleeper']++;
                                                 }
+                                                $seatStats['total_price'] += $seat['price'] ?? 0;
                                             }
-                                        @endphp
-
-                                        <table class="table table-borderless">
-                                            <tr>
-                                                <td><strong>Seater Seats:</strong></td>
-                                                <td>{{ $seatStats['seater'] }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Sleeper Seats:</strong></td>
-                                                <td>{{ $seatStats['sleeper'] }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Average Price:</strong></td>
-                                                <td>₹{{ $seatLayout->total_seats > 0 ? number_format($seatStats['total_price'] / $seatLayout->total_seats, 2) : '0.00' }}
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>Total Revenue Potential:</strong></td>
-                                                <td>₹{{ number_format($seatStats['total_price'], 2) }}</td>
-                                            </tr>
-                                        </table>
-                                    </div>
+                                        }
+                                    }
+                                }
+                            @endphp
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Seater Seats')</strong><br>{{ $seatStats['seater'] }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2"><strong>@lang('Sleeper Seats')</strong><br>{{ $seatStats['sleeper'] }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Average Price')</strong><br>₹{{ $seatLayout->total_seats > 0 ? number_format($seatStats['total_price'] / $seatLayout->total_seats, 2) : '0.00' }}
+                                    </p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p class="mb-2">
+                                        <strong>@lang('Total Revenue Potential')</strong><br>₹{{ number_format($seatStats['total_price'], 2) }}
+                                    </p>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Visual Layout Preview -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="card-title mb-0">Layout Preview</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="bus-layout-preview">
-                                    {!! $seatLayout->html_layout !!}
-                                </div>
+                    <!-- Layout Preview -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary mb-3">@lang('Layout Preview')</h5>
+                            <div class="bus-layout-preview">
+                                {!! $seatLayout->html_layout !!}
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Generated HTML Layout -->
-                        <div class="card mt-4">
-                            <div class="card-header">
-                                <h6 class="card-title mb-0">Generated HTML Layout</h6>
-                                <small class="text-muted">This is the HTML structure that will be used by the booking
-                                    system</small>
-                            </div>
-                            <div class="card-body">
-                                <div class="border p-3 bg-white" style="max-height: 400px; overflow-y: auto;">
-                                    <pre class="text-dark mb-0" style="white-space: pre-wrap; font-size: 12px;">{{ $seatLayout->html_layout }}</pre>
-                                </div>
+                    <!-- Generated HTML Layout -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary mb-3">@lang('Generated HTML Layout')</h5>
+                            <small class="text-muted">This is the HTML structure that will be used by the booking
+                                system</small>
+                            <div class="border p-3 bg-light mt-2" style="max-height: 400px; overflow-y: auto;">
+                                <pre class="text-dark mb-0" style="white-space: pre-wrap; font-size: 12px;">{{ $seatLayout->html_layout }}</pre>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Processed Layout Data -->
-                        <div class="card mt-4">
-                            <div class="card-header">
-                                <h6 class="card-title mb-0">Processed Layout Data</h6>
-                                <small class="text-muted">This is the JSON structure used by the frontend</small>
-                            </div>
-                            <div class="card-body">
-                                <div class="border p-3 bg-white" style="max-height: 400px; overflow-y: auto;">
-                                    <pre class="text-dark mb-0" style="white-space: pre-wrap; font-size: 12px;">{{ json_encode($seatLayout->processed_layout, JSON_PRETTY_PRINT) }}</pre>
-                                </div>
+                    <!-- Processed Layout Data -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary mb-3">@lang('Processed Layout Data')</h5>
+                            <small class="text-muted">This is the JSON structure used by the frontend</small>
+                            <div class="border p-3 bg-light mt-2" style="max-height: 400px; overflow-y: auto;">
+                                <pre class="text-dark mb-0" style="white-space: pre-wrap; font-size: 12px;">{{ json_encode($seatLayout->processed_layout, JSON_PRETTY_PRINT) }}</pre>
                             </div>
                         </div>
                     </div>

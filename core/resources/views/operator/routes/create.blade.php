@@ -5,6 +5,9 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title mb-0">@lang('Add New Route')</h4>
+                    <a href="{{ route('operator.routes.index') }}" class="btn btn-secondary btn-sm">
+                        <i class="la la-angle-double-left"></i> @lang('Back')
+                    </a>
                 </div>
                 <div class="card-body">
                     <form action="{{ route('operator.routes.store') }}" method="POST" id="routeForm">
@@ -383,10 +386,4 @@
             }
         });
     </script>
-@endpush
-
-@push('breadcrumb-plugins')
-    <a href="{{ route('operator.routes.index') }}" class="btn btn-sm btn--primary box--shadow1 text--small">
-        <i class="las la-angle-double-left"></i>@lang('Go Back')
-    </a>
 @endpush

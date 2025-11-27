@@ -1594,4 +1594,51 @@ class ApiTicketController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get pricing configuration for mobile app
+     * Returns markup, service charge, platform fee, and GST percentages
+     */
+    public function getPricingConfig()
+    {
+        try {
+            $general = \App\Models\GeneralSetting::first();
+
+            // Get markup percentage (active markup from settings)
+            $markupPercentage = $general->markup_percentage ?? 0;
+
+            // Get service charge percentage (default 2%)
+            $serviceChargePercentage = $general->service_charge_percentage ?? 2;
+
+            // Get platform fee (flat fee, default ₹5)
+            $platformFee = $general->platform_fee ?? 5;
+
+            // Get GST percentage (default 5%)
+            $gstPercentage = $general->gst_percentage ?? 5;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'markup_percentage' => (float) $markupPercentage,
+                    'service_charge_percentage' => (float) $serviceChargePercentage,
+                    'platform_fee' => (float) $platformFee,
+                    'gst_percentage' => (float) $gstPercentage,
+                    'currency' => '₹',
+                    'currency_code' => 'INR'
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Get pricing config error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve pricing configuration',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

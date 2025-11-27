@@ -29,6 +29,8 @@ Route::prefix('bus')->group(function () {
     // Seat blocking & payment
     Route::post('/confirm-payment', [ApiTicketController::class, 'confirmPayment']);
     Route::post('/cancellation-policy', [ApiTicketController::class, 'getCancellationPolicy']);
+    // Get pricing configuration for mobile app
+    Route::get('/pricing-config', [ApiTicketController::class, 'getPricingConfig']);
 });
 
 // Boarding/drop points

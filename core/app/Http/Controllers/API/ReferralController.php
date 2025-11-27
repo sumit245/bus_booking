@@ -56,8 +56,8 @@ class ReferralController extends Controller
             $settings = ReferralSetting::current();
 
             // Build referral link
-            $baseUrl = config('app.url');
-            $referralLink = "{$baseUrl}?ref={$referralCode->code}";
+            $baseUrlPlay = 'https://play.google.com/store/apps/details?id=com.dashandots.vindhyashribus';
+            $referralLink = "{$baseUrlPlay}&ref={$referralCode->code}";
 
             // Get reward percentage (for display)
             $rewardPercentage = 0;

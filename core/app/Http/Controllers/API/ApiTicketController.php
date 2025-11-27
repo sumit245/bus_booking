@@ -1608,13 +1608,13 @@ class ApiTicketController extends Controller
             $markupPercentage = $general->markup_percentage ?? 0;
 
             // Get service charge percentage (default 2%)
-            $serviceChargePercentage = $general->service_charge_percentage ?? 2;
+            $serviceChargePercentage = $general->service_charge_percentage ?? 0;
 
             // Get platform fee (flat fee, default ₹5)
-            $platformFee = $general->platform_fee ?? 5;
+            $platformFee = $general->platform_fee ?? 0;
 
             // Get GST percentage (default 5%)
-            $gstPercentage = $general->gst_percentage ?? 5;
+            $gstPercentage = $general->gst_percentage ?? 0;
 
             return response()->json([
                 'success' => true,

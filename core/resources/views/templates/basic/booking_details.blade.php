@@ -236,12 +236,12 @@
                 preConfirm: (reason) => {
                     // Prepare the data
                     const ticket = @json($ticket);
+                    const cancelMeta = @json($cancelMeta);
                     const requestData = {
                         UserIp: '{{ request()->ip() }}',
-                        SearchTokenId: ticket.search_token_id || '',
-                        BookingId: ticket.api_booking_id || ticket.booking_id || '',
-                        SeatId: Array.isArray(ticket.seats) ? ticket.seats.join(',') : ticket
-                            .seats || '',
+                        SearchTokenId: cancelMeta.search_token_id || '',
+                        BookingId: cancelMeta.booking_id || '',
+                        SeatId: cancelMeta.seat_id || '',
                         Remarks: reason || 'Cancelled by customer'
                     };
 
@@ -774,10 +774,10 @@
             }
 
             /*
-                        .footer-wrapper {
-                            flex-direction: column;
-                            text-align: center;
-                        } */
+                            .footer-wrapper {
+                                flex-direction: column;
+                                text-align: center;
+                            } */
         }
 
         /* Hide action bar and adjust print view */

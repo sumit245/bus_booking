@@ -190,10 +190,20 @@ class MobileAuthController extends Controller
             $companyName = $general->sitename ?? 'Bus Booking';
             $logoUrl = getImage(imagePath()['logoIcon']['path'] . '/logo.png');
 
+            // Prepare cancel metadata for the view
+            $searchTokenId = $booking->search_token_id ?? null;
+            $bookingIdentifier = $booking->api_booking_id ?? $booking->booking_id ?? $booking->operator_pnr ?? $booking->pnr_number ?? (string) $booking->id;
+            $seatId = is_array($booking->seats) ? ($booking->seats[0] ?? null) : (is_string($booking->seats) ? (explode(',', $booking->seats)[0] ?? $booking->seats) : null);
+            $cancelMeta = [
+                'search_token_id' => $searchTokenId,
+                'booking_id' => $bookingIdentifier,
+                'seat_id' => $seatId,
+            ];
+
             $pageTitle = 'Booking Details';
             $layout = 'layouts.frontend';
 
-            return view($this->activeTemplate . 'booking_details', compact('pageTitle', 'layout', 'ticket', 'companyName', 'logoUrl'));
+            return view($this->activeTemplate . 'booking_details', compact('pageTitle', 'layout', 'ticket', 'companyName', 'logoUrl', 'cancelMeta'));
         } catch (\Exception $e) {
             Log::error('Error in showBooking', [
                 'booking_id' => $id,

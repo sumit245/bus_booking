@@ -446,6 +446,7 @@
                 SeatId: el?.dataset?.seatId || null,
                 SearchTokenId: el?.dataset?.searchTokenId || null
             };
+            console.log(window.bookingCancelPayload);
             $('#cancelBookingModal').modal('show');
         }
 

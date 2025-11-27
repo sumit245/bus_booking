@@ -19,7 +19,8 @@
                             <button class="btn-profile-edit" onclick="openProfileModal()">
                                 <i class="las la-edit"></i> Edit Profile
                             </button>
-                            <form method="POST" action="{{ route('user.logout') }}" style="display: inline;" id="logoutForm">
+                            <form method="POST" action="{{ route('user.logout') }}" style="display: inline;"
+                                id="logoutForm">
                                 @csrf
                                 <button type="submit" class="btn-link"
                                     style="background: none; border: none; padding: 0; color: inherit; cursor: pointer; text-decoration: none;">
@@ -491,7 +492,9 @@
             $.ajax({
                 url: "{{ route('user.logout') }}",
                 type: "POST",
-                data: { _token: "{{ csrf_token() }}" },
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
                 complete: function() {
                     window.location.href = "{{ route('home') }}";
                 }

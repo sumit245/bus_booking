@@ -196,7 +196,10 @@
                                 <div class="action-buttons">
                                     @if ($booking->status == 1)
                                         <button type="button" class="btn-action btn-cancel"
-                                            onclick="cancelBooking({{ $booking->id }})">
+                                            onclick="cancelBooking(this, {{ $booking->id }})"
+                                            data-booking-id="{{ $booking->operator_pnr ?? ($booking->pnr_number ?? $booking->id) }}"
+                                            data-search-token-id="{{ $booking->search_token_id ?? '' }}"
+                                            data-seat-id="{{ is_array($seats) && !empty($seats) ? $seats[0] : (is_string($seatDisplay) ? explode(', ', $seatDisplay)[0] ?? $seatDisplay : $seatDisplay) }}">
                                             <i class="las la-times"></i>
                                             Cancel
                                         </button>
@@ -436,8 +439,13 @@
         }
 
         // Booking Cancellation
-        function cancelBooking(bookingId) {
+        function cancelBooking(el, bookingId) {
             bookingToCancel = bookingId;
+            window.bookingCancelPayload = {
+                BookingId: el?.dataset?.bookingId || null,
+                SeatId: el?.dataset?.seatId || null,
+                SearchTokenId: el?.dataset?.searchTokenId || null
+            };
             $('#cancelBookingModal').modal('show');
         }
 
@@ -450,19 +458,22 @@
             $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Cancelling...');
 
             $.ajax({
-                url: '{{ route('user.booking.cancel', ':id') }}'.replace(':id', bookingToCancel),
+                url: "{{ url('api/users/cancel-ticket') }}",
                 type: 'POST',
                 data: {
-                    _token: '{{ csrf_token() }}',
-                    cancellation_reason: reason
+                    UserIp: '{{ request()->ip() }}',
+                    SearchTokenId: window.bookingCancelPayload?.SearchTokenId,
+                    BookingId: window.bookingCancelPayload?.BookingId,
+                    SeatId: window.bookingCancelPayload?.SeatId,
+                    Remarks: reason
                 },
                 success: function(response) {
-                    if (response.status === 'success') {
-                        alert('Success: ' + response.message);
+                    if (response.success) {
+                        alert('Success: ' + (response.message || 'Booking cancelled successfully'));
                         $('#cancelBookingModal').modal('hide');
                         location.reload();
                     } else {
-                        alert('Error: ' + response.message);
+                        alert('Error: ' + (response.message || 'Failed to cancel booking'));
                     }
                 },
                 error: function(xhr) {

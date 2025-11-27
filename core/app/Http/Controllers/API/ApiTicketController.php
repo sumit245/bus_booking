@@ -1611,7 +1611,7 @@ class ApiTicketController extends Controller
             $serviceChargePercentage = $general->service_charge_percentage ?? 0;
 
             // Get platform fee (flat fee, default ₹5)
-            $platformFee = $general->platform_fee ?? 0;
+            $platformFee = $general->platform_fee_fixed ?? 0;
 
             // Get GST percentage (default 5%)
             $gstPercentage = $general->gst_percentage ?? 0;

@@ -107,10 +107,13 @@ class RevenueReport extends Model
             return $existingReport;
         }
 
-        // Get all tickets for the date
+        // Get all PAID tickets for the date (status 1 only)
+        // Exclude invalid dates (0000-00-00 or NULL)
         $userBookings = BookedTicket::where('operator_id', $operatorId)
             ->whereDate('date_of_journey', $reportDate)
-            ->whereIn('status', [0, 1, 2])
+            ->where('status', 1) // Only paid/booked tickets
+            ->where('date_of_journey', '!=', '0000-00-00')
+            ->whereNotNull('date_of_journey')
             ->get();
 
         $operatorBookings = OperatorBooking::where('operator_id', $operatorId)
@@ -125,10 +128,17 @@ class RevenueReport extends Model
             ->where('status', 'active')
             ->get();
 
-        // Calculate totals
-        $userBookingsRevenue = $userBookings->sum('total_amount');
+        // Calculate net revenue using formula: unit_price - (gst * 0.10)
+        // where 0.10 = TDS (5%) + GST deduction (5%)
+        $userBookingsNetRevenue = $userBookings->sum(function ($booking) {
+            $unitPrice = (float) ($booking->unit_price ?? 0);
+            $gst = (float) ($booking->gst ?? 0);
+            return max(0, $unitPrice - ($gst * 0.10));
+        });
+
+        $userBookingsGrossRevenue = $userBookings->sum('total_amount');
         $operatorBookingsRevenue = $operatorBookings->sum('blocked_amount');
-        $totalRevenue = $userBookingsRevenue + $operatorBookingsRevenue;
+        $totalRevenue = $userBookingsNetRevenue + $operatorBookingsRevenue;
 
         $totalTickets = $userBookings->count() + $operatorBookings->count();
         $unitPriceTotal = $userBookings->sum('unit_price');
@@ -138,8 +148,8 @@ class RevenueReport extends Model
         // Calculate platform fees (5% of total revenue)
         $platformCommission = $totalRevenue * 0.05;
 
-        // Calculate payment gateway fees (2% of user bookings)
-        $paymentGatewayFees = $userBookingsRevenue * 0.02;
+        // Calculate payment gateway fees (2% of user bookings NET revenue)
+        $paymentGatewayFees = $userBookingsNetRevenue * 0.02;
 
         // Calculate TDS (10% of net amount)
         $netBeforeTds = $totalRevenue - $platformCommission - $paymentGatewayFees;
@@ -152,8 +162,9 @@ class RevenueReport extends Model
             'user_bookings' => [
                 'total' => [
                     'count' => $userBookings->count(),
-                    'revenue' => $userBookingsRevenue,
-                    'avg_ticket_value' => $userBookings->count() > 0 ? $userBookingsRevenue / $userBookings->count() : 0
+                    'revenue' => $userBookingsNetRevenue, // Net revenue
+                    'gross_revenue' => $userBookingsGrossRevenue, // Gross revenue for reference
+                    'avg_ticket_value' => $userBookings->count() > 0 ? $userBookingsNetRevenue / $userBookings->count() : 0
                 ],
                 'by_booking_type' => $userBookings->groupBy('booking_type')->map(function ($group) {
                     return [
@@ -186,8 +197,8 @@ class RevenueReport extends Model
             'operator_id' => $operatorId,
             'report_date' => $reportDate,
             'total_tickets' => $totalTickets,
-            'total_revenue' => $totalRevenue,
-            'user_bookings_revenue' => $userBookingsRevenue,
+            'total_revenue' => $totalRevenue, // Net revenue
+            'user_bookings_revenue' => $userBookingsNetRevenue, // Net revenue
             'operator_bookings_revenue' => $operatorBookingsRevenue,
             'unit_price_total' => $unitPriceTotal,
             'sub_total_total' => $subTotalTotal,

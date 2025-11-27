@@ -28,15 +28,37 @@ class OperatorController extends Controller
         $pageTitle = "Operator Dashboard";
         $operator = Auth::guard('operator')->user();
 
+        // Get ALL TIME user bookings for this operator (not just last 30 days)
+        // Exclude invalid dates (0000-00-00 or NULL)
+        $userBookings = \App\Models\BookedTicket::where('operator_id', $operator->id)
+            ->whereIn('booking_source', ['user', 'agent', 'admin'])
+            ->confirmed() // Only confirmed/paid bookings (status 1)
+            ->where('date_of_journey', '!=', '0000-00-00')
+            ->whereNotNull('date_of_journey')
+            ->get();
+
+        // Calculate net revenue using the formula: Sum(unit_price - TDS - 5% of GST)
+        // Where TDS = 5% of GST, so: Sum(unit_price - (gst * 0.10))
+        $netRevenue = $userBookings->sum(function ($booking) {
+            return $booking->net_revenue;
+        });
+
         // Dashboard statistics
         $stats = [
             'total_routes' => $operator->routes()->count(),
             'active_routes' => $operator->activeRoutes()->count(),
             'total_buses' => $operator->buses()->count(),
             'active_buses' => $operator->activeBuses()->count(),
-            'total_bookings' => 0, // Will be implemented in next phase
-            'total_revenue' => 0, // Will be implemented in next phase
+            'total_bookings' => $userBookings->count(),
+            'total_revenue' => $netRevenue, // All time net revenue
         ];
+
+        \Log::info('Operator Dashboard Stats - All Time', [
+            'operator_id' => $operator->id,
+            'total_user_bookings' => $userBookings->count(),
+            'net_revenue_all_time' => $netRevenue,
+            'stats' => $stats
+        ]);
 
         return view('operator.dashboard', compact('pageTitle', 'operator', 'stats'));
     }

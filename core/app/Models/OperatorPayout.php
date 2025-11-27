@@ -183,11 +183,21 @@ class OperatorPayout extends Model
             return $existingPayout;
         }
 
-        // Calculate total revenue for the period
-        $totalRevenue = BookedTicket::where('operator_id', $operatorId)
+        // Calculate NET revenue for the period using formula: unit_price - (gst * 0.10)
+        // Only status 1 (paid/booked) tickets generate revenue
+        // Exclude invalid dates (0000-00-00 or NULL)
+        $bookings = BookedTicket::where('operator_id', $operatorId)
             ->whereBetween('date_of_journey', [$startDate, $endDate])
-            ->whereIn('status', [0, 1, 2])
-            ->sum('total_amount');
+            ->where('status', 1) // Only paid tickets
+            ->where('date_of_journey', '!=', '0000-00-00')
+            ->whereNotNull('date_of_journey')
+            ->get();
+
+        $totalRevenue = $bookings->sum(function ($booking) {
+            $unitPrice = (float) ($booking->unit_price ?? 0);
+            $gst = (float) ($booking->gst ?? 0);
+            return max(0, $unitPrice - ($gst * 0.10));
+        });
 
         // Create new payout record
         $payout = static::create([

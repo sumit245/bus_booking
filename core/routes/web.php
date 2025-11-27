@@ -1191,6 +1191,12 @@ Route::name("operator.")
             )->name("attendance.export");
 
             // Schedule Management
+            // IMPORTANT: Specific routes must come BEFORE resource routes
+            Route::get(
+                "schedules/get-for-date",
+                "Operator\ScheduleController@getSchedulesForDate"
+            )->name("schedules.get-for-date");
+
             Route::resource("schedules", "Operator\ScheduleController")->names([
                 "index" => "schedules.index",
                 "create" => "schedules.create",
@@ -1246,6 +1252,20 @@ Route::name("operator.")
             // Route::get('schedules/get-for-date', 'Operator\ScheduleController@getSchedulesForDate')->name('schedules.get-for-date');
     
             // Operator Booking Management
+            // IMPORTANT: Specific routes must come BEFORE resource routes
+            Route::get(
+                "bookings/get-available-seats",
+                "Operator\OperatorBookingController@getAvailableSeats",
+            )->name("bookings.get-available-seats");
+            Route::get(
+                "bookings/get-seat-layout",
+                "Operator\OperatorBookingController@getSeatLayout",
+            )->name("bookings.get-seat-layout");
+            Route::get(
+                "bookings/get-schedules",
+                "Operator\OperatorBookingController@getSchedules",
+            )->name("bookings.get-schedules");
+
             Route::resource(
                 "bookings",
                 "Operator\OperatorBookingController",
@@ -1266,18 +1286,6 @@ Route::name("operator.")
                 "bookings/{booking}/toggle-status",
                 "Operator\OperatorBookingController@toggleStatus",
             )->name("bookings.toggle-status");
-            Route::get(
-                "bookings/get-available-seats",
-                "Operator\OperatorBookingController@getAvailableSeats",
-            )->name("bookings.get-available-seats");
-            Route::get(
-                "bookings/get-seat-layout",
-                "Operator\OperatorBookingController@getSeatLayout",
-            )->name("bookings.get-seat-layout");
-            Route::get(
-                "bookings/get-schedules",
-                "Operator\OperatorBookingController@getSchedules",
-            )->name("bookings.get-schedules");
 
             // Revenue Management
             Route::prefix("revenue")
@@ -1324,25 +1332,32 @@ Route::name("operator.")
     });
 
 Route::get(
-    "operator/schedules/get-for-date",
-    "Operator\ScheduleController@getSchedulesForDate",
-)->name("operator.schedules.get-for-date");
-Route::get(
     "operator/buses/{bus}/routes",
     "Operator\BusController@getRoutes",
 )->name("operator.buses.routes");
-Route::get(
-    "operator/bookings/get-seat-layout",
-    "Operator\OperatorBookingController@getSeatLayout",
-)->name("operator.bookings.get-seat-layout");
 
 // Temporary routes without authentication for testing
 Route::get("test-schedules", function () {
-    $schedules = App\Models\BusSchedule::where("operator_id", 41)
+    $schedules = App\Models\BusSchedule::where("operator_id", 1)
         ->where("operator_bus_id", 1)
-        ->where("is_daily", true)
+        ->where('is_active', 1)
         ->get();
-    return response()->json($schedules);
+    return response()->json([
+        'total_count' => $schedules->count(),
+        'with_route_1' => $schedules->where('operator_route_id', 1)->count(),
+        'with_route_2' => $schedules->where('operator_route_id', 2)->count(),
+        'schedules' => $schedules->map(function ($s) {
+            return [
+                'id' => $s->id,
+                'name' => $s->schedule_name,
+                'bus_id' => $s->operator_bus_id,
+                'route_id' => $s->operator_route_id,
+                'departure' => $s->departure_time,
+                'is_daily' => $s->is_daily,
+                'is_active' => $s->is_active
+            ];
+        })
+    ]);
 });
 
 /*

@@ -18,10 +18,13 @@ class RevenueCalculator
     {
         $reportDate = Carbon::parse($date)->toDateString();
 
-        // Get user bookings
+        // Get PAID user bookings only (status 1)
+        // Exclude invalid dates (0000-00-00 or NULL)
         $userBookings = BookedTicket::where('operator_id', $operatorId)
             ->whereDate('date_of_journey', $reportDate)
-            ->whereIn('status', [0, 1, 2])
+            ->where('status', 1) // Only paid/booked tickets
+            ->where('date_of_journey', '!=', '0000-00-00')
+            ->whereNotNull('date_of_journey')
             ->get();
 
         // Get operator bookings
@@ -48,10 +51,13 @@ class RevenueCalculator
         $start = Carbon::parse($startDate)->toDateString();
         $end = Carbon::parse($endDate)->toDateString();
 
-        // Get user bookings
+        // Get PAID user bookings only (status 1)
+        // Exclude invalid dates (0000-00-00 or NULL)
         $userBookings = BookedTicket::where('operator_id', $operatorId)
             ->whereBetween('date_of_journey', [$start, $end])
-            ->whereIn('status', [0, 1, 2])
+            ->where('status', 1) // Only paid/booked tickets
+            ->where('date_of_journey', '!=', '0000-00-00')
+            ->whereNotNull('date_of_journey')
             ->get();
 
         // Get operator bookings
@@ -82,18 +88,29 @@ class RevenueCalculator
      */
     private function processRevenueData($userBookings, $operatorBookings, $startDate, $endDate = null): array
     {
-        // Basic revenue calculations
-        $userBookingsRevenue = $userBookings->sum('total_amount');
+        // Calculate net revenue for user bookings using formula:
+        // Net Revenue = Sum(unit_price - TDS - 5% of GST)
+        // Where TDS = 5% of GST, simplified: Sum(unit_price - (gst * 0.10))
+        $userBookingsNetRevenue = $userBookings->sum(function ($booking) {
+            $unitPrice = (float) ($booking->unit_price ?? 0);
+            $gst = (float) ($booking->gst ?? 0);
+            return max(0, $unitPrice - ($gst * 0.10));
+        });
+
+        // Keep gross revenue for reporting
+        $userBookingsGrossRevenue = $userBookings->sum('total_amount');
         $operatorBookingsRevenue = $operatorBookings->sum('blocked_amount');
-        $totalRevenue = $userBookingsRevenue + $operatorBookingsRevenue;
+
+        // Total revenue is net revenue from user bookings + operator bookings
+        $totalRevenue = $userBookingsNetRevenue + $operatorBookingsRevenue;
 
         $totalTickets = $userBookings->count() + $operatorBookings->count();
         $unitPriceTotal = $userBookings->sum('unit_price');
         $subTotalTotal = $userBookings->sum('sub_total');
         $agentCommissionTotal = $userBookings->sum('agent_commission');
 
-        // Fee calculations
-        $fees = $this->calculateFees($totalRevenue, $userBookingsRevenue);
+        // Fee calculations based on net revenue
+        $fees = $this->calculateFees($totalRevenue, $userBookingsNetRevenue);
 
         // Detailed breakdown
         $breakdown = $this->generateDetailedBreakdown($userBookings, $operatorBookings, $fees);
@@ -106,8 +123,9 @@ class RevenueCalculator
             ],
             'summary' => [
                 'total_tickets' => $totalTickets,
-                'total_revenue' => $totalRevenue,
-                'user_bookings_revenue' => $userBookingsRevenue,
+                'total_revenue' => $totalRevenue, // Net revenue
+                'user_bookings_revenue' => $userBookingsNetRevenue, // Net revenue from user bookings
+                'user_bookings_gross_revenue' => $userBookingsGrossRevenue, // Gross revenue for reference
                 'operator_bookings_revenue' => $operatorBookingsRevenue,
                 'unit_price_total' => $unitPriceTotal,
                 'sub_total_total' => $subTotalTotal,
@@ -154,13 +172,21 @@ class RevenueCalculator
     {
         // User bookings breakdown by booking type
         $userBookingsBreakdown = $userBookings->groupBy('booking_type')->map(function ($group) {
+            // Calculate net revenue for this group
+            $netRevenue = $group->sum(function ($booking) {
+                $unitPrice = (float) ($booking->unit_price ?? 0);
+                $gst = (float) ($booking->gst ?? 0);
+                return max(0, $unitPrice - ($gst * 0.10));
+            });
+
             return [
                 'count' => $group->count(),
-                'revenue' => $group->sum('total_amount'),
+                'revenue' => $netRevenue, // Net revenue
+                'gross_revenue' => $group->sum('total_amount'), // Gross revenue for reference
                 'unit_price' => $group->sum('unit_price'),
                 'sub_total' => $group->sum('sub_total'),
                 'agent_commission' => $group->sum('agent_commission'),
-                'avg_ticket_value' => $group->count() > 0 ? $group->sum('total_amount') / $group->count() : 0
+                'avg_ticket_value' => $group->count() > 0 ? $netRevenue / $group->count() : 0
             ];
         });
 
@@ -173,29 +199,49 @@ class RevenueCalculator
             ];
         });
 
-        // Top performing routes/buses
+        // Top performing routes/buses (using net revenue)
         $topRoutes = $userBookings->groupBy('route_id')->map(function ($group) {
+            $netRevenue = $group->sum(function ($booking) {
+                $unitPrice = (float) ($booking->unit_price ?? 0);
+                $gst = (float) ($booking->gst ?? 0);
+                return max(0, $unitPrice - ($gst * 0.10));
+            });
+
             return [
                 'route_id' => $group->first()->route_id,
                 'count' => $group->count(),
-                'revenue' => $group->sum('total_amount')
+                'revenue' => $netRevenue
             ];
         })->sortByDesc('revenue')->take(5);
 
         $topBuses = $userBookings->groupBy('bus_id')->map(function ($group) {
+            $netRevenue = $group->sum(function ($booking) {
+                $unitPrice = (float) ($booking->unit_price ?? 0);
+                $gst = (float) ($booking->gst ?? 0);
+                return max(0, $unitPrice - ($gst * 0.10));
+            });
+
             return [
                 'bus_id' => $group->first()->bus_id,
                 'count' => $group->count(),
-                'revenue' => $group->sum('total_amount')
+                'revenue' => $netRevenue
             ];
         })->sortByDesc('revenue')->take(5);
+
+        // Calculate net revenue totals
+        $userBookingsNetRevenue = $userBookings->sum(function ($booking) {
+            $unitPrice = (float) ($booking->unit_price ?? 0);
+            $gst = (float) ($booking->gst ?? 0);
+            return max(0, $unitPrice - ($gst * 0.10));
+        });
 
         return [
             'user_bookings' => [
                 'total' => [
                     'count' => $userBookings->count(),
-                    'revenue' => $userBookings->sum('total_amount'),
-                    'avg_ticket_value' => $userBookings->count() > 0 ? $userBookings->sum('total_amount') / $userBookings->count() : 0
+                    'revenue' => $userBookingsNetRevenue, // Net revenue
+                    'gross_revenue' => $userBookings->sum('total_amount'), // Gross revenue for reference
+                    'avg_ticket_value' => $userBookings->count() > 0 ? $userBookingsNetRevenue / $userBookings->count() : 0
                 ],
                 'by_booking_type' => $userBookingsBreakdown,
                 'top_routes' => $topRoutes,
@@ -212,20 +258,20 @@ class RevenueCalculator
             'fees_breakdown' => [
                 'platform_commission' => [
                     'amount' => $fees['platform_commission'],
-                    'percentage' => $userBookings->sum('total_amount') + $operatorBookings->sum('blocked_amount') > 0
-                        ? ($fees['platform_commission'] / ($userBookings->sum('total_amount') + $operatorBookings->sum('blocked_amount'))) * 100
+                    'percentage' => ($userBookingsNetRevenue + $operatorBookings->sum('blocked_amount')) > 0
+                        ? ($fees['platform_commission'] / ($userBookingsNetRevenue + $operatorBookings->sum('blocked_amount'))) * 100
                         : 0
                 ],
                 'payment_gateway_fees' => [
                     'amount' => $fees['payment_gateway_fees'],
-                    'percentage' => $userBookings->sum('total_amount') > 0
-                        ? ($fees['payment_gateway_fees'] / $userBookings->sum('total_amount')) * 100
+                    'percentage' => $userBookingsNetRevenue > 0
+                        ? ($fees['payment_gateway_fees'] / $userBookingsNetRevenue) * 100
                         : 0
                 ],
                 'tds_amount' => [
                     'amount' => $fees['tds_amount'],
-                    'percentage' => ($userBookings->sum('total_amount') + $operatorBookings->sum('blocked_amount') - $fees['platform_commission'] - $fees['payment_gateway_fees']) > 0
-                        ? ($fees['tds_amount'] / ($userBookings->sum('total_amount') + $operatorBookings->sum('blocked_amount') - $fees['platform_commission'] - $fees['payment_gateway_fees'])) * 100
+                    'percentage' => ($userBookingsNetRevenue + $operatorBookings->sum('blocked_amount') - $fees['platform_commission'] - $fees['payment_gateway_fees']) > 0
+                        ? ($fees['tds_amount'] / ($userBookingsNetRevenue + $operatorBookings->sum('blocked_amount') - $fees['platform_commission'] - $fees['payment_gateway_fees'])) * 100
                         : 0
                 ]
             ]

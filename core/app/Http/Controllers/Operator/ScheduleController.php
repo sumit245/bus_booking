@@ -380,25 +380,66 @@ class ScheduleController extends Controller
      */
     public function getSchedulesForDate(Request $request)
     {
-        // Skip authentication for testing - use operator ID 41 directly
-        $operatorId = 41; // Sutra Seva operator
-        $date = $request->date ?? now()->toDateString();
-        $busId = $request->bus_id;
+        try {
+            // Get authenticated operator
+            $operator = auth('operator')->user();
+            $operatorId = $operator ? $operator->id : null;
 
-        $query = BusSchedule::with(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity'])
-            ->where('operator_id', $operatorId)
-            ->where('is_daily', true) // Get daily schedules
-            ->active()
-            ->ordered();
+            // Fallback for testing if not authenticated
+            if (!$operatorId) {
+                $operatorId = 1; // Default operator ID for testing
+            }
 
-        // Filter by bus if provided
-        if ($busId) {
-            $query->where('operator_bus_id', $busId);
+            $date = $request->date ?? now()->toDateString();
+            $busId = $request->bus_id;
+            $routeId = $request->route_id;
+
+            $query = BusSchedule::with(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity'])
+                ->where('operator_id', $operatorId)
+                ->where('is_daily', true) // Get daily schedules
+                ->active()
+                ->ordered();
+
+            // Filter by bus if provided
+            if ($busId) {
+                $query->where('operator_bus_id', $busId);
+            }
+
+            // Filter by route if provided
+            if ($routeId) {
+                $query->where('operator_route_id', $routeId);
+            }
+
+            $schedules = $query->get();
+
+            \Log::info('getSchedulesForDate', [
+                'operator_id' => $operatorId,
+                'bus_id' => $busId,
+                'route_id' => $routeId,
+                'schedules_count' => $schedules->count(),
+                'schedules' => $schedules->map(function ($s) {
+                    return [
+                        'id' => $s->id,
+                        'schedule_name' => $s->schedule_name,
+                        'bus_id' => $s->operator_bus_id,
+                        'route_id' => $s->operator_route_id,
+                        'departure_time' => $s->departure_time
+                    ];
+                })
+            ]);
+
+            return response()->json($schedules);
+        } catch (\Exception $e) {
+            \Log::error('getSchedulesForDate error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to load schedules: ' . $e->getMessage(),
+                'schedules' => []
+            ], 500);
         }
-
-        $schedules = $query->get();
-
-        return response()->json($schedules);
     }
 
     /**

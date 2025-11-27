@@ -9,6 +9,8 @@ use App\Services\RevenueCalculator;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use League\Csv\Writer;
+use League\Csv\CharsetConverter;
 
 class RevenueController extends Controller
 {
@@ -22,14 +24,88 @@ class RevenueController extends Controller
     /**
      * Show revenue dashboard
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $pageTitle = 'Revenue Dashboard';
         $operator = auth('operator')->user();
 
         try {
-            // Get revenue summary for last 30 days
-            $revenueSummary = $this->revenueCalculator->getRevenueSummary($operator->id, 30);
+            // Determine date range based on period filter
+            $period = $request->get('period', 'last30');
+
+            switch ($period) {
+                case 'all':
+                    // Get the earliest booking date
+                    $firstBooking = \App\Models\BookedTicket::where('operator_id', $operator->id)
+                        ->where('status', 1)
+                        ->orderBy('date_of_journey', 'asc')
+                        ->first();
+
+                    if ($firstBooking) {
+                        // date_of_journey might be a string or Carbon instance
+                        $startDate = $firstBooking->date_of_journey instanceof \Carbon\Carbon
+                            ? $firstBooking->date_of_journey->toDateString()
+                            : $firstBooking->date_of_journey;
+                    } else {
+                        $startDate = Carbon::now()->subYear()->toDateString();
+                    }
+
+                    $endDate = Carbon::now()->toDateString();
+                    $days = Carbon::parse($startDate)->diffInDays($endDate);
+                    break;
+
+                case 'today':
+                    $startDate = Carbon::now()->toDateString();
+                    $endDate = Carbon::now()->toDateString();
+                    $days = 1;
+                    break;
+
+                case 'last7':
+                    $startDate = Carbon::now()->subDays(7)->toDateString();
+                    $endDate = Carbon::now()->toDateString();
+                    $days = 7;
+                    break;
+
+                case 'this_month':
+                    $startDate = Carbon::now()->startOfMonth()->toDateString();
+                    $endDate = Carbon::now()->toDateString();
+                    $days = Carbon::now()->day;
+                    break;
+
+                case 'last_month':
+                    $startDate = Carbon::now()->subMonth()->startOfMonth()->toDateString();
+                    $endDate = Carbon::now()->subMonth()->endOfMonth()->toDateString();
+                    $days = Carbon::parse($startDate)->diffInDays($endDate) + 1;
+                    break;
+
+                case 'custom':
+                    $startDate = $request->get('start_date', Carbon::now()->subDays(30)->toDateString());
+                    $endDate = $request->get('end_date', Carbon::now()->toDateString());
+                    $days = Carbon::parse($startDate)->diffInDays($endDate) + 1;
+                    break;
+
+                case 'last30':
+                default:
+                    $startDate = Carbon::now()->subDays(30)->toDateString();
+                    $endDate = Carbon::now()->toDateString();
+                    $days = 30;
+                    break;
+            }
+
+            // Get revenue summary for the selected period
+            if ($period == 'all') {
+                // For all time, calculate directly without using getRevenueSummary
+                $revenueSummary = $this->revenueCalculator->calculatePeriodRevenue($operator->id, $startDate, $endDate);
+            } else {
+                $revenueSummary = $this->revenueCalculator->calculatePeriodRevenue($operator->id, $startDate, $endDate);
+            }
+
+            // Calculate pending amount from payouts
+            $pendingPayouts = OperatorPayout::forOperator($operator->id)
+                ->whereIn('payment_status', ['pending', 'partial'])
+                ->get();
+
+            $revenueSummary['pending_amount'] = $pendingPayouts->sum('pending_amount');
 
             // Get recent revenue reports
             $recentReports = RevenueReport::forOperator($operator->id)
@@ -90,7 +166,38 @@ class RevenueController extends Controller
             $query->byType($request->report_type);
         }
 
-        $reports = $query->orderBy('report_date', 'desc')->paginate(20);
+        // Apply sorting
+        $sortColumn = $request->get('sort', 'report_date');
+        $sortOrder = $request->get('order', 'desc');
+
+        // Validate sort column to prevent SQL injection
+        $allowedSorts = [
+            'report_date',
+            'report_type',
+            'total_tickets',
+            'total_revenue',
+            'user_bookings_revenue',
+            'operator_bookings_revenue',
+            'platform_commission',
+            'net_payable'
+        ];
+
+        if (in_array($sortColumn, $allowedSorts)) {
+            $query->orderBy($sortColumn, $sortOrder);
+        } else {
+            $query->orderBy('report_date', 'desc');
+        }
+
+        // Get per_page from request or default to 20
+        $perPage = $request->get('per_page', 20);
+
+        // Validate per_page value
+        $allowedPerPage = [10, 20, 50, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 20;
+        }
+
+        $reports = $query->paginate($perPage);
 
         return view('operator.revenue.reports', compact('reports'));
     }
@@ -183,47 +290,133 @@ class RevenueController extends Controller
     }
 
     /**
-     * Export revenue data
+     * Export revenue reports to Excel/CSV
      */
     public function export(Request $request)
     {
         $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'format' => 'required|in:csv,json'
+            'formatExport' => 'required|in:csv,json'
         ]);
 
         $operator = auth('operator')->user();
 
         try {
-            $data = $this->revenueCalculator->exportRevenueData(
-                $operator->id,
-                $request->start_date,
-                $request->end_date,
-                $request->format
-            );
+            $query = RevenueReport::forOperator($operator->id);
 
-            if ($request->format === 'csv') {
-                $filename = "revenue_report_{$operator->id}_{$request->start_date}_to_{$request->end_date}.csv";
-                return response($data)
-                    ->header('Content-Type', 'text/csv')
-                    ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+            // Apply filters
+            $query->where('report_date', '>=', $request->start_date)
+                ->where('report_date', '<=', $request->end_date);
+
+            if ($request->filled('report_type')) {
+                $query->byType($request->report_type);
+            }
+
+            // Apply sorting
+            $sortColumn = $request->get('sort', 'report_date');
+            $sortOrder = $request->get('order', 'desc');
+
+            $allowedSorts = [
+                'report_date',
+                'report_type',
+                'total_tickets',
+                'total_revenue',
+                'user_bookings_revenue',
+                'operator_bookings_revenue',
+                'platform_commission',
+                'net_payable'
+            ];
+
+            if (in_array($sortColumn, $allowedSorts)) {
+                $query->orderBy($sortColumn, $sortOrder);
             } else {
-                $filename = "revenue_report_{$operator->id}_{$request->start_date}_to_{$request->end_date}.json";
-                return response($data)
+                $query->orderBy('report_date', 'desc');
+            }
+
+            $reports = $query->get();
+
+            if ($request->formatExport === 'csv') {
+                $filename = "revenue_reports_{$operator->id}_{$request->start_date}_to_{$request->end_date}.csv";
+
+                // Create CSV using League\Csv for better Excel compatibility
+                $csv = Writer::createFromString('');
+
+                // Set UTF-8 BOM for Excel compatibility
+                $csv->setOutputBOM(Writer::BOM_UTF8);
+
+                // Add CSV headers
+                $csv->insertOne([
+                    'Date',
+                    'Type',
+                    'Total Tickets',
+                    'Total Revenue (₹)',
+                    'User Bookings Revenue (₹)',
+                    'Operator Bookings Revenue (₹)',
+                    'Platform Commission (₹)',
+                    'Payment Gateway Fees (₹)',
+                    'TDS Amount (₹)',
+                    'Net Payable (₹)'
+                ]);
+
+                // Add data rows
+                foreach ($reports as $report) {
+                    $csv->insertOne([
+                        $report->report_date->format('Y-m-d'),
+                        ucfirst($report->report_type),
+                        $report->total_tickets,
+                        number_format($report->total_revenue, 2, '.', ''),
+                        number_format($report->user_bookings_revenue, 2, '.', ''),
+                        number_format($report->operator_bookings_revenue, 2, '.', ''),
+                        number_format($report->platform_commission, 2, '.', ''),
+                        number_format($report->payment_gateway_fees, 2, '.', ''),
+                        number_format($report->tds_amount, 2, '.', ''),
+                        number_format($report->net_payable, 2, '.', '')
+                    ]);
+                }
+
+                // Output the CSV
+                return response($csv->toString(), 200, [
+                    'Content-Type' => 'text/csv; charset=UTF-8',
+                    'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+                    'Pragma' => 'no-cache',
+                    'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+                    'Expires' => '0'
+                ]);
+
+            } else {
+                // JSON export
+                $filename = "revenue_reports_{$operator->id}_{$request->start_date}_to_{$request->end_date}.json";
+
+                $data = $reports->map(function ($report) {
+                    return [
+                        'date' => $report->report_date->format('Y-m-d'),
+                        'type' => $report->report_type,
+                        'total_tickets' => $report->total_tickets,
+                        'total_revenue' => $report->total_revenue,
+                        'user_bookings_revenue' => $report->user_bookings_revenue,
+                        'operator_bookings_revenue' => $report->operator_bookings_revenue,
+                        'platform_commission' => $report->platform_commission,
+                        'payment_gateway_fees' => $report->payment_gateway_fees,
+                        'tds_amount' => $report->tds_amount,
+                        'net_payable' => $report->net_payable
+                    ];
+                });
+
+                return response()->json($data)
                     ->header('Content-Type', 'application/json')
                     ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
             }
 
         } catch (\Exception $e) {
-            Log::error('Export revenue data error: ' . $e->getMessage(), [
+            Log::error('Export revenue reports error: ' . $e->getMessage(), [
                 'operator_id' => $operator->id,
                 'request' => $request->all(),
                 'exception' => $e
             ]);
 
             return redirect()->back()
-                ->with('error', 'Unable to export revenue data. Please try again.');
+                ->with('error', 'Unable to export revenue reports. Please try again.');
         }
     }
 

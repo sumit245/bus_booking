@@ -1673,6 +1673,7 @@ if (!function_exists("processDeckSeatNodes")) {
                 "type" => $seatType,
                 "category" => $seatDetails["is_sleeper"] ? "sleeper" : "seater",
                 "position" => $top,
+                "left" => $left, // Keep left position for rendering
                 "is_available" => $seatDetails["is_available"],
                 "_left" => $left, // temporary helper used for sorting
             ];

@@ -9,6 +9,47 @@
                         <h4 class="card-title">@lang('Revenue Dashboard')</h4>
                     </div>
                     <div class="card-body">
+                        <!-- Date Range Filter -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <form method="GET" action="{{ route('operator.revenue.dashboard') }}" class="form-inline">
+                                    <div class="form-group mr-3">
+                                        <label class="mr-2">@lang('Date Range'):</label>
+                                        <select name="period" class="form-control" id="periodSelect">
+                                            <option value="all"
+                                                {{ request('period', 'last30') == 'all' ? 'selected' : '' }}>
+                                                @lang('All Time')</option>
+                                            <option value="today" {{ request('period') == 'today' ? 'selected' : '' }}>
+                                                @lang('Today')</option>
+                                            <option value="last7" {{ request('period') == 'last7' ? 'selected' : '' }}>
+                                                @lang('Last 7 Days')</option>
+                                            <option value="last30"
+                                                {{ request('period', 'last30') == 'last30' ? 'selected' : '' }}>
+                                                @lang('Last 30 Days')</option>
+                                            <option value="this_month"
+                                                {{ request('period') == 'this_month' ? 'selected' : '' }}>@lang('This Month')
+                                            </option>
+                                            <option value="last_month"
+                                                {{ request('period') == 'last_month' ? 'selected' : '' }}>@lang('Last Month')
+                                            </option>
+                                            <option value="custom" {{ request('period') == 'custom' ? 'selected' : '' }}>
+                                                @lang('Custom Range')</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group mr-3" id="customDateRange"
+                                        style="display: {{ request('period') == 'custom' ? 'block' : 'none' }};">
+                                        <input type="date" name="start_date" class="form-control mr-2"
+                                            value="{{ request('start_date') }}" placeholder="Start Date">
+                                        <input type="date" name="end_date" class="form-control"
+                                            value="{{ request('end_date') }}" placeholder="End Date">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">@lang('Apply Filter')</button>
+                                    <a href="{{ route('operator.revenue.dashboard') }}"
+                                        class="btn btn-secondary ml-2">@lang('Reset')</a>
+                                </form>
+                            </div>
+                        </div>
+
                         <!-- Revenue Summary Cards -->
                         <div class="row mb-4">
                             <div class="col-xl-3 col-md-6">
@@ -233,6 +274,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(document).ready(function() {
+            // Toggle custom date range visibility
+            $('#periodSelect').on('change', function() {
+                if ($(this).val() === 'custom') {
+                    $('#customDateRange').show();
+                } else {
+                    $('#customDateRange').hide();
+                }
+            });
+
             // Load chart data
             $.get('{{ route('operator.revenue.chart-data') }}', function(data) {
                 const ctx = document.getElementById('revenueChart').getContext('2d');
@@ -269,5 +319,34 @@
                 });
             });
         });
+
+        // Show filter period toast notification
+        @if (request()->has('period') || request()->has('start_date'))
+            $(document).ready(function() {
+                var period = "{{ request('period', 'last30') }}";
+                var message = "";
+
+                if (period === 'all') {
+                    message = "@lang('Showing data for'): @lang('All Time')";
+                } else if (period === 'today') {
+                    message = "@lang('Showing data for'): @lang('Today')";
+                } else if (period === 'last7') {
+                    message = "@lang('Showing data for'): @lang('Last 7 Days')";
+                } else if (period === 'last30') {
+                    message = "@lang('Showing data for'): @lang('Last 30 Days')";
+                } else if (period === 'this_month') {
+                    message = "@lang('Showing data for'): @lang('This Month')";
+                } else if (period === 'last_month') {
+                    message = "@lang('Showing data for'): @lang('Last Month')";
+                } else if (period === 'custom') {
+                    message =
+                        "@lang('Showing data for'): {{ request('start_date') }} @lang('to') {{ request('end_date') }}";
+                }
+
+                if (message) {
+                    notify('info', message);
+                }
+            });
+        @endif
     </script>
 @endpush

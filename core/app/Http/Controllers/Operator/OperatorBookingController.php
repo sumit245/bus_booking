@@ -106,8 +106,8 @@ class OperatorBookingController extends Controller
         $perPage = $request->get('per_page', getPaginate());
         $bookings = $query->paginate($perPage)->appends($request->except('page'));
 
-        $buses = \App\Models\OperatorBus::where('operator_id', $operator->id)->get(['id', 'travel_name', 'bus_type']);
-        $routes = \App\Models\OperatorRoute::with(['originCity:city_id,city_name', 'destinationCity:city_id,city_name'])
+        $buses = OperatorBus::where('operator_id', $operator->id)->get(['id', 'travel_name', 'bus_type']);
+        $routes = OperatorRoute::with(['originCity:city_id,city_name', 'destinationCity:city_id,city_name'])
             ->where('operator_id', $operator->id)
             ->get(['id', 'origin_city_id', 'destination_city_id', 'route_name']);
 
@@ -119,7 +119,7 @@ class OperatorBookingController extends Controller
      */
     private function exportUserBookings($request, $operator)
     {
-        $query = \App\Models\BookedTicket::query()
+        $query = BookedTicket::query()
             ->where('operator_id', $operator->id)
             ->whereIn('booking_source', ['user', 'agent', 'admin']);
 
@@ -189,7 +189,25 @@ class OperatorBookingController extends Controller
         $operator = auth('operator')->user();
 
         $buses = OperatorBus::where('operator_id', $operator->id)->get();
-        $routes = OperatorRoute::with(['originCity', 'destinationCity'])->where('operator_id', $operator->id)->get();
+        $routes = OperatorRoute::with(['originCity', 'destinationCity'])
+            ->where('operator_id', $operator->id)
+            ->get();
+
+        // Log for debugging
+        \Log::info('Block Seats Create Page', [
+            'buses_count' => $buses->count(),
+            'routes_count' => $routes->count(),
+            'routes' => $routes->map(function ($route) {
+                return [
+                    'id' => $route->id,
+                    'route_name' => $route->route_name,
+                    'origin_city_id' => $route->origin_city_id,
+                    'destination_city_id' => $route->destination_city_id,
+                    'origin_city' => $route->originCity ? $route->originCity->city_name : 'NULL',
+                    'destination_city' => $route->destinationCity ? $route->destinationCity->city_name : 'NULL'
+                ];
+            })->toArray()
+        ]);
 
         // Pre-select bus if provided
         $selectedBus = null;
@@ -282,131 +300,141 @@ class OperatorBookingController extends Controller
     }
 
     /**
-     * Create a booked ticket entry for operator booking (like user booking but without payment)
+     * Create a booked ticket entry for operator booking to prevent double-booking by users
      */
     private function createOperatorBookedTicket($operatorBooking, $bus, $route)
     {
-        // Generate PNR number like in SiteController and ApiTicketController
-        $pnrNumber = 'OP' . strtoupper(Str::random(8));
+        $operator = $operatorBooking->operator;
 
-        // Prepare passenger names
-        $passengerNames = [];
-        foreach ($operatorBooking->blocked_seats as $seat) {
-            $passengerNames[] = "Operator Blocked - {$seat}";
-        }
-
-        // Get schedule details - load the relationship if not already loaded
+        // Get schedule details
         $schedule = $operatorBooking->busSchedule;
         if (!$schedule && $operatorBooking->bus_schedule_id) {
             $schedule = \App\Models\BusSchedule::find($operatorBooking->bus_schedule_id);
         }
-        $departureTime = $schedule ? $schedule->departure_time : '00:00:00';
-        $arrivalTime = $schedule ? $schedule->arrival_time : '00:00:00';
 
-        \Log::info('createOperatorBookedTicket values', [
-            'departure_time' => $departureTime,
-            'arrival_time' => $arrivalTime,
-            'journey_date' => $operatorBooking->journey_date ? $operatorBooking->journey_date->format('Y-m-d') : null,
-            'operator_mobile' => $operatorBooking->operator->mobile ?? 'NULL'
+        if (!$schedule) {
+            \Log::error('Cannot create booked ticket: schedule not found', [
+                'operator_booking_id' => $operatorBooking->id,
+                'bus_schedule_id' => $operatorBooking->bus_schedule_id
+            ]);
+            return;
+        }
+
+        $departureTime = $schedule->departure_time;
+        $arrivalTime = $schedule->arrival_time;
+
+        // Get first boarding and dropping points for this schedule's route
+        $boardingPoint = \App\Models\BoardingPoint::where('operator_route_id', $route->id)
+            ->active()
+            ->ordered()
+            ->first();
+
+        $droppingPoint = \App\Models\DroppingPoint::where('operator_route_id', $route->id)
+            ->active()
+            ->ordered()
+            ->first();
+
+        // Prepare boarding point details in format expected by SeatAvailabilityService
+        $boardingPointDetails = $boardingPoint ? [
+            'CityPointIndex' => $boardingPoint->point_index,
+            'CityPointLocation' => $boardingPoint->point_location ?? $boardingPoint->point_name,
+            'CityPointName' => $boardingPoint->point_name,
+            'CityPointTime' => $boardingPoint->point_time ?? $departureTime
+        ] : null;
+
+        // Prepare dropping point details in format expected by SeatAvailabilityService
+        $droppingPointDetails = $droppingPoint ? [
+            'CityPointIndex' => $droppingPoint->point_index,
+            'CityPointLocation' => $droppingPoint->point_location ?? $droppingPoint->point_name,
+            'CityPointName' => $droppingPoint->point_name,
+            'CityPointTime' => $droppingPoint->point_time ?? $arrivalTime
+        ] : null;
+
+        // Generate unique PNR
+        $pnrNumber = 'OP' . strtoupper(Str::random(8));
+
+        // IMPORTANT: Ensure blocked_seats is an array (Laravel casts handle this)
+        // If $operatorBooking->blocked_seats is already an array, don't json_encode it again
+        $seatsArray = $operatorBooking->blocked_seats;
+        if (!is_array($seatsArray)) {
+            $seatsArray = json_decode($seatsArray, true) ?: [];
+        }
+
+        \Log::info('Seats data before saving to booked_tickets', [
+            'seats_type' => gettype($seatsArray),
+            'seats_value' => $seatsArray,
+            'is_array' => is_array($seatsArray)
         ]);
 
-        // Get boarding and dropping points
-        $boardingPoint = $route->boardingPoints->first();
-        $droppingPoint = $route->droppingPoints->first();
-
-        // Prepare boarding point details
-        $boardingPointDetails = $boardingPoint ? [
-            [
-                'CityPointIndex' => $boardingPoint->id,
-                'CityPointLocation' => $boardingPoint->point_address ?: $boardingPoint->point_location ?: $boardingPoint->point_name,
-                'CityPointName' => $boardingPoint->point_name,
-                'CityPointTime' => $boardingPoint->point_time ?: $departureTime
-            ]
-        ] : [];
-
-        // Prepare dropping point details
-        $droppingPointDetails = $droppingPoint ? [
-            [
-                'CityPointIndex' => $droppingPoint->id,
-                'CityPointLocation' => $droppingPoint->point_address ?: $droppingPoint->point_location ?: $droppingPoint->point_name,
-                'CityPointName' => $droppingPoint->point_name,
-                'CityPointTime' => $droppingPoint->point_time ?: $arrivalTime
-            ]
-        ] : [];
-
-        // Prepare bus details
-        $busDetails = [
-            'departure_time' => $departureTime,
-            'arrival_time' => $arrivalTime,
-            'bus_type' => $bus->bus_type,
-            'travel_name' => $bus->travel_name
-        ];
-
-        // Generate search token ID (similar to API format)
-        $searchTokenId = 'OP_TOKEN_' . time() . '_' . $operatorBooking->id;
-
-        // Create the booked ticket with all required fields
+        // Create the booked ticket entry - CRITICAL for blocking seats from user bookings
         \App\Models\BookedTicket::create([
-            'user_id' => $operatorBooking->operator_id, // Use operator ID as user_id
-            'operator_id' => $operatorBooking->operator_id,
+            // Operator details (as passenger)
+            'passenger_name' => $operator->company_name ?? 'Operator Block',
+            'passenger_phone' => $operator->mobile,
+            'passenger_email' => $operator->email,
+            'gender' => 0, // As requested
+
+            // IDs and references
+            'user_id' => null, // As requested - this is operator booking, not user
+            'operator_id' => $operator->id,
             'operator_booking_id' => $operatorBooking->id,
             'booking_id' => 'OP-' . $operatorBooking->id,
             'ticket_no' => 'OP-' . $operatorBooking->id,
             'pnr_number' => $pnrNumber,
-            'operator_pnr' => $pnrNumber, // Add operator_pnr field
+            'operator_pnr' => $pnrNumber,
+
+            // Bus and route details
             'bus_id' => $bus->id,
             'route_id' => $route->id,
-            'schedule_id' => $operatorBooking->bus_schedule_id,
+            'schedule_id' => $schedule->id,
             'bus_type' => $bus->bus_type,
             'travel_name' => $bus->travel_name,
             'departure_time' => $departureTime,
             'arrival_time' => $arrivalTime,
-            'seat_numbers' => implode(',', $operatorBooking->blocked_seats),
-            'seats' => json_encode($operatorBooking->blocked_seats), // Convert array to JSON
-            'ticket_count' => count($operatorBooking->blocked_seats),
-            'passenger_names' => json_encode($passengerNames), // Convert array to JSON
-            'passenger_phones' => json_encode([$operatorBooking->operator->mobile]), // Convert array to JSON
-            'passenger_emails' => json_encode([$operatorBooking->operator->email]), // Convert array to JSON
-            'passenger_phone' => $operatorBooking->operator->mobile, // Add single phone field
-            'passenger_email' => $operatorBooking->operator->email, // Add single email field
-            'passenger_name' => $operatorBooking->operator->company_name, // Add passenger name
-            'passenger_age' => 0, // Default age for operator bookings
-            'passenger_address' => $operatorBooking->operator->address ?? '', // Add address
-            'gender' => 'Male', // Default gender for operator bookings
-            'source_destination' => json_encode([$route->origin_city_id, $route->destination_city_id]), // Convert array to JSON
-            'pickup_point' => $boardingPoint ? $boardingPoint->id : null,
-            'boarding_point' => $boardingPoint ? $boardingPoint->point_name : 'Main Terminal',
-            'boarding_point_details' => json_encode($boardingPointDetails), // Convert array to JSON
-            'dropping_point' => $droppingPoint ? $droppingPoint->point_name : 'Main Terminal',
-            'dropping_point_details' => json_encode($droppingPointDetails), // Convert array to JSON
-            'date_of_journey' => $operatorBooking->journey_date ? $operatorBooking->journey_date->format('Y-m-d') : null,
+
+            // Journey details
+            'source_destination' => $route->originCity->city_name . ' to ' . $route->destinationCity->city_name,
             'origin_city' => $route->originCity->city_name,
             'destination_city' => $route->destinationCity->city_name,
+            'date_of_journey' => $operatorBooking->journey_date->format('Y-m-d'),
+
+            // Boarding and dropping points
+            'boarding_point' => $boardingPoint ? $boardingPoint->id : null,
+            'boarding_point_details' => $boardingPointDetails ? json_encode($boardingPointDetails) : null,
+            'dropping_point' => $droppingPoint ? $droppingPoint->id : null,
+            'dropping_point_details' => $droppingPointDetails ? json_encode($droppingPointDetails) : null,
+
+            // Seat details - CRITICAL: This is what SeatAvailabilityService checks
+            // Pass as array - Laravel's cast will handle JSON encoding
+            'seats' => $seatsArray,
+            'seat_numbers' => implode(',', $seatsArray),
+            'ticket_count' => count($seatsArray),
+
+            // Financial details - all zero as requested
             'unit_price' => 0,
             'sub_total' => 0,
+            'service_charge' => 0,
+            'service_charge_percentage' => 0,
+            'platform_fee' => 0,
+            'gst' => 0,
             'total_amount' => 0,
             'paid_amount' => 0,
-            'status' => 0, // Blocked but not paid
-            'payment_status' => 'pending',
-            'booking_type' => 'operator_blocking',
-            'booking_reason' => $operatorBooking->booking_reason,
-            'notes' => $operatorBooking->notes,
-            'bus_details' => json_encode($busDetails), // Convert array to JSON
-            'search_token_id' => $searchTokenId,
-            'api_invoice' => null, // No API invoice for operator bookings
-            'api_booking_id' => null, // No API booking ID for operator bookings
-            'api_invoice_date' => null, // No API invoice date for operator bookings
-            'api_ticket_no' => null, // No API ticket number for operator bookings
-            'agent_commission' => 0,
-            'api_invoice_amount' => 0,
-            'cancellation_policy' => null, // No cancellation policy for operator bookings
-            'tds_from_api' => null, // No TDS for operator bookings
-            'api_response' => json_encode([
-                'operator_booking_id' => $operatorBooking->id,
-                'blocked_seats' => $operatorBooking->blocked_seats,
-                'booking_reason' => $operatorBooking->booking_reason,
-                'notes' => $operatorBooking->notes
-            ])
+
+            // Booking source and status
+            'booking_source' => 'operator', // As requested
+            'status' => 0, // Pending status - will be included in SeatAvailabilityService query
+            'payment_status' => 'unpaid',
+
+            // Additional metadata
+            'booking_type' => 'operator_block',
+            'notes' => 'Operator blocked seats: ' . ($operatorBooking->booking_reason ?? 'No reason provided')
+        ]);
+
+        \Log::info('Created booked_ticket entry for operator booking', [
+            'operator_booking_id' => $operatorBooking->id,
+            'seats' => $operatorBooking->blocked_seats,
+            'schedule_id' => $schedule->id,
+            'date' => $operatorBooking->journey_date->format('Y-m-d')
         ]);
     }
 
@@ -504,9 +532,12 @@ class OperatorBookingController extends Controller
             abort(403, 'Unauthorized access to this booking.');
         }
 
+        // Delete corresponding booked_ticket entry to free up seats
+        \App\Models\BookedTicket::where('operator_booking_id', $booking->id)->delete();
+
         $booking->delete();
 
-        $notify[] = ['success', 'Booking cancelled successfully.'];
+        $notify[] = ['success', 'Booking cancelled successfully. Seats are now available for users.'];
         return redirect()->route('operator.bookings.index')->withNotify($notify);
     }
 
@@ -523,6 +554,12 @@ class OperatorBookingController extends Controller
 
         $newStatus = $booking->status === 'active' ? 'cancelled' : 'active';
         $booking->update(['status' => $newStatus]);
+
+        // Update corresponding booked_ticket status
+        // Active = status 0 (pending, blocks seats), Cancelled = status 3 (cancelled, frees seats)
+        $ticketStatus = $newStatus === 'active' ? 0 : 3;
+        \App\Models\BookedTicket::where('operator_booking_id', $booking->id)
+            ->update(['status' => $ticketStatus]);
 
         $statusText = $newStatus === 'active' ? 'activated' : 'cancelled';
         $notify[] = ['success', "Booking {$statusText} successfully."];
@@ -584,6 +621,7 @@ class OperatorBookingController extends Controller
 
         $request->validate([
             'bus_id' => 'required|exists:operator_buses,id',
+            'schedule_id' => 'required|exists:bus_schedules,id',
             'journey_date' => 'required|date',
             'journey_date_end' => 'nullable|date|after_or_equal:journey_date',
             'is_date_range' => 'boolean'
@@ -599,16 +637,57 @@ class OperatorBookingController extends Controller
             return response()->json(['error' => 'No seat layout found for this bus'], 400);
         }
 
-        // Get blocked seats for the date range
-        $blockedSeats = $this->getBlockedSeats($request->bus_id, $request->journey_date, $request->journey_date_end, $request->is_date_range);
+        // Get blocked seats from BOTH sources:
+        // 1. Customer bookings (booked_tickets table) - using SeatAvailabilityService
+        // 2. Operator blocked seats (operator_bookings table) - using getBlockedSeats method
 
-        // Return the existing HTML layout
-        $seatLayoutHtml = $seatLayout->html_layout;
+        // Get customer bookings using the same service as SiteController/ApiTicketController
+        $availabilityService = new \App\Services\SeatAvailabilityService();
+        $customerBookedSeats = $availabilityService->getBookedSeats(
+            $request->bus_id,
+            $request->schedule_id,
+            $request->journey_date,
+            null, // boardingPointIndex - get all bookings
+            null  // droppingPointIndex - get all bookings
+        );
+
+        // Get operator blocked seats (for date range if applicable)
+        $operatorBlockedSeats = $this->getBlockedSeats(
+            $request->bus_id,
+            $request->journey_date,
+            $request->journey_date_end,
+            $request->is_date_range
+        );
+
+        // Combine both sources and remove duplicates
+        $allBlockedSeats = array_unique(array_merge($customerBookedSeats, $operatorBlockedSeats));
+
+        \Log::info('OperatorBookingController@getSeatLayout: Retrieved data', [
+            'bus_id' => $request->bus_id,
+            'schedule_id' => $request->schedule_id,
+            'journey_date' => $request->journey_date,
+            'customer_booked_seats' => $customerBookedSeats,
+            'customer_booked_count' => count($customerBookedSeats),
+            'operator_blocked_seats' => $operatorBlockedSeats,
+            'operator_blocked_count' => count($operatorBlockedSeats),
+            'all_blocked_seats' => $allBlockedSeats,
+            'total_blocked_count' => count($allBlockedSeats)
+        ]);
+
+        // Modify HTML on-the-fly: change nseat→bseat, hseat→bhseat, vseat→bvseat for blocked seats
+        // This matches the approach used in SiteController and ApiTicketController
+        $modifiedHtml = $this->modifyHtmlLayoutForBookedSeats($seatLayout->html_layout, $allBlockedSeats);
+
+        // Parse the modified HTML to get structured seat data
+        $parsedLayout = parseSeatHtmlToJson($modifiedHtml);
 
         return response()->json([
-            'seat_layout_html' => $seatLayoutHtml,
-            'blocked_seats' => $blockedSeats,
-            'total_seats' => $bus->total_seats
+            'html' => $parsedLayout,
+            'blocked_seats' => $allBlockedSeats,
+            'customer_booked_seats' => $customerBookedSeats,
+            'operator_blocked_seats' => $operatorBlockedSeats,
+            'total_seats' => $bus->total_seats,
+            'available_seats' => max(0, $bus->total_seats - count($allBlockedSeats))
         ]);
     }
 
@@ -688,6 +767,13 @@ class OperatorBookingController extends Controller
      */
     private function getBlockedSeats($busId, $startDate, $endDate = null, $isDateRange = false)
     {
+        \Log::info('OperatorBookingController@getBlockedSeats: Starting', [
+            'bus_id' => $busId,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'is_date_range' => $isDateRange
+        ]);
+
         $query = OperatorBooking::active()->where('operator_bus_id', $busId);
 
         if ($isDateRange && $endDate) {
@@ -704,14 +790,34 @@ class OperatorBookingController extends Controller
         }
 
         $bookings = $query->get();
+
+        \Log::info('OperatorBookingController@getBlockedSeats: Query results', [
+            'bookings_count' => $bookings->count(),
+            'query_sql' => $query->toSql(),
+            'query_bindings' => $query->getBindings()
+        ]);
+
         $blockedSeats = [];
 
         foreach ($bookings as $booking) {
+            \Log::info('OperatorBookingController@getBlockedSeats: Processing booking', [
+                'booking_id' => $booking->id,
+                'blocked_seats_raw' => $booking->blocked_seats,
+                'blocked_seats_type' => gettype($booking->blocked_seats)
+            ]);
+
             $seats = is_array($booking->blocked_seats) ? $booking->blocked_seats : [$booking->blocked_seats];
             $blockedSeats = array_merge($blockedSeats, $seats);
         }
 
-        return array_unique($blockedSeats);
+        $result = array_unique($blockedSeats);
+
+        \Log::info('OperatorBookingController@getBlockedSeats: Final result', [
+            'blocked_seats' => $result,
+            'count' => count($result)
+        ]);
+
+        return $result;
     }
 
     /**
@@ -742,6 +848,37 @@ class OperatorBookingController extends Controller
         }
 
         return array_unique($seats);
+    }
+
+    /**
+     * Modify HTML layout to mark booked/blocked seats
+     * This matches the implementation used in SiteController and ApiTicketController
+     */
+    private function modifyHtmlLayoutForBookedSeats(string $htmlLayout, array $blockedSeats): string
+    {
+        if (empty($blockedSeats)) {
+            return $htmlLayout; // No modifications needed
+        }
+
+        $dom = new \DOMDocument();
+        @$dom->loadHTML('<?xml encoding="UTF-8">' . $htmlLayout, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $xpath = new \DOMXPath($dom);
+
+        foreach ($blockedSeats as $seatName) {
+            // CRITICAL FIX: Match by @id attribute, not text content or onclick
+            // This prevents "1" from matching "U1", "11", "21", etc.
+            // Seat IDs are stored in the id attribute: <div id="U1" class="nseat"> or <div id="1" class="nseat">
+            $nodes = $xpath->query("//*[@id='{$seatName}' and (contains(@class, 'nseat') or contains(@class, 'hseat') or contains(@class, 'vseat'))]");
+
+            foreach ($nodes as $node) {
+                $class = $node->getAttribute('class');
+                // Replace nseat with bseat, hseat with bhseat, vseat with bvseat
+                $class = str_replace(['nseat', 'hseat', 'vseat'], ['bseat', 'bhseat', 'bvseat'], $class);
+                $node->setAttribute('class', $class);
+            }
+        }
+
+        return $dom->saveHTML();
     }
 
 }

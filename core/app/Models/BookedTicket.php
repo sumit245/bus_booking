@@ -205,4 +205,30 @@ class BookedTicket extends Model
     {
         return $this->where('status', 0);
     }
+
+    /**
+     * Calculate net revenue for this ticket
+     * Formula: unit_price - TDS - 5% of GST
+     * Where TDS = 5% of GST
+     * Simplified: unit_price - (gst * 0.10)
+     */
+    public function getNetRevenueAttribute(): float
+    {
+        $unitPrice = (float) ($this->unit_price ?? 0);
+        $gst = (float) ($this->gst ?? 0);
+        $tds = $gst * 0.05; // TDS is 5% of GST
+        $gstDeduction = $gst * 0.05; // 5% of GST is deducted
+
+        return max(0, $unitPrice - $tds - $gstDeduction);
+    }
+
+    /**
+     * Scope to get only confirmed/paid bookings
+     * Only status 1 (Booked) generates revenue
+     * Status 0 = Rejected, 2 = Pending, 3 = Cancelled should NOT count
+     */
+    public function scopeConfirmed($query)
+    {
+        return $query->where('status', 1); // Only Booked/Paid tickets
+    }
 }

@@ -12,18 +12,6 @@
         </div>
     </div>
 
-    <!-- Debug Info -->
-    <div class="alert alert-info">
-        <strong>Debug:</strong> Buses: {{ $buses->count() }}, Routes: {{ $routes->count() }}
-        @if ($buses->count() > 0)
-            <br>First Bus: {{ $buses->first()->travel_name }}
-        @endif
-        @if ($routes->count() > 0)
-            <br>First Route: {{ $routes->first()->originCity->city_name }} →
-            {{ $routes->first()->destinationCity->city_name }}
-        @endif
-    </div>
-
     <div class="row">
         <div class="col-lg-12">
             <div class="card b-radius--10">
@@ -62,11 +50,13 @@
                                         name="operator_route_id" id="operator_route_id" required>
                                         <option value="">@lang('Choose Route')</option>
                                         @foreach ($routes as $route)
-                                            <option value="{{ $route->id }}"
-                                                {{ old('operator_route_id') == $route->id ? 'selected' : '' }}>
-                                                {{ $route->originCity->city_name }} →
-                                                {{ $route->destinationCity->city_name }}
-                                            </option>
+                                            @if ($route->originCity && $route->destinationCity)
+                                                <option value="{{ $route->id }}"
+                                                    {{ old('operator_route_id') == $route->id ? 'selected' : '' }}>
+                                                    {{ $route->originCity->city_name }} →
+                                                    {{ $route->destinationCity->city_name }}
+                                                </option>
+                                            @endif
                                         @endforeach
                                     </select>
                                     @error('operator_route_id')
@@ -96,20 +86,35 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>@lang('Booking Type')</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="is_date_range" id="singleDate"
-                                            value="0" {{ old('is_date_range', '0') == '0' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="singleDate">
-                                            @lang('Single Date')
-                                        </label>
+                                    <div class="d-flex justify-content-around">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="is_date_range"
+                                                id="singleDate" value="0"
+                                                {{ old('is_date_range', '0') == '0' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="singleDate">
+                                                @lang('Single Date')
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="is_date_range"
+                                                id="dateRange" value="1"
+                                                {{ old('is_date_range') == '1' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="dateRange">
+                                                @lang('Date Range')
+                                            </label>
+                                        </div>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="is_date_range" id="dateRange"
-                                            value="1" {{ old('is_date_range') == '1' ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="dateRange">
-                                            @lang('Date Range')
-                                        </label>
-                                    </div>
+                                </div>
+                            </div>
+                            <!-- Notes -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="notes">@lang('Notes')</label>
+                                    <textarea class="form-control @error('notes') is-invalid @enderror" name="notes" id="notes" rows="3"
+                                        placeholder="@lang('Additional notes...')">{{ old('notes') }}</textarea>
+                                    @error('notes')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
                                 </div>
                             </div>
                         </div>
@@ -121,7 +126,7 @@
                                     <label for="journey_date">@lang('Journey Date') <span class="text-danger">*</span></label>
                                     <input type="date" class="form-control @error('journey_date') is-invalid @enderror"
                                         name="journey_date" id="journey_date" value="{{ old('journey_date') }}"
-                                        min="2025-10-17" required>
+                                        min="{{ date('Y-m-d') }}" required>
                                     @error('journey_date')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -136,7 +141,7 @@
                                     <input type="date"
                                         class="form-control @error('journey_date_start') is-invalid @enderror"
                                         name="journey_date_start" id="journey_date_start"
-                                        value="{{ old('journey_date_start') }}" min="2025-10-17">
+                                        value="{{ old('journey_date_start') }}" min="{{ date('Y-m-d') }}">
                                     @error('journey_date_start')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -152,7 +157,7 @@
                                     <input type="date"
                                         class="form-control @error('journey_date_end') is-invalid @enderror"
                                         name="journey_date_end" id="journey_date_end"
-                                        value="{{ old('journey_date_end') }}" min="2025-10-17">
+                                        value="{{ old('journey_date_end') }}" min="{{ date('Y-m-d') }}">
                                     @error('journey_date_end')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -175,17 +180,7 @@
                                 </div>
                             </div>
 
-                            <!-- Notes -->
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="notes">@lang('Notes')</label>
-                                    <textarea class="form-control @error('notes') is-invalid @enderror" name="notes" id="notes" rows="3"
-                                        placeholder="@lang('Additional notes...')">{{ old('notes') }}</textarea>
-                                    @error('notes')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
+
                         </div>
 
                         <!-- Seat Selection -->
@@ -319,7 +314,8 @@
                 const scheduleSelect = $('#bus_schedule_id');
 
                 // Reset both route and schedule selection
-                routeSelect.html('<option value="">@lang('Loading routes...')</option>');
+                // DON'T clear routes - they're already loaded in the HTML
+                // routeSelect.html('<option value="">@lang('Loading routes...')</option>');
                 scheduleSelect.html('<option value="">@lang('No specific schedule')</option>');
 
                 if (busId) {
@@ -329,27 +325,13 @@
                         }
                     });
 
-                    // Load routes for this bus
-                    console.log('Loading routes for bus:', busId);
-                    $.get("{{ url('operator/buses') }}/" + busId + "/routes", {})
-                        .done(function(data) {
-                            console.log('Routes loaded:', data);
-                            routeSelect.html('<option value="">@lang('Choose Route')</option>');
-                            if (data && data.length > 0) {
-                                $.each(data, function(index, route) {
-                                    routeSelect.append(
-                                        `<option value="${route.id}">${route.origin_city} → ${route.destination_city}</option>`
-                                    );
-                                });
-                            }
+                    // Routes are already loaded in HTML, no need to reload via AJAX
+                    // Just load schedules
+                    console.log('Loading schedules for bus:', busId);
+                    $.get("{{ route('operator.schedules.get-for-date') }}", {
+                            bus_id: busId,
+                            route_id: $('#operator_route_id').val()
                         })
-                        .fail(function(xhr, status, error) {
-                            console.log('Route loading failed:', xhr.responseText, error);
-                            routeSelect.html('<option value="">@lang('Choose Route')</option>');
-                        });
-
-                    // Load schedules for this bus
-                    $.get("{{ url('operator/schedules/get-for-date') }}", {})
                         .done(function(data) {
                             console.log('Schedules loaded:', data);
                             scheduleSelect.html('<option value="">@lang('No specific schedule')</option>');
@@ -404,7 +386,10 @@
                 const scheduleSelect = $('#bus_schedule_id');
 
                 if (busId && routeId) {
-                    $.get("{{ url('operator/schedules/get-for-date') }}", {})
+                    $.get("{{ route('operator.schedules.get-for-date') }}", {
+                            bus_id: busId,
+                            route_id: routeId
+                        })
                         .done(function(data) {
                             console.log('Schedules reloaded for route:', data);
                             scheduleSelect.html('<option value="">@lang('No specific schedule')</option>');
@@ -440,12 +425,19 @@
                                     );
                                 });
                             }
+                            // Reload seat layout after schedules are loaded
+                            loadSeatLayout();
                         })
                         .fail(function(xhr, status, error) {
                             console.log('Schedule loading failed:', error);
                             scheduleSelect.html('<option value="">@lang('No specific schedule')</option>');
                         });
                 }
+            });
+
+            // Reload seat layout when schedule changes
+            $('#bus_schedule_id').change(function() {
+                loadSeatLayout();
             });
 
             // Load seat layout when date is selected
@@ -455,6 +447,7 @@
 
             function loadSeatLayout() {
                 const busId = $('#operator_bus_id').val();
+                const scheduleId = $('#bus_schedule_id').val();
                 const isDateRange = $('input[name="is_date_range"]:checked').val() == '1';
                 let journeyDate, journeyDateEnd;
 
@@ -466,10 +459,10 @@
                     journeyDateEnd = null;
                 }
 
-                console.log('Loading seat layout for bus:', busId, 'date:', journeyDate);
+                console.log('Loading seat layout for bus:', busId, 'schedule:', scheduleId, 'date:', journeyDate);
 
-                if (!busId || !journeyDate) {
-                    console.log('Missing bus or date, hiding seat layout');
+                if (!busId || !scheduleId || !journeyDate) {
+                    console.log('Missing bus, schedule or date, hiding seat layout');
                     $('#seatLayoutArea').hide();
                     return;
                 }
@@ -485,8 +478,12 @@
                     }
                 });
 
-                $.get("{{ url('operator/bookings/get-seat-layout') }}", {
-                        bus_id: busId
+                $.get("{{ route('operator.bookings.get-seat-layout') }}", {
+                        bus_id: busId,
+                        schedule_id: scheduleId,
+                        journey_date: journeyDate,
+                        journey_date_end: journeyDateEnd,
+                        is_date_range: isDateRange ? 1 : 0
                     })
                     .done(function(data) {
                         console.log('Seat layout loaded:', data);
@@ -497,16 +494,25 @@
                             return;
                         }
 
-                        // Display seat layout
-                        console.log('Displaying seat layout HTML');
-                        $('#seatLayoutContainer').html(data.seat_layout_html);
+                        // Log seat availability breakdown
+                        console.log('Seat availability breakdown:', {
+                            customer_booked: data.customer_booked_seats || [],
+                            operator_blocked: data.operator_blocked_seats || [],
+                            all_blocked: data.blocked_seats || [],
+                            customer_count: (data.customer_booked_seats || []).length,
+                            operator_count: (data.operator_blocked_seats || []).length,
+                            total_blocked: (data.blocked_seats || []).length
+                        });
 
-                        // Add click handlers for seat selection
-                        $('.seat-layout-container .seat').click(function() {
-                            if ($(this).hasClass('blocked')) {
-                                return; // Don't allow selection of blocked seats
-                            }
+                        // Render seat layout using parsed data (same format as SiteController and ApiTicketController)
+                        const seatHtml = renderSeatLayout(data.html, data.blocked_seats || []);
+                        $('#seatLayoutContainer').html(seatHtml);
 
+                        // Add click handlers for seat selection - use event delegation for dynamically created elements
+                        $('#seatLayoutContainer').off('click').on('click', '.nseat, .hseat, .vseat',
+                    function() {
+                            // Only available seats (nseat, hseat, vseat) are clickable
+                            // Blocked seats (bseat, bhseat, bvseat) won't trigger this
                             const seatId = $(this).attr('id');
                             if ($(this).hasClass('selected')) {
                                 $(this).removeClass('selected');
@@ -523,6 +529,81 @@
                             '<div class="alert alert-danger">Error loading seat layout: ' + error + '</div>'
                         );
                     });
+            }
+
+            /**
+             * Render seat layout from parsed JSON structure
+             * Matches the rendering used in book_ticket.blade.php
+             */
+            function renderSeatLayout(parsedLayout, blockedSeats) {
+                if (!parsedLayout || !parsedLayout.seat) {
+                    return '<div class="alert alert-warning">No seat layout available</div>';
+                }
+
+                let html = '<div class="bus-seat-layout">';
+
+                // Render upper deck if exists
+                if (parsedLayout.seat.upper_deck && parsedLayout.seat.upper_deck.rows && Object.keys(parsedLayout
+                        .seat.upper_deck.rows).length > 0) {
+                    html += '<div class="deck-container upper-deck">';
+                    html += '<h6 class="deck-title">Upper Deck</h6>';
+                    html += '<div class="seat-grid" style="position: relative; min-height: 300px;">';
+                    html += renderDeckSeats(parsedLayout.seat.upper_deck.rows);
+                    html += '</div></div>';
+                }
+
+                // Render lower deck if exists
+                if (parsedLayout.seat.lower_deck && parsedLayout.seat.lower_deck.rows && Object.keys(parsedLayout
+                        .seat.lower_deck.rows).length > 0) {
+                    html += '<div class="deck-container lower-deck">';
+                    html += '<h6 class="deck-title">Lower Deck</h6>';
+                    html += '<div class="seat-grid" style="position: relative; min-height: 300px;">';
+                    html += renderDeckSeats(parsedLayout.seat.lower_deck.rows);
+                    html += '</div></div>';
+                }
+
+                html += '</div>';
+                return html;
+            }
+
+            /**
+             * Render seats for a deck from rows array
+             */
+            function renderDeckSeats(rows) {
+                let html = '';
+                let seatTypeCounts = {};
+
+                Object.values(rows).forEach(function(row) {
+                    if (!Array.isArray(row)) return;
+
+                    row.forEach(function(seat) {
+                        if (!seat || !seat.seat_id) return;
+
+                        const seatId = seat.seat_id;
+                        const seatType = seat.type || 'nseat';
+                        const position = seat.position || 0;
+                        const left = seat.left || 0;
+                        const price = seat.price || 0;
+
+                        // Count seat types for debugging
+                        seatTypeCounts[seatType] = (seatTypeCounts[seatType] || 0) + 1;
+
+                        // Determine seat class based on type
+                        let seatClass = seatType;
+
+                        // Available seats: nseat, hseat, vseat (green/blue)
+                        // Booked seats: bseat, bhseat, bvseat (red/unavailable)
+
+                        html += `<div class="${seatClass}" id="${seatId}" `;
+                        html += `style="position: absolute; top: ${position}px; left: ${left}px;" `;
+                        html += `data-price="${price}" data-seat-id="${seatId}">`;
+                        html += seatId;
+                        html += '</div>';
+                    });
+                });
+
+                console.log('Seat type counts:', seatTypeCounts);
+                return html;
             }
 
             function addSeatToInput(seatId) {
@@ -589,64 +670,114 @@
             position: relative;
         }
 
-        .bus-layout {
+        .bus-seat-layout {
             position: relative;
+            width: 100%;
         }
 
-        .deck {
-            margin-bottom: 20px;
+        .deck-container {
+            margin-bottom: 30px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
         }
 
-        .deck h5 {
-            margin-bottom: 10px;
+        .deck-title {
+            margin-bottom: 15px;
             color: #333;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
         }
 
-        .seats-container {
+        .seat-grid {
             position: relative;
-            min-height: 200px;
-            border: 1px solid #ccc;
-            background-color: #fff;
+            min-height: 300px;
+            background-color: #fafafa;
+            border: 1px solid #ddd;
             padding: 10px;
         }
 
-        .seat {
+        /* Seat styling - matches the standard seat layout across the application */
+        .nseat,
+        .hseat,
+        .vseat,
+        .bseat,
+        .bhseat,
+        .bvseat {
             position: absolute;
             cursor: pointer;
-            border: 1px solid #ccc;
+            border: 2px solid #ccc;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
-            border-radius: 3px;
-            background-color: #28a745;
-            color: white;
+            border-radius: 4px;
             transition: all 0.2s;
+            width: 35px;
+            height: 35px;
+            color: white;
         }
 
-        .seat:hover {
+        /* Available seats - Green */
+        .nseat {
+            background-color: #28a745;
+            border-color: #1e7e34;
+        }
+
+        .nseat:hover {
             background-color: #218838 !important;
+            transform: scale(1.1);
+        }
+
+        /* Available sleeper seats - Blue */
+        .hseat,
+        .vseat {
+            background-color: #17a2b8;
+            border-color: #117a8b;
+            width: 35px;
+            height: 70px;
+        }
+
+        .hseat:hover,
+        .vseat:hover {
+            background-color: #138496 !important;
             transform: scale(1.05);
         }
 
-        .seat.blocked {
+        /* Booked/Blocked seats - Red (not clickable) */
+        .bseat,
+        .bhseat,
+        .bvseat {
             background-color: #dc3545 !important;
-            cursor: not-allowed;
+            border-color: #bd2130 !important;
+            cursor: not-allowed !important;
         }
 
-        .seat.selected {
+        .bhseat,
+        .bvseat {
+            width: 35px;
+            height: 70px;
+        }
+
+        /* Selected seats - Yellow */
+        .nseat.selected,
+        .hseat.selected,
+        .vseat.selected {
             background-color: #ffc107 !important;
+            border-color: #d39e00 !important;
             color: #000 !important;
         }
 
-        .seat.sleeper {
-            background-color: #17a2b8;
-        }
-
-        .seat.seater {
-            background-color: #28a745;
+        /* Prevent interaction with booked seats */
+        .bseat:hover,
+        .bhseat:hover,
+        .bvseat:hover {
+            transform: none !important;
+            cursor: not-allowed !important;
         }
     </style>
 @endpush

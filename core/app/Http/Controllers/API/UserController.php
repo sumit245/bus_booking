@@ -237,13 +237,11 @@ class UserController extends Controller
                     $booking_id = $ticket->api_booking_id;
                 }
 
-                $search_token_id = null;
-                if ($response && isset($response->SearchTokenId)) {
+                // Prioritize direct column over API response
+                $search_token_id = $ticket->search_token_id;
+                // Fallback to api_response if column is empty
+                if (!$search_token_id && $response && isset($response->SearchTokenId)) {
                     $search_token_id = $response->SearchTokenId;
-                }
-                // Fallback to direct column
-                if (!$search_token_id && $ticket->search_token_id) {
-                    $search_token_id = $ticket->search_token_id;
                 }
 
                 $userIp = null;
@@ -458,13 +456,11 @@ class UserController extends Controller
                 $booking_id = $ticket->api_booking_id;
             }
 
-            $search_token_id = null;
-            if ($response && isset($response->SearchTokenId)) {
+            // Prioritize direct column over API response
+            $search_token_id = $ticket->search_token_id;
+            // Fallback to api_response if column is empty
+            if (!$search_token_id && $response && isset($response->SearchTokenId)) {
                 $search_token_id = $response->SearchTokenId;
-            }
-            // Fallback to direct column
-            if (!$search_token_id && $ticket->search_token_id) {
-                $search_token_id = $ticket->search_token_id;
             }
 
             $userIp = null;

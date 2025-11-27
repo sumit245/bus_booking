@@ -1831,7 +1831,7 @@ class BookingService
                     : ($bookedTicket->passenger_name ?? 'Passenger');
                 $passengerPhone = $bookedTicket->passenger_phone ?? 'N/A';
 
-                $seatInfo = "Seat No(s): {$seatNumbers} booked by {$passengerName}, call on {$passengerPhone}";
+                $seatInfo = "{$seatNumbers} booked by {$passengerName}, call on {$passengerPhone}";
 
                 $whatsappBookingDetails = [
                     'source_name' => $ticketDetails['source_name'],

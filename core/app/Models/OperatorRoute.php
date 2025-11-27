@@ -9,6 +9,13 @@ class OperatorRoute extends Model
 {
     use HasFactory;
 
+    /**
+     * The relationships that should always be loaded.
+     *
+     * @var array
+     */
+    protected $with = ['originCity', 'destinationCity'];
+
     protected $fillable = [
         'operator_id',
         'route_name',

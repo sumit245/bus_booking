@@ -10,6 +10,7 @@ use App\Models\BusSchedule;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use App\Models\BookedTicket;
 
 class OperatorBookingController extends Controller
 {
@@ -25,7 +26,13 @@ class OperatorBookingController extends Controller
     {
         $operator = auth('operator')->user();
 
-        $query = OperatorBooking::with(['operatorBus', 'operatorRoute.originCity', 'operatorRoute.destinationCity', 'busSchedule'])
+        $query = OperatorBooking::query()
+            ->with([
+                'operatorBus',
+                'operatorRoute.originCity:id,city_name',
+                'operatorRoute.destinationCity:id,city_name',
+                'busSchedule'
+            ])
             ->where('operator_id', $operator->id);
 
         // Apply filters
@@ -56,6 +63,122 @@ class OperatorBookingController extends Controller
         $routes = OperatorRoute::with(['originCity', 'destinationCity'])->where('operator_id', $operator->id)->get();
 
         return view('operator.bookings.index', compact('bookings', 'buses', 'routes'));
+    }
+
+    /**
+     * Display user bookings (actual revenue) for this operator.
+     */
+    public function userBookings(\Illuminate\Http\Request $request)
+    {
+        $operator = auth('operator')->user();
+
+        // Handle Excel export
+        if ($request->has('export')) {
+            return $this->exportUserBookings($request, $operator);
+        }
+
+        $query = \App\Models\BookedTicket::query()
+            ->where('operator_id', $operator->id)
+            ->whereIn('booking_source', ['user', 'agent', 'admin']);
+
+        if ($request->filled('bus_id')) {
+            $query->where('bus_id', $request->bus_id);
+        }
+        if ($request->filled('route_id')) {
+            $query->where('route_id', $request->route_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('date_from')) {
+            $query->where('date_of_journey', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->where('date_of_journey', '<=', $request->date_to);
+        }
+
+        // Sorting
+        $sortBy = $request->get('sort_by', 'date_of_journey');
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Pagination with custom per page
+        $perPage = $request->get('per_page', getPaginate());
+        $bookings = $query->paginate($perPage)->appends($request->except('page'));
+
+        $buses = \App\Models\OperatorBus::where('operator_id', $operator->id)->get(['id', 'travel_name', 'bus_type']);
+        $routes = \App\Models\OperatorRoute::with(['originCity:city_id,city_name', 'destinationCity:city_id,city_name'])
+            ->where('operator_id', $operator->id)
+            ->get(['id', 'origin_city_id', 'destination_city_id', 'route_name']);
+
+        return view('operator.bookings.user_bookings', compact('bookings', 'buses', 'routes'));
+    }
+
+    /**
+     * Export user bookings to Excel.
+     */
+    private function exportUserBookings($request, $operator)
+    {
+        $query = \App\Models\BookedTicket::query()
+            ->where('operator_id', $operator->id)
+            ->whereIn('booking_source', ['user', 'agent', 'admin']);
+
+        // Apply same filters as view
+        if ($request->filled('bus_id')) {
+            $query->where('bus_id', $request->bus_id);
+        }
+        if ($request->filled('route_id')) {
+            $query->where('route_id', $request->route_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('date_from')) {
+            $query->where('date_of_journey', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->where('date_of_journey', '<=', $request->date_to);
+        }
+
+        $bookings = $query->orderByDesc('date_of_journey')->get();
+
+        $filename = 'user_bookings_' . date('Y-m-d_His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function () use ($bookings) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Booking ID', 'Bus', 'Route', 'Boarding Point', 'Dropping Point', 'Seats Booked', 'Journey Date', 'Amount', 'Paid', 'Status', 'Created']);
+
+            foreach ($bookings as $booking) {
+                $boardingDetails = json_decode($booking->boarding_point_details, true);
+                $droppingDetails = json_decode($booking->dropping_point_details, true);
+
+                $boardingPoint = isset($boardingDetails[0]['PointLocation']) ? $boardingDetails[0]['PointLocation'] : 'N/A';
+                $droppingPoint = isset($droppingDetails[0]['PointLocation']) ? $droppingDetails[0]['PointLocation'] : 'N/A';
+
+                fputcsv($file, [
+                    $booking->id,
+                    $booking->travel_name . ' (' . $booking->bus_type . ')',
+                    $booking->origin_city . ' → ' . $booking->destination_city,
+                    $boardingPoint,
+                    $droppingPoint,
+                    $booking->ticket_count ?? 0,
+                    $booking->date_of_journey,
+                    number_format((float) ($booking->total_amount ?? 0), 2),
+                    number_format((float) ($booking->paid_amount ?? 0), 2),
+                    $booking->status == 1 ? 'Booked' : 'Cancelled',
+                    optional($booking->created_at)->format('M d, Y')
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**

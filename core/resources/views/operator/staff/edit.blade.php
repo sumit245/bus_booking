@@ -150,6 +150,116 @@
                                 </div>
                             </div>
 
+                            <!-- Address Information -->
+                            <div class="row mb-4 mt-4">
+                                <div class="col-12">
+                                    <h5 class="text-primary">Address Information</h5>
+                                    <hr>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label for="address">Address <span class="text-danger">*</span></label>
+                                        <textarea class="form-control @error('address') is-invalid @enderror" id="address" name="address" rows="2"
+                                            required>{{ old('address', $staff->address) }}</textarea>
+                                        @error('address')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="city">City <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control @error('city') is-invalid @enderror"
+                                            id="city" name="city" value="{{ old('city', $staff->city) }}"
+                                            required>
+                                        @error('city')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="state">State <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control @error('state') is-invalid @enderror"
+                                            id="state" name="state" value="{{ old('state', $staff->state) }}"
+                                            required>
+                                        @error('state')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="pincode">Pincode <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control @error('pincode') is-invalid @enderror"
+                                            id="pincode" name="pincode" value="{{ old('pincode', $staff->pincode) }}"
+                                            required>
+                                        @error('pincode')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Emergency Contact -->
+                            <div class="row mb-4 mt-4">
+                                <div class="col-12">
+                                    <h5 class="text-primary">Emergency Contact</h5>
+                                    <hr>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="emergency_contact_name">Name <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text"
+                                            class="form-control @error('emergency_contact_name') is-invalid @enderror"
+                                            id="emergency_contact_name" name="emergency_contact_name"
+                                            value="{{ old('emergency_contact_name', $staff->emergency_contact_name) }}"
+                                            required>
+                                        @error('emergency_contact_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="emergency_contact_phone">Phone <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text"
+                                            class="form-control @error('emergency_contact_phone') is-invalid @enderror"
+                                            id="emergency_contact_phone" name="emergency_contact_phone"
+                                            value="{{ old('emergency_contact_phone', $staff->emergency_contact_phone) }}"
+                                            required>
+                                        @error('emergency_contact_phone')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="emergency_contact_relation">Relation <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text"
+                                            class="form-control @error('emergency_contact_relation') is-invalid @enderror"
+                                            id="emergency_contact_relation" name="emergency_contact_relation"
+                                            value="{{ old('emergency_contact_relation', $staff->emergency_contact_relation) }}"
+                                            required>
+                                        @error('emergency_contact_relation')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Employment Information -->
                             <div class="row mb-4 mt-4">
                                 <div class="col-12">

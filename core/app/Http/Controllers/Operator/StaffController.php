@@ -205,8 +205,8 @@ class StaffController extends Controller
             'passport_number' => ['nullable', 'string', Rule::unique('staff', 'passport_number')->ignore($staff->id)],
             'passport_expiry' => 'nullable|date|after:today',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'whatsapp_notifications_enabled' => 'boolean',
-            'is_active' => 'boolean',
+            'whatsapp_notifications_enabled' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
             'notes' => 'nullable|string',
         ]);
 
@@ -217,6 +217,10 @@ class StaffController extends Controller
         }
 
         $data = $request->all();
+
+        // Handle checkbox fields (unchecked checkboxes don't send values)
+        $data['is_active'] = $request->has('is_active') ? 1 : 0;
+        $data['whatsapp_notifications_enabled'] = $request->has('whatsapp_notifications_enabled') ? 1 : 0;
 
         // Calculate total salary
         $data['total_salary'] = $data['basic_salary'] + ($data['allowances'] ?? 0);
@@ -232,8 +236,8 @@ class StaffController extends Controller
 
         $staff->update($data);
 
-        return redirect()->route('operator.staff.index')
-            ->with('success', 'Staff member updated successfully!');
+        $notify[] = ['success', 'Staff member updated successfully!'];
+        return redirect()->route('operator.staff.index')->withNotify($notify);
     }
 
     /**
@@ -247,8 +251,8 @@ class StaffController extends Controller
         // Check if staff has active assignments
         $activeAssignments = $staff->crewAssignments()->where('status', 'active')->count();
         if ($activeAssignments > 0) {
-            return redirect()->back()
-                ->with('error', 'Cannot delete staff member with active assignments. Please deactivate assignments first.');
+            $notify[] = ['error', 'Cannot delete staff member with active assignments. Please deactivate assignments first.'];
+            return redirect()->back()->withNotify($notify);
         }
 
         // Delete profile photo
@@ -258,8 +262,8 @@ class StaffController extends Controller
 
         $staff->delete();
 
-        return redirect()->route('operator.staff.index')
-            ->with('success', 'Staff member deleted successfully!');
+        $notify[] = ['success', 'Staff member deleted successfully!'];
+        return redirect()->route('operator.staff.index')->withNotify($notify);
     }
 
     /**
@@ -273,8 +277,8 @@ class StaffController extends Controller
         $staff->update(['is_active' => !$staff->is_active]);
 
         $status = $staff->is_active ? 'activated' : 'deactivated';
-        return redirect()->back()
-            ->with('success', "Staff member {$status} successfully!");
+        $notify[] = ['success', "Staff member {$status} successfully!"];
+        return redirect()->back()->withNotify($notify);
     }
 
     /**

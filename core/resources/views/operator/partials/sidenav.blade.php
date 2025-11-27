@@ -68,6 +68,30 @@
                     </div>
                 </li>
 
+                <!-- Schedule Management -->
+                <li class="sidebar-menu-item sidebar-dropdown">
+                    <a href="javascript:void(0)" class="{{ menuActive('operator.schedules*', 3) }}">
+                        <i class="menu-icon las la-calendar"></i>
+                        <span class="menu-title">@lang('Schedule')</span>
+                    </a>
+                    <div class="sidebar-submenu {{ menuActive('operator.schedules*', 2) }} ">
+                        <ul>
+                            <li class="sidebar-menu-item {{ menuActive('operator.schedules.index') }} ">
+                                <a href="{{ route('operator.schedules.index') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('All Schedules')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.schedules.create') }} ">
+                                <a href="{{ route('operator.schedules.create') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('Add Schedule')</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 <!-- Staff Management -->
                 <li class="sidebar-menu-item sidebar-dropdown">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.staff*', 3) }}">
@@ -140,30 +164,6 @@
                     </div>
                 </li>
 
-                <!-- Schedule Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
-                    <a href="javascript:void(0)" class="{{ menuActive('operator.schedules*', 3) }}">
-                        <i class="menu-icon las la-calendar"></i>
-                        <span class="menu-title">@lang('Schedule')</span>
-                    </a>
-                    <div class="sidebar-submenu {{ menuActive('operator.schedules*', 2) }} ">
-                        <ul>
-                            <li class="sidebar-menu-item {{ menuActive('operator.schedules.index') }} ">
-                                <a href="{{ route('operator.schedules.index') }}" class="nav-link">
-                                    <i class="menu-icon las la-dot-circle"></i>
-                                    <span class="menu-title">@lang('All Schedules')</span>
-                                </a>
-                            </li>
-                            <li class="sidebar-menu-item {{ menuActive('operator.schedules.create') }} ">
-                                <a href="{{ route('operator.schedules.create') }}" class="nav-link">
-                                    <i class="menu-icon las la-dot-circle"></i>
-                                    <span class="menu-title">@lang('Add Schedule')</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-
                 <!-- Operator Bookings Management -->
                 <li class="sidebar-menu-item sidebar-dropdown">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.bookings*', 3) }}">
@@ -176,6 +176,12 @@
                                 <a href="{{ route('operator.bookings.index') }}" class="nav-link">
                                     <i class="menu-icon las la-dot-circle"></i>
                                     <span class="menu-title">@lang('All Bookings')</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item {{ menuActive('operator.bookings.user') }} ">
+                                <a href="{{ route('operator.bookings.user') }}" class="nav-link">
+                                    <i class="menu-icon las la-dot-circle"></i>
+                                    <span class="menu-title">@lang('User Bookings')</span>
                                 </a>
                             </li>
                             <li class="sidebar-menu-item {{ menuActive('operator.bookings.create') }} ">

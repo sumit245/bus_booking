@@ -1254,6 +1254,10 @@ Route::name("operator.")
                         "update" => "bookings.update",
                         "destroy" => "bookings.destroy",
                     ]);
+            Route::get(
+                "user-bookings",
+                "Operator\OperatorBookingController@userBookings"
+            )->name("bookings.user");
             Route::patch(
                 "bookings/{booking}/toggle-status",
                 "Operator\OperatorBookingController@toggleStatus",

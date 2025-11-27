@@ -89,8 +89,8 @@
                                             </div>
                                         </td>
                                         <td data-label="@lang('Route')">
-                                            {{ $booking->operatorRoute->originCity->city_name }} →
-                                            {{ $booking->operatorRoute->destinationCity->city_name }}
+                                            {{ $booking->operatorRoute->originCity }} →
+                                            {{ $booking->operatorRoute->destinationCity }}
                                         </td>
                                         <td data-label="@lang('Blocked Seats')">
                                             <span class="badge badge--info">{{ $booking->total_seats_blocked }}

@@ -100,7 +100,7 @@
                                     <label>@lang('Status')</label>
                                     <div class="custom-control custom-switch">
                                         <input type="checkbox" class="custom-control-input" id="status" name="status"
-                                            {{ old('status', $route->status) ? 'checked' : '' }}>
+                                            value="1" {{ old('status', $route->status) ? 'checked' : '' }}>
                                         <label class="custom-control-label" for="status">@lang('Active')</label>
                                     </div>
                                 </div>

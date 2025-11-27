@@ -13,15 +13,19 @@
         <div class="sidebar__menu-wrapper" id="sidebar__menuWrapper">
             <ul class="sidebar__menu">
                 <!-- Dashboard Menu Item -->
-                <li class="sidebar-menu-item {{ menuActive('operator.dashboard') }}">
+                <li class="sidebar-menu-item {{ menuActive('operator.dashboard') }}" style="margin-bottom: 10px;">
                     <a href="{{ route('operator.dashboard') }}" class="nav-link ">
                         <i class="menu-icon las la-home"></i>
                         <span class="menu-title">@lang('Dashboard')</span>
                     </a>
                 </li>
 
+                <!-- Divider -->
+                <li class="sidebar-menu-divider"
+                    style="border-bottom: 1px solid rgba(255,255,255,0.1); margin: 10px 0;"></li>
+
                 <!-- Routes Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.routes*', 3) }}">
                         <i class="menu-icon las la-route"></i>
                         <span class="menu-title">@lang('Routes')</span>
@@ -45,7 +49,7 @@
                 </li>
 
                 <!-- Bus Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.buses*', 3) }}">
                         <i class="menu-icon las la-bus"></i>
                         <span class="menu-title">@lang('Buses')</span>
@@ -69,7 +73,7 @@
                 </li>
 
                 <!-- Schedule Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.schedules*', 3) }}">
                         <i class="menu-icon las la-calendar"></i>
                         <span class="menu-title">@lang('Schedule')</span>
@@ -92,8 +96,12 @@
                     </div>
                 </li>
 
+                <!-- Divider -->
+                <li class="sidebar-menu-divider"
+                    style="border-bottom: 1px solid rgba(255,255,255,0.1); margin: 10px 0;"></li>
+
                 <!-- Staff Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.staff*', 3) }}">
                         <i class="menu-icon las la-users"></i>
                         <span class="menu-title">@lang('Staff Management')</span>
@@ -117,7 +125,7 @@
                 </li>
 
                 <!-- Crew Assignment -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.crew*', 3) }}">
                         <i class="menu-icon las la-user-tie"></i>
                         <span class="menu-title">@lang('Crew Assignment')</span>
@@ -141,7 +149,7 @@
                 </li>
 
                 <!-- Attendance Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.attendance*', 3) }}">
                         <i class="menu-icon las la-calendar-check"></i>
                         <span class="menu-title">@lang('Attendance')</span>
@@ -164,8 +172,12 @@
                     </div>
                 </li>
 
+                <!-- Divider -->
+                <li class="sidebar-menu-divider"
+                    style="border-bottom: 1px solid rgba(255,255,255,0.1); margin: 10px 0;"></li>
+
                 <!-- Operator Bookings Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.bookings*', 3) }}">
                         <i class="menu-icon las la-ticket-alt"></i>
                         <span class="menu-title">@lang('My Bookings')</span>
@@ -195,7 +207,7 @@
                 </li>
 
                 <!-- Revenue Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.revenue*', 3) }}">
                         <i class="menu-icon las la-money-bill-wave"></i>
                         <span class="menu-title">@lang('Revenue')</span>
@@ -224,8 +236,12 @@
                     </div>
                 </li>
 
+                <!-- Divider -->
+                <li class="sidebar-menu-divider"
+                    style="border-bottom: 1px solid rgba(255,255,255,0.1); margin: 10px 0;"></li>
+
                 <!-- Profile Management -->
-                <li class="sidebar-menu-item sidebar-dropdown">
+                <li class="sidebar-menu-item sidebar-dropdown" style="margin-bottom: 10px;">
                     <a href="javascript:void(0)" class="{{ menuActive('operator.profile*', 3) }}">
                         <i class="menu-icon las la-user"></i>
                         <span class="menu-title">@lang('Profile')</span>

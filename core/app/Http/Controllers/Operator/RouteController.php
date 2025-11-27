@@ -186,7 +186,7 @@ class RouteController extends Controller
             'distance' => 'nullable|numeric|min:0',
             'estimated_duration' => 'nullable|numeric|min:0.5|max:24',
             'base_fare' => 'nullable|numeric|min:0',
-            'status' => 'boolean',
+            'status' => 'nullable|boolean',
             'boarding_points' => 'required|array|min:1',
             'boarding_points.*.point_name' => 'required|string|max:255',
             'boarding_points.*.point_address' => 'required|string',

@@ -1,6 +1,22 @@
 @extends('agent.layouts.app')
 
 @section('panel')
+    @php
+        use Carbon\Carbon;
+
+        // Fetch fee settings from general settings
+        $generalSettings = \App\Models\GeneralSetting::first();
+        $gstPercentage = $generalSettings->gst_percentage ?? 0;
+        $serviceChargePercentage = $generalSettings->service_charge_percentage ?? 0;
+        $platformFeePercentage = $generalSettings->platform_fee_percentage ?? 0;
+        $platformFeeFixed = $generalSettings->platform_fee_fixed ?? 0;
+
+        // Fetch markup data
+        $markupData = \App\Models\MarkupTable::orderBy('id', 'desc')->first();
+        $flatMarkup = isset($markupData->flat_markup) ? (float) $markupData->flat_markup : 0;
+        $percentageMarkup = isset($markupData->percentage_markup) ? (float) $markupData->percentage_markup : 0;
+        $threshold = isset($markupData->threshold) ? (float) $markupData->threshold : 0;
+    @endphp
     <div class="container-fluid px-0">
         <!-- Booking Header -->
         <div class="card mb-2">
@@ -61,7 +77,7 @@
             </div>
         </div>
 
-        <div class="row justify-content-between">
+        <div class="row justify-content-start">
             <!-- Left Column - Customer Details -->
             <div class="col-lg-4 col-md-4 order-2 order-lg-1">
                 <div class="card">
@@ -127,6 +143,23 @@
                                     <span>@lang('Base Fare'):</span>
                                     <span id="baseFare">₹0.00</span>
                                 </div>
+                                <div class="d-flex justify-content-between" id="serviceChargeRow" style="display: none;">
+                                    <span>@lang('Service Charge'):</span>
+                                    <span id="serviceChargeDisplay">₹0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between" id="platformFeeRow" style="display: none;">
+                                    <span>@lang('Platform Fee'):</span>
+                                    <span id="platformFeeDisplay">₹0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between" id="gstRow" style="display: none;">
+                                    <span>@lang('GST'):</span>
+                                    <span id="gstDisplay">₹0.00</span>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between" id="subtotalRow">
+                                    <span>@lang('Subtotal'):</span>
+                                    <span id="subtotalDisplay">₹0.00</span>
+                                </div>
                                 <div class="d-flex justify-content-between">
                                     <span>@lang('Commission'):</span>
                                     <span id="commissionDisplay">₹0.00</span>
@@ -167,25 +200,25 @@
                             @lang('Select Seats')
                         </h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body" style="overflow-x: auto;">
                         <!-- Seat Layout -->
-                        <div class="bus">
-                            @if ($seatHtml || ($parsedLayout && isset($parsedLayout['seat'])))
-                                @include('templates.basic.partials.seatlayout', [
-                                    'seatHtml' => $seatHtml,
-                                    'parsedLayout' => $parsedLayout,
-                                    'isOperatorBus' => $isOperatorBus,
-                                ])
-                            @else
-                                <div class="alert alert-warning">
-                                    <i class="las la-exclamation-triangle"></i>
-                                    @lang('Seat layout is loading... Please wait or try refreshing the page.')
-                                    <br>
-                                    <small>Debug: seatHtml={{ $seatHtml ? 'Present' : 'Empty' }},
-                                        parsedLayout={{ $parsedLayout ? 'Present' : 'Empty' }}</small>
-                                </div>
-                            @endif
-                        </div>
+                        {{-- <div class="bus"> --}}
+                        @if ($seatHtml || ($parsedLayout && isset($parsedLayout['seat'])))
+                            @include('templates.basic.partials.seatlayout', [
+                                'seatHtml' => $seatHtml,
+                                'parsedLayout' => $parsedLayout,
+                                'isOperatorBus' => $isOperatorBus,
+                            ])
+                        @else
+                            <div class="alert alert-warning">
+                                <i class="las la-exclamation-triangle"></i>
+                                @lang('Seat layout is loading... Please wait or try refreshing the page.')
+                                <br>
+                                <small>Debug: seatHtml={{ $seatHtml ? 'Present' : 'Empty' }},
+                                    parsedLayout={{ $parsedLayout ? 'Present' : 'Empty' }}</small>
+                            </div>
+                        @endif
+                        {{-- </div> --}}
 
                         <!-- Seat Legend -->
                         <div class="seat-legend mt-3">
@@ -264,6 +297,24 @@
         var baseFare = 0;
         var commissionAmount = 0;
 
+        // Fee settings from PHP
+        var gstPercentage = {{ $gstPercentage }};
+        var serviceChargePercentage = {{ $serviceChargePercentage }};
+        var platformFeePercentage = {{ $platformFeePercentage }};
+        var platformFeeFixed = {{ $platformFeeFixed }};
+
+        // Markup settings
+        var flatMarkup = {{ $flatMarkup }};
+        var percentageMarkup = {{ $percentageMarkup }};
+        var markupThreshold = {{ $threshold }};
+
+        // Calculated fees
+        var markupAmount = 0;
+        var serviceChargeAmount = 0;
+        var platformFeeAmount = 0;
+        var gstAmount = 0;
+        var subtotalAmount = 0;
+
         document.addEventListener('DOMContentLoaded', function() {
             // Load boarding/dropping points
             loadBoardingPoints();
@@ -304,7 +355,7 @@
                     document.getElementById('dropping_point_index').value = droppingSelectMobile.value;
                 }
                 document.getElementById('selected_seats').value = selectedSeats.join(',');
-                document.getElementById('total_price').value = baseFare + commissionAmount;
+                document.getElementById('total_price').value = subtotalAmount + commissionAmount;
 
                 // Submit form
                 this.submit();
@@ -316,11 +367,22 @@
             console.log('AddRemoveSeat called:', {
                 element,
                 seatId,
-                price
+                price,
+                priceType: typeof price,
+                parsedPrice: parseFloat(price)
             });
 
             const seatNumber = seatId;
             const seatPrice = parseFloat(price);
+
+            // Check if price is valid
+            if (isNaN(seatPrice) || seatPrice === 0) {
+                console.warn('WARNING: Seat price is 0 or invalid!', {
+                    seatId,
+                    price,
+                    dataPrice: element.getAttribute('data-price')
+                });
+            }
 
             element.classList.toggle('selected');
             const alreadySelected = selectedSeats.includes(seatNumber);
@@ -328,11 +390,11 @@
             if (!alreadySelected) {
                 selectedSeats.push(seatNumber);
                 baseFare += seatPrice;
-                console.log('Seat added:', seatNumber, 'Total seats:', selectedSeats.length);
+                console.log('Seat added:', seatNumber, 'Price:', seatPrice, 'Total baseFare:', baseFare);
             } else {
                 selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
                 baseFare -= seatPrice;
-                console.log('Seat removed:', seatNumber, 'Total seats:', selectedSeats.length);
+                console.log('Seat removed:', seatNumber, 'Total baseFare:', baseFare);
             }
 
             updatePassengerDetails();
@@ -393,9 +455,63 @@
 
         function updateBookingSummary() {
             commissionAmount = parseFloat(document.getElementById('commissionInput').value) || 0;
-            const total = baseFare + commissionAmount;
 
-            document.getElementById('baseFare').textContent = '₹' + baseFare.toFixed(2);
+            // Calculate Markup (before other fees)
+            if (baseFare <= markupThreshold) {
+                markupAmount = flatMarkup;
+            } else {
+                markupAmount = (baseFare * percentageMarkup / 100);
+            }
+
+            // Base fare + Markup
+            var fareAfterMarkup = baseFare + markupAmount;
+
+            // Service Charge (on base fare + markup)
+            serviceChargeAmount = (fareAfterMarkup * serviceChargePercentage / 100);
+
+            // Platform Fee (percentage + fixed)
+            platformFeeAmount = (fareAfterMarkup * platformFeePercentage / 100) + platformFeeFixed;
+
+            // Amount before GST
+            var amountBeforeGST = fareAfterMarkup + serviceChargeAmount + platformFeeAmount;
+
+            // GST (on amount before GST)
+            gstAmount = (amountBeforeGST * gstPercentage / 100);
+
+            // Subtotal (base + markup + service + platform + gst)
+            subtotalAmount = amountBeforeGST + gstAmount;
+
+            // Total (subtotal + commission)
+            const total = subtotalAmount + commissionAmount;
+
+            // Update displays
+            document.getElementById('baseFare').textContent = '₹' + fareAfterMarkup.toFixed(2);
+
+            // Show/hide and update service charge
+            if (serviceChargeAmount > 0) {
+                document.getElementById('serviceChargeRow').style.display = 'flex';
+                document.getElementById('serviceChargeDisplay').textContent = '₹' + serviceChargeAmount.toFixed(2);
+            } else {
+                document.getElementById('serviceChargeRow').style.display = 'none';
+            }
+
+            // Show/hide and update platform fee
+            if (platformFeeAmount > 0) {
+                document.getElementById('platformFeeRow').style.display = 'flex';
+                document.getElementById('platformFeeDisplay').textContent = '₹' + platformFeeAmount.toFixed(2);
+            } else {
+                document.getElementById('platformFeeRow').style.display = 'none';
+            }
+
+            // Show/hide and update GST
+            if (gstAmount > 0) {
+                document.getElementById('gstRow').style.display = 'flex';
+                document.getElementById('gstDisplay').textContent = '₹' + gstAmount.toFixed(2);
+            } else {
+                document.getElementById('gstRow').style.display = 'none';
+            }
+
+            document.getElementById('subtotalDisplay').textContent = '₹' + subtotalAmount.toFixed(2);
             document.getElementById('commissionDisplay').textContent = '₹' + commissionAmount.toFixed(2);
             document.getElementById('totalAmount').textContent = '₹' + total.toFixed(2);
 
@@ -718,6 +834,108 @@
 
 @push('style')
     <style>
+        /* Seat Layout Container */
+        .bus {
+            transform: scale(1) !important;
+            transform-origin: top left;
+            margin-bottom: 13vh !important;
+            /* padding: 20px; */
+        }
+
+        .busSeatlft {
+            height: 200px !important;
+            width: 12% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            /* position: relative !important; */
+            /* flex-shrink: 0; */
+        }
+
+        /* Make seats bigger and more visible */
+        .bus .seat,
+        .bus .seat-item,
+        .bus [class*="seat"] {
+            min-width: 35px !important;
+            min-height: 35px !important;
+            font-size: 8px !important;
+            /* margin: 3px !important; */
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .outerlowerseat {
+            width: 34vw !important;
+        }
+
+        /* Available seat styling */
+        .bus .seat.available,
+        .bus .available {
+            background-color: #ffffff;
+            border: 2px solid #28a745;
+            color: #28a745;
+        }
+
+        .bus .seat.available:hover,
+        .bus .available:hover {
+            background-color: #d4edda;
+            border-color: #1e7e34;
+        }
+
+        /* Selected seat styling */
+        .bus .seat.selected,
+        .bus .selected {
+            background-color: #28a745 !important;
+            border: 2px solid #1e7e34 !important;
+            color: white !important;
+            font-weight: 600 !important;
+        }
+
+        /* Booked seat styling */
+        .bus .seat.booked,
+        .bus .booked {
+            background-color: #e9ecef !important;
+            border: 2px solid #6c757d !important;
+            color: #6c757d !important;
+            cursor: not-allowed !important;
+            opacity: 0.6;
+        }
+
+        /* Seat rows spacing */
+        .bus .seat-row,
+        .bus [class*="row"] {
+            margin-bottom: 8px;
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .bus {
+                transform: scale(1.2);
+                margin-bottom: 60px;
+            }
+
+            .bus .seat,
+            .bus .seat-item,
+            .bus [class*="seat"] {
+                min-width: 30px !important;
+                min-height: 30px !important;
+                font-size: 10px !important;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .bus {
+                transform: scale(1.8);
+                margin-bottom: 150px;
+            }
+        }
+
         /* Seat Legend Styles */
         .seat-legend-item {
             width: 20px;

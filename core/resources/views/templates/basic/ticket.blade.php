@@ -265,11 +265,9 @@
         $(document).ready(function() {
             // Configure datepicker to disable past dates
             $('.datpicker').datepicker({
-                minDate: new Date(),
-                startDate: new Date(),
-                maxDate: new Date(new Date().setDate(new Date().getDate() + 100)),
-                autoclose: true,
-                format: 'yyyy-mm-dd' // Standardize to bootstrap-datepicker format
+                minDate: 0, // 0 = today (jQuery UI datepicker)
+                maxDate: '+100d', // +100 days from today
+                dateFormat: 'yy-mm-dd' // jQuery UI uses dateFormat not format
             });
 
             // Autocomplete functionality

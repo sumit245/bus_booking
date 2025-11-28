@@ -95,6 +95,42 @@
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
         }
 
+        .password-toggle-wrapper {
+            position: relative;
+        }
+
+        .password-toggle-wrapper .form-control {
+            padding-right: 3rem;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            border: none;
+            background: transparent;
+            padding: 0 1rem;
+            color: #6c757d;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle-btn:hover {
+            color: #007bff;
+        }
+
+        .password-toggle-btn:focus {
+            outline: none;
+        }
+
+        .password-toggle-btn i {
+            font-size: 1.25rem;
+        }
+
         .btn-login {
             background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
             border: none;
@@ -170,8 +206,8 @@
     <div class="agent-login-wrapper">
         <div class="agent-login-card">
             <div class="agent-login-header">
-                <h3><i class="las la-user-tie"></i> @lang('Agent Login')</h3>
-                <p>@lang('Access your agent panel')</p>
+                <h3 class="text-light"><i class="las la-user-tie"></i> @lang('Agent Login')</h3>
+                <p class="text-light">@lang('Access your agent panel')</p>
             </div>
 
             <div class="agent-login-body">
@@ -190,15 +226,13 @@
 
                     <div class="form-group">
                         <label for="password">@lang('Password')</label>
-                        <div class="input-group">
+                        <div class="password-toggle-wrapper">
                             <input type="password" class="form-control @error('password') is-invalid @enderror"
                                 id="password" name="password" required autocomplete="current-password"
                                 placeholder="@lang('Enter your password')">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                    <i class="las la-eye" id="toggleIcon"></i>
-                                </button>
-                            </div>
+                            <button class="password-toggle-btn" type="button" id="togglePassword" tabindex="-1">
+                                <i class="las la-eye" id="toggleIcon"></i>
+                            </button>
                         </div>
                         @error('password')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -214,7 +248,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-login">
+                    <button type="submit" class="btn btn-login text-light">
                         <i class="las la-sign-in-alt"></i>
                         @lang('Login to Agent Panel')
                     </button>
@@ -255,39 +289,54 @@
     <script src="{{ asset('assets/global/js/bootstrap.min.js') }}"></script>
 
     <script>
-        $(document).ready(function() {
-            // Toggle password visibility
-            $('#togglePassword').click(function() {
-                const password = $('#password');
-                const toggleIcon = $('#toggleIcon');
+        // Vanilla JavaScript - More reliable
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const emailInput = document.getElementById('email');
+            const loginForm = document.querySelector('form');
+            const submitButton = document.querySelector('button[type="submit"]');
 
-                if (password.attr('type') === 'password') {
-                    password.attr('type', 'text');
-                    toggleIcon.removeClass('la-eye').addClass('la-eye-slash');
-                } else {
-                    password.attr('type', 'password');
-                    toggleIcon.removeClass('la-eye-slash').addClass('la-eye');
-                }
-            });
+            // Toggle password visibility
+            if (togglePassword) {
+                togglePassword.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        toggleIcon.classList.remove('la-eye');
+                        toggleIcon.classList.add('la-eye-slash');
+                    } else {
+                        passwordInput.type = 'password';
+                        toggleIcon.classList.remove('la-eye-slash');
+                        toggleIcon.classList.add('la-eye');
+                    }
+                });
+            }
 
             // Form validation
-            $('form').on('submit', function(e) {
-                const email = $('#email').val();
-                const password = $('#password').val();
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    const email = emailInput.value.trim();
+                    const password = passwordInput.value;
 
-                if (!email || !password) {
-                    e.preventDefault();
-                    alert('@lang('Please fill in all required fields')');
-                    return false;
-                }
+                    if (!email || !password) {
+                        e.preventDefault();
+                        alert('@lang('Please fill in all required fields')');
+                        return false;
+                    }
 
-                // Show loading state
-                $('button[type="submit"]').html('<i class="las la-spinner la-spin"></i> @lang('Logging in...')')
-                    .prop('disabled', true);
-            });
+                    // Show loading state
+                    submitButton.innerHTML = '<i class="las la-spinner la-spin"></i> @lang('Logging in...')';
+                    submitButton.disabled = true;
+                });
+            }
 
             // Auto-focus email field
-            $('#email').focus();
+            if (emailInput) {
+                emailInput.focus();
+            }
         });
     </script>
 </body>

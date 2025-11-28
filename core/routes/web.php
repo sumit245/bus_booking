@@ -1679,7 +1679,7 @@ Route::middleware(["auth:agent"])
                     "DateOfJourney" => "required|after_or_equal:today",
                     "passengers" => "sometimes|integer|min:1|max:10",
                     "page" => "sometimes|integer|min:1",
-                    "sortBy" => "sometimes|string|in:departure,price-low,price-high,duration",
+                    "sortBy" => "sometimes|nullable|string|in:departure,price-low,price-high,duration",
                     "fleetType" => "sometimes|array",
                     "fleetType.*" => "string|in:A/c,Non-A/c,Seater,Sleeper",
                     "departure_time" => "sometimes|array",
@@ -1821,6 +1821,9 @@ Route::middleware(["auth:agent"])
             // Earnings
             Route::get("/earnings", "EarningsController@index")->name(
                 "earnings",
+            );
+            Route::get("/earnings/chart-data", "EarningsController@chartData")->name(
+                "earnings.chart-data",
             );
             Route::get("/earnings/monthly", "EarningsController@monthly")->name(
                 "earnings.monthly",

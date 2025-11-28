@@ -668,8 +668,8 @@ class BusService
             $normalizedDate = $dateOfJourney;
         }
 
-        // 1. Get operator bookings that block seats on this date
-        $blockedSeats = OperatorBooking::active()
+        // 1. Get operator bookings that block seats on this date AND schedule
+        $blockedSeatsQuery = OperatorBooking::active()
             ->where('operator_bus_id', $bus->id)
             ->where(function ($query) use ($normalizedDate) {
                 $query->where('journey_date', $normalizedDate)
@@ -678,8 +678,14 @@ class BusService
                             ->where('journey_date', '<=', $normalizedDate)
                             ->where('journey_date_end', '>=', $normalizedDate);
                     });
-            })
-            ->get();
+            });
+
+        // Filter by schedule if provided
+        if ($scheduleId) {
+            $blockedSeatsQuery->where('bus_schedule_id', $scheduleId);
+        }
+
+        $blockedSeats = $blockedSeatsQuery->get();
 
         $totalBlockedSeats = 0;
         foreach ($blockedSeats as $booking) {

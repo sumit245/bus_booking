@@ -1838,17 +1838,7 @@ if (!function_exists("renderSeatHTML")) {
                         '\',\'' .
                         $seat["price"] .
                         '\')">';
-                    $html .=
-                        '<div style="font-size:10px;line-height:1.1;text-align:center;">';
-                    $html .=
-                        '<div style="font-weight:bold;">' .
-                        $seat["seat_id"] .
-                        "</div>";
-                    $html .=
-                        '<div style="font-size:9px;">₹' .
-                        $seat["price"] .
-                        "</div>";
-                    $html .= "</div></div>";
+                    $html .= '</div>';
                 }
                 $html .= "</div>";
             }
@@ -1881,17 +1871,7 @@ if (!function_exists("renderSeatHTML")) {
                         '\',\'' .
                         $seat["price"] .
                         '\')">';
-                    $html .=
-                        '<div style="font-size:10px;line-height:1.1;text-align:center;">';
-                    $html .=
-                        '<div style="font-weight:bold;">' .
-                        $seat["seat_id"] .
-                        "</div>";
-                    $html .=
-                        '<div style="font-size:9px;">₹' .
-                        $seat["price"] .
-                        "</div>";
-                    $html .= "</div></div>";
+                    $html .= '</div>';
                 }
                 $html .= "</div>";
             }

@@ -171,36 +171,31 @@ class BookingController extends Controller
         $pageTitle = 'My Bookings';
         $agent = Auth::guard('agent')->user();
 
-        $query = $agent->agentBookings()->with(['bookedTicket.pickup', 'bookedTicket.drop']);
+        // Fetch booked_tickets where agent_id is not null and agent_id matches the authenticated agent
+        $query = BookedTicket::with(['pickup', 'drop', 'agentBooking'])
+            ->whereNotNull('agent_id')
+            ->where('agent_id', $agent->id);
 
-        // Filter by tab: upcoming or past (based on bookedTicket.date_of_journey)
+        // Filter by tab: upcoming or past (based on date_of_journey)
         $tab = $request->get('tab', 'upcoming');
         if ($tab === 'past') {
-            $query->whereHas('bookedTicket', function ($q) {
-                $q->whereDate('date_of_journey', '<', now()->toDateString());
-            });
+            $query->whereDate('date_of_journey', '<', now()->toDateString());
         } else {
-            $query->whereHas('bookedTicket', function ($q) {
-                $q->whereDate('date_of_journey', '>=', now()->toDateString());
-            });
+            $query->whereDate('date_of_journey', '>=', now()->toDateString());
         }
 
         // Date range filter
         if ($request->filled('date_from')) {
-            $query->whereHas('bookedTicket', function ($q) use ($request) {
-                $q->whereDate('date_of_journey', '>=', $request->get('date_from'));
-            });
+            $query->whereDate('date_of_journey', '>=', $request->get('date_from'));
         }
         if ($request->filled('date_to')) {
-            $query->whereHas('bookedTicket', function ($q) use ($request) {
-                $q->whereDate('date_of_journey', '<=', $request->get('date_to'));
-            });
+            $query->whereDate('date_of_journey', '<=', $request->get('date_to'));
         }
 
         // Search across booking id or ticket_no
         if ($request->filled('q')) {
             $qStr = $request->get('q');
-            $query->whereHas('bookedTicket', function ($q) use ($qStr) {
+            $query->where(function ($q) use ($qStr) {
                 $q->where('booking_id', 'like', "%{$qStr}%")
                     ->orWhere('ticket_no', 'like', "%{$qStr}%");
             });
@@ -223,16 +218,15 @@ class BookingController extends Controller
             $callback = function () use ($rows, $columns) {
                 $file = fopen('php://output', 'w');
                 fputcsv($file, $columns);
-                foreach ($rows as $row) {
-                    $bt = $row->bookedTicket;
+                foreach ($rows as $bt) {
                     fputcsv($file, [
                         $bt->booking_id ?? '',
                         $bt->ticket_no ?? '',
-                        optional($bt)->date_of_journey ?? '',
-                        optional($bt)->total_amount ?? '',
-                        $row->total_commission_earned ?? '',
-                        $row->booking_status ?? '',
-                        $row->payment_status ?? '',
+                        $bt->date_of_journey ?? '',
+                        $bt->total_amount ?? '',
+                        $bt->agent_commission_amount ?? '',
+                        $bt->status == 1 ? 'Confirmed' : ($bt->status == 2 ? 'Cancelled' : 'Pending'),
+                        $bt->payment_status ?? '',
                     ]);
                 }
                 fclose($file);

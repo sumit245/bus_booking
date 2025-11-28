@@ -339,6 +339,35 @@
 
                 // Auto-focus first field
                 $('#origin_city_id').focus();
+
+                // Enforce minimum date validation for journey date
+                const dateInput = document.getElementById('date_of_journey');
+                if (dateInput) {
+                    // Set min attribute dynamically to ensure it's always today
+                    const today = new Date().toISOString().split('T')[0];
+                    dateInput.setAttribute('min', today);
+
+                    // Validate on change
+                    dateInput.addEventListener('change', function() {
+                        const selectedDate = new Date(this.value);
+                        const minDate = new Date(today);
+
+                        if (selectedDate < minDate) {
+                            alert('{{ __('Please select a date from today onwards') }}');
+                            this.value = today;
+                        }
+                    });
+
+                    // Validate on input (for manual typing)
+                    dateInput.addEventListener('input', function() {
+                        const selectedDate = new Date(this.value);
+                        const minDate = new Date(today);
+
+                        if (this.value && selectedDate < minDate) {
+                            this.value = today;
+                        }
+                    });
+                }
             });
         });
     </script>

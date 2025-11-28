@@ -39,8 +39,22 @@ class AgentCommissionCalculator
         ];
     }
 
-    public function calculate($bookingAmount)
+    /**
+     * Calculate commission for a given booking amount
+     * 
+     * @param float $bookingAmount The total booking amount
+     * @param array|null $config Optional commission configuration (uses default if not provided)
+     * @return array Commission details
+     */
+    public function calculate($bookingAmount, $config = null)
     {
+        // Use provided config or load from database
+        if ($config !== null) {
+            $this->commissionConfig = $config;
+        } elseif (!$this->commissionConfig) {
+            $this->loadCommissionConfig();
+        }
+
         if ($bookingAmount <= $this->commissionConfig['threshold_amount']) {
             return $this->calculateFixedCommission($bookingAmount);
         } else {

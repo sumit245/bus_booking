@@ -292,7 +292,13 @@ class OperatorBookingController extends Controller
             $this->createOperatorBookedTicket($booking, $bus, $route);
             \Log::info('createOperatorBookedTicket completed successfully', ['booking_id' => $booking->id]);
         } catch (\Exception $e) {
-            \Log::error('createOperatorBookedTicket failed', ['error' => $e->getMessage(), 'booking_id' => $booking->id]);
+            \Log::error('createOperatorBookedTicket failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'booking_id' => $booking->id
+            ]);
+            // Don't fail the whole operation, but notify user
+            $notify[] = ['warning', 'Seats blocked in operator system, but ticket entry creation failed. Check logs.'];
         }
 
         $notify[] = ['success', 'Seats blocked successfully.'];
@@ -370,12 +376,14 @@ class OperatorBookingController extends Controller
         \App\Models\BookedTicket::create([
             // Operator details (as passenger)
             'passenger_name' => $operator->company_name ?? 'Operator Block',
+            'passenger_names' => json_encode([$operator->company_name ?? 'Operator Block']), // Array format
             'passenger_phone' => $operator->mobile,
             'passenger_email' => $operator->email,
+            'passenger_address' => $operator->address ?? '',
             'gender' => 0, // As requested
 
             // IDs and references
-            'user_id' => null, // As requested - this is operator booking, not user
+            'user_id' => 0, // 0 for non-user bookings (operator/agent bookings)
             'operator_id' => $operator->id,
             'operator_booking_id' => $operatorBooking->id,
             'booking_id' => 'OP-' . $operatorBooking->id,
@@ -398,8 +406,7 @@ class OperatorBookingController extends Controller
             'destination_city' => $route->destinationCity->city_name,
             'date_of_journey' => $operatorBooking->journey_date->format('Y-m-d'),
 
-            // Boarding and dropping points
-            'boarding_point' => $boardingPoint ? $boardingPoint->id : null,
+            // Boarding and dropping point details (store ID in dropping_point only)
             'boarding_point_details' => $boardingPointDetails ? json_encode($boardingPointDetails) : null,
             'dropping_point' => $droppingPoint ? $droppingPoint->id : null,
             'dropping_point_details' => $droppingPointDetails ? json_encode($droppingPointDetails) : null,
@@ -407,7 +414,6 @@ class OperatorBookingController extends Controller
             // Seat details - CRITICAL: This is what SeatAvailabilityService checks
             // Pass as array - Laravel's cast will handle JSON encoding
             'seats' => $seatsArray,
-            'seat_numbers' => implode(',', $seatsArray),
             'ticket_count' => count($seatsArray),
 
             // Financial details - all zero as requested
@@ -427,7 +433,13 @@ class OperatorBookingController extends Controller
 
             // Additional metadata
             'booking_type' => 'operator_block',
-            'notes' => 'Operator blocked seats: ' . ($operatorBooking->booking_reason ?? 'No reason provided')
+            'notes' => 'Operator blocked seats: ' . ($operatorBooking->booking_reason ?? 'No reason provided'),
+
+            // Additional required fields
+            'api_response' => null,
+            'bus_details' => null,
+            'search_token_id' => null,
+            'api_invoice' => 0,
         ]);
 
         \Log::info('Created booked_ticket entry for operator booking', [

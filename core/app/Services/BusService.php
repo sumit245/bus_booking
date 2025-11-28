@@ -140,13 +140,20 @@ class BusService
     private function fetchOperatorBuses(int $originId, int $destinationId, string $dateOfJourney): array
     {
         $cacheKey = "operator_bus_search_v3:{$originId}_{$destinationId}_{$dateOfJourney}";
-        // $journeyDate = Carbon::parse($dateOfJourney);
-        // $nowTime     = now()->format('H:i:s'); // current time like '14:30:00'
+
+        // Parse journey date and current time for comparison
+        $journeyDate = Carbon::parse($dateOfJourney);
+        $nowDateTime = now();
+        $isToday = $journeyDate->isSameDay($nowDateTime);
+        $currentTime = $nowDateTime->format('H:i:s');
 
         // Temporarily bypass cache for testing
         // TODO: Re-enable caching after debugging
-        // return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney) {
-        Log::info("Fetching operator schedules for {$originId}-{$destinationId} on {$dateOfJourney}");
+        // return Cache::remember($cacheKey, now()->addMinutes(self::API_CACHE_DURATION_MINUTES), function () use ($originId, $destinationId, $dateOfJourney, $isToday, $currentTime) {
+        Log::info("Fetching operator schedules for {$originId}-{$destinationId} on {$dateOfJourney}", [
+            'is_today' => $isToday,
+            'current_time' => $currentTime
+        ]);
 
         try {
             // Find schedules that match the origin, destination, and date
@@ -180,7 +187,38 @@ class BusService
                 ->get();
 
 
-            Log::info("Found " . $schedules->count() . " operator schedules");
+            Log::info("Found " . $schedules->count() . " operator schedules before time filtering");
+
+            // CRITICAL FIX: Filter out past schedules if searching for today
+            if ($isToday) {
+                $schedules = $schedules->filter(function ($schedule) use ($currentTime) {
+                    // Get departure time from schedule
+                    $departureTime = $schedule->departure_time;
+
+                    // Convert to H:i:s format for comparison
+                    if ($departureTime instanceof \Carbon\Carbon || $departureTime instanceof \DateTimeInterface) {
+                        $scheduleTime = Carbon::parse($departureTime)->format('H:i:s');
+                    } else {
+                        $scheduleTime = $departureTime;
+                    }
+
+                    // Only include schedules that haven't departed yet
+                    $hasNotDeparted = $scheduleTime > $currentTime;
+
+                    if (!$hasNotDeparted) {
+                        Log::info("Filtering out past schedule", [
+                            'schedule_id' => $schedule->id,
+                            'schedule_name' => $schedule->schedule_name,
+                            'departure_time' => $scheduleTime,
+                            'current_time' => $currentTime
+                        ]);
+                    }
+
+                    return $hasNotDeparted;
+                });
+
+                Log::info("After time filtering: " . $schedules->count() . " schedules remaining");
+            }
 
             if ($schedules->isEmpty()) {
                 Log::info("No operator schedules found for {$originId}-{$destinationId} on {$dateOfJourney}");

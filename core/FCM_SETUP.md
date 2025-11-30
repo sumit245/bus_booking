@@ -157,6 +157,25 @@ curl -X POST http://localhost/api/notifications/send-general \
   }'
 ```
 
+**Important Note:** If you get `sent_count: 0`, it means:
+
+-   No FCM tokens are registered for the specified users
+-   Users need to register their FCM tokens first using `/api/users/fcm-token` endpoint
+-   Check `total_tokens_found` in the response to see how many tokens exist
+
+**Response Example (No Tokens):**
+
+```json
+{
+    "success": true,
+    "message": "No FCM tokens found for the specified users (IDs: 1, 2, 3). Users need to register their FCM tokens first.",
+    "sent_count": 0,
+    "failed_count": 0,
+    "total_tokens_found": 0,
+    "user_ids_requested": [1, 2, 3]
+}
+```
+
 ---
 
 ## API Endpoints Reference
@@ -326,6 +345,44 @@ No manual API call needed - handled by `BookingService::verifyPaymentAndComplete
 -   Mobile app should refresh token and resend to `/api/users/fcm-token`
 -   Check Firebase Console for token status
 
+### Issue: `"invalid_grant"` Error
+
+**Problem:** All notifications fail with error `"invalid_grant"` even though Firebase initializes successfully.
+
+**Cause:** This is a Firebase authentication error, usually caused by:
+
+-   Service account credentials are invalid or expired
+-   Service account doesn't have proper permissions
+-   Service account key was regenerated and old key is being used
+-   Clock/time sync issue (system time is incorrect)
+
+**Solutions:**
+
+1. **Regenerate Service Account Key:**
+
+    - Go to Firebase Console > Project Settings > Service Accounts
+    - Click "Generate New Private Key"
+    - Download the new JSON file
+    - Replace `storage/app/firebase-credentials.json` with the new file
+
+2. **Check Service Account Permissions:**
+
+    - Go to Google Cloud Console > IAM & Admin > IAM
+    - Find your service account email (e.g., `firebase-adminsdk-xxx@project-id.iam.gserviceaccount.com`)
+    - Ensure it has "Firebase Cloud Messaging Admin" or "Firebase Admin SDK Administrator Service Agent" role
+
+3. **Verify System Time:**
+
+    - Ensure server time is synchronized (Google OAuth requires accurate time)
+    - Run: `date` to check system time
+    - On Linux: `sudo ntpdate -s time.nist.gov`
+
+4. **Clear Cache and Test:**
+    ```bash
+    php artisan config:clear
+    php artisan cache:clear
+    ```
+
 ### Issue: "Notifications not received"
 
 **Check:**
@@ -334,6 +391,48 @@ No manual API call needed - handled by `BookingService::verifyPaymentAndComplete
 2. Firebase logs in `storage/logs/laravel.log`
 3. Mobile app notification permissions enabled
 4. Android notification channel configured correctly
+
+### Issue: `sent_count: 0` in Notification Response
+
+**Problem:** API returns 200 success but `sent_count` is 0.
+
+**Common Cause:** No FCM tokens are registered in the database yet.
+
+**Diagnosis:**
+
+Check the API response - it now includes helpful diagnostic information:
+
+```json
+{
+    "success": true,
+    "message": "No FCM tokens found for the specified users (IDs: 1, 2, 3). Users need to register their FCM tokens first.",
+    "sent_count": 0,
+    "failed_count": 0,
+    "total_tokens_found": 0, // ← This tells you how many tokens exist
+    "user_ids_requested": [1, 2, 3]
+}
+```
+
+**Solutions:**
+
+1. **If `total_tokens_found: 0`**:
+
+    - No users have registered FCM tokens yet
+    - Users need to open the mobile app and allow push notifications
+    - The app should call `/api/users/fcm-token` to register tokens
+
+2. **If `total_tokens_found > 0` but `sent_count: 0`**:
+
+    - Check Laravel logs for Firebase errors
+    - Verify Firebase credentials are correct
+    - Check if all tokens are invalid (they'll be auto-removed)
+
+3. **Check token count manually**:
+    ```bash
+    php artisan tinker
+    >>> \App\Models\FcmToken::count()
+    >>> \App\Models\FcmToken::whereIn('user_id', [1, 2, 3])->count()
+    ```
 
 ### Issue: "Admin authentication failed"
 

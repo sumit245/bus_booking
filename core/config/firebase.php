@@ -21,6 +21,7 @@ return [
     | - Relative path from storage/app: firebase-credentials.json
     | - Or use environment variable FIREBASE_CREDENTIALS_PATH
     |
+    | Note: The service will automatically resolve relative paths.
     */
     'credentials_path' => env('FIREBASE_CREDENTIALS_PATH', storage_path('app/firebase-credentials.json')),
 

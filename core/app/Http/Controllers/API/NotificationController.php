@@ -81,20 +81,29 @@ class NotificationController extends Controller
                 'update_url' => $request->update_url,
             ];
 
+            $totalTokens = FcmToken::count();
             $results = $this->fcmService->sendToAll($title, $body, $data);
 
             Log::info('Release notification sent', [
                 'admin_id' => $admin->id,
                 'version' => $request->version,
+                'total_tokens' => $totalTokens,
                 'sent' => $results['sent'],
                 'failed' => $results['failed']
             ]);
 
+            $message = $results['sent'] > 0 
+                ? "Release notification sent to {$results['sent']} users"
+                : ($totalTokens == 0 
+                    ? "No FCM tokens found in the system. Users need to register their FCM tokens first."
+                    : "No notifications were sent. All tokens may be invalid or Firebase service issue.");
+
             return response()->json([
                 'success' => true,
-                'message' => "Release notification sent to {$results['sent']} users",
+                'message' => $message,
                 'sent_count' => $results['sent'],
-                'failed_count' => $results['failed']
+                'failed_count' => $results['failed'],
+                'total_tokens_found' => $totalTokens
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -171,25 +180,42 @@ class NotificationController extends Controller
                 $options['image_url'] = $request->image_url;
             }
 
+            // Check token counts
+            $userIds = $request->has('user_ids') && !empty($request->user_ids) ? $request->user_ids : null;
+            $totalTokens = $userIds 
+                ? FcmToken::whereIn('user_id', $userIds)->count()
+                : FcmToken::count();
+
             // Send to specific users or all
-            if ($request->has('user_ids') && !empty($request->user_ids)) {
-                $results = $this->fcmService->sendToUsers($request->user_ids, $title, $body, $data);
+            if ($userIds) {
+                $results = $this->fcmService->sendToUsers($userIds, $title, $body, $data);
             } else {
                 $results = $this->fcmService->sendToAll($title, $body, $data);
             }
 
             Log::info('Promotional notification sent', [
                 'admin_id' => $admin->id,
-                'user_ids' => $request->user_ids ?? 'all',
+                'user_ids' => $userIds ?? 'all',
+                'total_tokens' => $totalTokens,
                 'sent' => $results['sent'],
                 'failed' => $results['failed']
             ]);
 
+            $message = $results['sent'] > 0 
+                ? 'Promotional notification sent'
+                : ($totalTokens == 0 
+                    ? ($userIds 
+                        ? "No FCM tokens found for the specified users (IDs: " . implode(', ', $userIds) . "). Users need to register their FCM tokens first."
+                        : "No FCM tokens found in the system. Users need to register their FCM tokens first.")
+                    : "No notifications were sent. All tokens may be invalid or Firebase service issue.");
+
             return response()->json([
                 'success' => true,
-                'message' => 'Promotional notification sent',
+                'message' => $message,
                 'sent_count' => $results['sent'],
-                'failed_count' => $results['failed']
+                'failed_count' => $results['failed'],
+                'total_tokens_found' => $totalTokens,
+                'user_ids_requested' => $userIds ?? 'all'
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -357,25 +383,51 @@ class NotificationController extends Controller
                 'deep_link' => $deepLink,
             ];
 
+            // Check if user_ids provided and get token counts
+            $userIds = $request->has('user_ids') && !empty($request->user_ids) ? $request->user_ids : null;
+            $totalTokens = 0;
+            
+            if ($userIds) {
+                // Count tokens for specified users
+                $totalTokens = FcmToken::whereIn('user_id', $userIds)->count();
+            } else {
+                // Count all tokens
+                $totalTokens = FcmToken::count();
+            }
+
             // Send to specific users or all
-            if ($request->has('user_ids') && !empty($request->user_ids)) {
-                $results = $this->fcmService->sendToUsers($request->user_ids, $title, $body, $data);
+            if ($userIds) {
+                $results = $this->fcmService->sendToUsers($userIds, $title, $body, $data);
             } else {
                 $results = $this->fcmService->sendToAll($title, $body, $data);
             }
 
             Log::info('General notification sent', [
                 'admin_id' => $admin->id,
-                'user_ids' => $request->user_ids ?? 'all',
+                'user_ids' => $userIds ?? 'all',
+                'total_tokens' => $totalTokens,
                 'priority' => $priority,
                 'sent' => $results['sent'],
                 'failed' => $results['failed']
             ]);
 
+            // Build response message
+            $message = 'General notification sent';
+            if ($results['sent'] == 0) {
+                if ($totalTokens == 0) {
+                    $message = 'No FCM tokens found. ' . ($userIds ? 'None of the specified users have registered FCM tokens.' : 'No users have registered FCM tokens in the system.');
+                } else {
+                    $message = 'Notification request processed but no notifications were sent. This may indicate all tokens are invalid or Firebase service issue.';
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'General notification sent',
-                'sent_count' => $results['sent']
+                'message' => $message,
+                'sent_count' => $results['sent'],
+                'failed_count' => $results['failed'] ?? 0,
+                'total_tokens_found' => $totalTokens,
+                'user_ids_requested' => $userIds ?? 'all'
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {

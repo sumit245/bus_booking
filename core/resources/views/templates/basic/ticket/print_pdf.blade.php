@@ -208,7 +208,6 @@
         .fare-table {
             width: 100%;
             max-width: 280px;
-            float: right;
             margin-top: 0;
         }
 
@@ -250,11 +249,9 @@
 
         /* Terms Section */
         .terms-section {
-            clear: both;
-            padding-top: 15px;
-            margin-top: 20px;
-            width: 60%;
-            float: left;
+            padding-top: 0;
+            margin-top: 0;
+            width: 100%;
         }
 
         .terms-section h4 {
@@ -292,7 +289,6 @@
             margin-top: 25px;
             padding-top: 20px;
             border-top: 1px solid #e0e0e0;
-            clear: both;
         }
 
         .ticket-footer td {
@@ -305,10 +301,25 @@
             text-align: right;
         }
 
-        /* Terms and Fare wrapper */
+        /* Terms and Fare wrapper - Table Layout */
         .terms-fare-wrapper {
             width: 100%;
             margin: 20px 0;
+        }
+
+        .terms-fare-wrapper td {
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .terms-column {
+            width: 60%;
+            padding-right: 20px;
+        }
+
+        .fare-column {
+            width: 40%;
+            padding-left: 20px;
         }
     </style>
 </head>
@@ -455,55 +466,63 @@
         @endif
 
         <!-- Terms and Fare Breakdown Wrapper -->
-        <div class="terms-fare-wrapper">
-            <!-- Terms and Conditions -->
-            <div class="terms-section">
-                <h4>Terms & Conditions</h4>
-                <ul>
-                    <li>Please arrive at the boarding point at least 15 minutes before departure time.</li>
-                    <li>This ticket is non-transferable. Valid ID proof required for verification.</li>
-                    <li>Cancellation policy applies as per company terms and conditions.</li>
-                    <li>Passengers must carry a valid ID proof matching the booking details.</li>
-                    <li>Company reserves the right to change bus type or departure time in unavoidable circumstances.
-                    </li>
-                    <li>Luggage allowance: 15kg per passenger. Extra luggage charges may apply.</li>
-                    <li>For assistance, contact customer support.</li>
-                </ul>
-            </div>
+        <table class="terms-fare-wrapper">
+            <tr>
+                <!-- Terms and Conditions -->
+                <td class="terms-column">
+                    <div class="terms-section">
+                        <h4>Terms & Conditions</h4>
+                        <ul>
+                            <li>Please arrive at the boarding point at least 15 minutes before departure time.</li>
+                            <li>This ticket is non-transferable. Valid ID proof required for verification.</li>
+                            <li>Cancellation policy applies as per company terms and conditions.</li>
+                            <li>Passengers must carry a valid ID proof matching the booking details.</li>
+                            <li>Company reserves the right to change bus type or departure time in unavoidable
+                                circumstances.
+                            </li>
+                            <li>Luggage allowance: 15kg per passenger. Extra luggage charges may apply.</li>
+                            <li>For assistance, contact customer support.</li>
+                        </ul>
+                    </div>
+                </td>
 
-            <!-- Fare Breakdown -->
-            <table class="fare-table">
-                <tr>
-                    <td class="fare-label">Sub Total</td>
-                    <td class="fare-value">₹{{ number_format($ticket->sub_total ?? 0, 2) }}</td>
-                </tr>
-                @if (isset($ticket->service_charge) && $ticket->service_charge > 0)
-                    <tr>
-                        <td class="fare-label">Service Charge ({{ $ticket->service_charge_percentage ?? 0 }}%)</td>
-                        <td class="fare-value">₹{{ number_format($ticket->service_charge, 2) }}</td>
-                    </tr>
-                @endif
-                @if (isset($ticket->platform_fee) && $ticket->platform_fee > 0)
-                    <tr>
-                        <td class="fare-label">Platform Fee ({{ $ticket->platform_fee_percentage ?? 0 }}% +
-                            ₹{{ number_format($ticket->platform_fee_fixed ?? 0, 2) }})</td>
-                        <td class="fare-value">₹{{ number_format($ticket->platform_fee, 2) }}</td>
-                    </tr>
-                @endif
-                @if (isset($ticket->gst) && $ticket->gst > 0)
-                    <tr>
-                        <td class="fare-label">GST ({{ $ticket->gst_percentage ?? 0 }}%)</td>
-                        <td class="fare-value">₹{{ number_format($ticket->gst, 2) }}</td>
-                    </tr>
-                @endif
-                <tr class="fare-total">
-                    <td class="fare-label">Total Amount</td>
-                    <td class="fare-value">
-                        ₹{{ number_format($ticket->total_amount ?? ($ticket->total_fare ?? ($ticket->sub_total ?? 0)), 2) }}
-                    </td>
-                </tr>
-            </table>
-        </div>
+                <!-- Fare Breakdown -->
+                <td class="fare-column">
+                    <table class="fare-table">
+                        <tr>
+                            <td class="fare-label">Sub Total</td>
+                            <td class="fare-value">₹{{ number_format($ticket->sub_total ?? 0, 2) }}</td>
+                        </tr>
+                        @if (isset($ticket->service_charge) && $ticket->service_charge > 0)
+                            <tr>
+                                <td class="fare-label">Service Charge ({{ $ticket->service_charge_percentage ?? 0 }}%)
+                                </td>
+                                <td class="fare-value">₹{{ number_format($ticket->service_charge, 2) }}</td>
+                            </tr>
+                        @endif
+                        @if (isset($ticket->platform_fee) && $ticket->platform_fee > 0)
+                            <tr>
+                                <td class="fare-label">Platform Fee ({{ $ticket->platform_fee_percentage ?? 0 }}% +
+                                    ₹{{ number_format($ticket->platform_fee_fixed ?? 0, 2) }})</td>
+                                <td class="fare-value">₹{{ number_format($ticket->platform_fee, 2) }}</td>
+                            </tr>
+                        @endif
+                        @if (isset($ticket->gst) && $ticket->gst > 0)
+                            <tr>
+                                <td class="fare-label">GST ({{ $ticket->gst_percentage ?? 0 }}%)</td>
+                                <td class="fare-value">₹{{ number_format($ticket->gst, 2) }}</td>
+                            </tr>
+                        @endif
+                        <tr class="fare-total">
+                            <td class="fare-label">Total Amount</td>
+                            <td class="fare-value">
+                                ₹{{ number_format($ticket->total_amount ?? ($ticket->total_fare ?? ($ticket->sub_total ?? 0)), 2) }}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
 
         <!-- Footer -->
         <table class="ticket-footer">

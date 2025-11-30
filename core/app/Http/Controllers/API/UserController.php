@@ -183,29 +183,77 @@ class UserController extends Controller
     public function userHistoryByPhone(Request $request)
     {
         try {
-            $request->validate([
-                'mobile_number' => ['required', 'string', 'regex:/^[6-9]\d{9}$/']
-            ]);
-
-            $user = User::where('mobile', $request->mobile_number)->first();
-
-            if (!$user) {
-                return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            // Get authenticated user from token (Sanctum)
+            $authenticatedUser = null;
+            if ($request->bearerToken()) {
+                $authenticatedUser = $request->user('sanctum');
             }
 
-            // Fetch all tickets for the user, including completed and cancelled ones.
+            // Fallback: If no authenticated user, try to find by mobile_number (for backward compatibility)
+            $user = $authenticatedUser;
+            if (!$user && $request->has('mobile_number')) {
+                $request->validate([
+                    'mobile_number' => ['required', 'string', 'regex:/^[6-9]\d{9}$/']
+                ]);
+                $user = User::where('mobile', $request->mobile_number)->first();
+            }
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found. Please authenticate or provide valid mobile_number.'
+                ], 404);
+            }
+
+            // Normalize user's mobile number for comparison
+            $userMobile = $user->mobile;
+            // Remove country code if present
+            if (strpos($userMobile, '+91') === 0) {
+                $userMobile = substr($userMobile, 3);
+            } elseif (strpos($userMobile, '91') === 0 && strlen($userMobile) > 10) {
+                $userMobile = substr($userMobile, 2);
+            }
+            // Ensure we have exactly 10 digits
+            $userMobile = substr($userMobile, -10);
+
+            // Fetch tickets where:
+            // 1. user_id matches (tickets booked by this user - can cancel)
+            // 2. OR passenger_phone matches user's mobile (tickets where user is a passenger - cannot cancel)
             $tickets = BookedTicket::with([
                 'trip.fleetType'
             ])
-                ->where('user_id', $user->id)
-                // Explicitly fetch tickets with any status if needed, or filter for specific ones.
-                // ->whereIn('status', [1, 3]) // 1 for Booked, 3 for Cancelled
+                ->where(function ($query) use ($user, $userMobile) {
+                    // Tickets booked by this user (owner)
+                    $query->where('user_id', $user->id)
+                        // OR tickets where this user is a passenger
+                        ->orWhere(function ($q) use ($userMobile) {
+                        // Match passenger_phone (exact match or normalized)
+                        $q->where('passenger_phone', $userMobile)
+                            ->orWhere('passenger_phone', '91' . $userMobile)
+                            ->orWhere('passenger_phone', '+91' . $userMobile)
+                            ->orWhereRaw('RIGHT(passenger_phone, 10) = ?', [$userMobile]);
+
+                        // Also check passenger_phones array if it exists
+                        $q->orWhereJsonContains('passenger_phones', $userMobile)
+                            ->orWhereJsonContains('passenger_phones', '91' . $userMobile)
+                            ->orWhereJsonContains('passenger_phones', '+91' . $userMobile);
+                    });
+                })
                 ->orderBy('id', 'desc')
                 ->get();
 
-            Log::info("Fetched tickets", ["tickets" => $tickets]);
+            Log::info("Fetched tickets", [
+                "user_id" => $user->id,
+                "user_mobile" => $userMobile,
+                "ticket_count" => $tickets->count()
+            ]);
+
             // Transform the data for a clean API response
-            $formattedTickets = $tickets->map(function ($ticket) {
+            $formattedTickets = $tickets->map(function ($ticket) use ($user, $userMobile) {
+                // Determine if user can cancel this ticket
+                // User can cancel only if they are the booking owner (user_id matches)
+                // Cannot cancel if they are just a passenger (passenger_phone matches)
+                $canCancel = ($ticket->user_id == $user->id);
                 $seats = is_array($ticket->seats) ? $ticket->seats : [];
                 $nameParts = explode(' ', $ticket->passenger_name ?? '', 2);
                 $firstName = $nameParts[0] ?? '';
@@ -334,6 +382,12 @@ class UserController extends Controller
                     $gstDetails = $response->Result->Price->GST;
                 }
 
+                // Determine if ticket can be cancelled (only owner can cancel, not passengers)
+                // Also check if ticket is already cancelled or past journey date
+                $isPastJourney = Carbon::parse($ticket->date_of_journey)->lt(Carbon::today());
+                $isCancelled = ($ticket->status == 3);
+                $canCancelTicket = $canCancel && !$isCancelled && !$isPastJourney && ($ticket->status == 1);
+
                 return [
                     'pnr_number' => $ticket->pnr_number,
                     'travel_name' => $ticket->travel_name ?? ($ticket->trip && $ticket->trip->fleetType ? $ticket->trip->fleetType->name : 'N/A'),
@@ -362,6 +416,10 @@ class UserController extends Controller
                     'booking_id' => $booking_id,
                     'search_token_id' => $search_token_id,
                     'user_ip' => $userIp,
+                    'can_cancel' => $canCancelTicket, // Flag indicating if user can cancel this ticket
+                    'is_owner' => $canCancel, // Flag indicating if user is the booking owner
+                    'is_booking_owner' => $canCancel, // Alias for is_owner (for frontend compatibility)
+                    'booking_owner_id' => $ticket->user_id, // ID of the user who made the booking (for analytics)
                     'cancellation_details' => $ticket->status == 3 ? array_merge(
                         $ticket->cancellation_details ?? [],
                         [
@@ -422,6 +480,23 @@ class UserController extends Controller
                     'success' => false,
                     'message' => 'Ticket not found with the provided booking_id'
                 ], 404);
+            }
+
+            // Get authenticated user (if available via Sanctum token)
+            $authenticatedUser = null;
+            if ($request->bearerToken()) {
+                $authenticatedUser = $request->user('sanctum');
+            }
+
+            // Determine if authenticated user is the booking owner
+            $isOwner = false;
+            $canCancel = false;
+            if ($authenticatedUser) {
+                $isOwner = ($ticket->user_id == $authenticatedUser->id);
+                // Check if ticket can be cancelled (only owner can cancel, not cancelled, not past journey, status = 1)
+                $isPastJourney = Carbon::parse($ticket->date_of_journey)->lt(Carbon::today());
+                $isCancelled = ($ticket->status == 3);
+                $canCancel = $isOwner && !$isCancelled && !$isPastJourney && ($ticket->status == 1);
             }
 
             // Reuse the same formatting logic as userHistoryByPhone
@@ -626,6 +701,10 @@ class UserController extends Controller
                 'BookingId' => $booking_id, // React Native expects this
                 'SearchTokenId' => $search_token_id,
                 'UserIp' => $userIp,
+                'can_cancel' => $canCancel, // Flag indicating if user can cancel this ticket
+                'is_owner' => $isOwner, // Flag indicating if user is the booking owner
+                'is_booking_owner' => $isOwner, // Alias for is_owner (for frontend compatibility)
+                'booking_owner_id' => $ticket->user_id, // ID of the user who made the booking (for analytics)
                 'cancellation_details' => $ticket->status == 3 ? array_merge(
                     $ticket->cancellation_details ?? [],
                     [

@@ -374,17 +374,30 @@ class SeatAvailabilityService
     /**
      * Invalidate cache for a specific bus/schedule/date
      * Clears ALL cache variations (with and without boarding/dropping points)
+     * Also tries multiple date formats to ensure complete cache clearing
      */
     public function invalidateCache(int $operatorBusId, int $scheduleId, string $dateOfJourney): void
     {
         // Normalize date format first
         $normalizedDate = $dateOfJourney;
+        $alternativeDateFormats = [$dateOfJourney]; // Start with original format
+        
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateOfJourney)) {
             try {
                 if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $dateOfJourney)) {
                     $normalizedDate = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+                    // Add alternative format (Y-m-d)
+                    $alternativeDateFormats[] = $normalizedDate;
                 } else {
                     $normalizedDate = Carbon::parse($dateOfJourney)->format('Y-m-d');
+                    $alternativeDateFormats[] = $normalizedDate;
+                    // Also try m/d/Y format
+                    try {
+                        $mdyFormat = Carbon::parse($dateOfJourney)->format('m/d/Y');
+                        $alternativeDateFormats[] = $mdyFormat;
+                    } catch (\Exception $e) {
+                        // Ignore if conversion fails
+                    }
                 }
             } catch (\Exception $e) {
                 Log::warning('SeatAvailabilityService: Failed to normalize date for cache invalidation', [
@@ -392,25 +405,48 @@ class SeatAvailabilityService
                     'error' => $e->getMessage()
                 ]);
             }
+        } else {
+            // If already Y-m-d, also try m/d/Y format
+            try {
+                $mdyFormat = Carbon::parse($dateOfJourney)->format('m/d/Y');
+                $alternativeDateFormats[] = $mdyFormat;
+            } catch (\Exception $e) {
+                // Ignore if conversion fails
+            }
         }
 
-        // Clear the main cache key (no boarding/dropping points)
-        $mainKey = $this->getCacheKey($operatorBusId, $scheduleId, $normalizedDate, null, null);
-        Cache::forget($mainKey);
-
-        // Also try to clear with original date format if different
-        if ($normalizedDate !== $dateOfJourney) {
-            $originalKey = $this->getCacheKey($operatorBusId, $scheduleId, $dateOfJourney, null, null);
-            Cache::forget($originalKey);
+        // Ensure normalized date is in the list
+        if (!in_array($normalizedDate, $alternativeDateFormats)) {
+            $alternativeDateFormats[] = $normalizedDate;
         }
 
-        Log::info('SeatAvailabilityService: Cache invalidated', [
+        // Clear cache for all date format variations
+        $clearedKeys = [];
+        foreach ($alternativeDateFormats as $dateFormat) {
+            // Clear the main cache key (no boarding/dropping points)
+            $mainKey = $this->getCacheKey($operatorBusId, $scheduleId, $dateFormat, null, null);
+            Cache::forget($mainKey);
+            $clearedKeys[] = $mainKey;
+        }
+
+        // Also try to clear cache with schedule_id = 0 (in case it was cached that way)
+        if ($scheduleId > 0) {
+            foreach ($alternativeDateFormats as $dateFormat) {
+                $altKey = $this->getCacheKey($operatorBusId, 0, $dateFormat, null, null);
+                Cache::forget($altKey);
+                $clearedKeys[] = $altKey;
+            }
+        }
+
+        Log::info('SeatAvailabilityService: Cache invalidated (comprehensive)', [
             'operator_bus_id' => $operatorBusId,
             'schedule_id' => $scheduleId,
             'date_of_journey' => $normalizedDate,
             'original_date' => $dateOfJourney,
-            'main_key_cleared' => $mainKey,
-            'note' => 'Specific cache keys cleared. All seat availability for this bus/schedule/date will be recalculated.'
+            'alternative_formats' => $alternativeDateFormats,
+            'keys_cleared' => $clearedKeys,
+            'keys_cleared_count' => count($clearedKeys),
+            'note' => 'All cache variations cleared. All seat availability for this bus/schedule/date will be recalculated.'
         ]);
     }
 

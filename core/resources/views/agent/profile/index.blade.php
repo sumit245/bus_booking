@@ -2,6 +2,28 @@
 
 @section('panel')
     <div class="container-fluid">
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        @endif
+
         <div class="row">
             <div class="col-md-8">
                 <div class="card mb-3">
@@ -96,12 +118,46 @@
                                 <h6>Existing Documents</h6>
                                 <ul>
                                     @foreach ($agent->documents as $doc)
-                                        <li><a href="{{ asset('storage/' . $doc) }}"
-                                                target="_blank">{{ basename($doc) }}</a></li>
+                                        <li><a href="{{ asset('storage/' . ($doc['path'] ?? $doc)) }}"
+                                                target="_blank">{{ $doc['original_name'] ?? basename($doc['path'] ?? $doc) }}</a>
+                                        </li>
                                     @endforeach
                                 </ul>
                             </div>
                         @endif
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Change Password</h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ route('agent.profile.change-password') }}">
+                            @csrf
+                            <div class="mb-3">
+                                <label class="form-label">Current Password</label>
+                                <input type="password" name="current_password"
+                                    class="form-control @error('current_password') is-invalid @enderror" required>
+                                @error('current_password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">New Password</label>
+                                <input type="password" name="new_password"
+                                    class="form-control @error('new_password') is-invalid @enderror" required>
+                                @error('new_password')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <small class="form-text text-muted">Minimum 8 characters required</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Confirm New Password</label>
+                                <input type="password" name="new_password_confirmation" class="form-control" required>
+                            </div>
+                            <button class="btn btn-primary">Change Password</button>
+                        </form>
                     </div>
                 </div>
             </div>

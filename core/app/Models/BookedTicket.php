@@ -87,6 +87,8 @@ class BookedTicket extends Model
         'cancelled_at',
         'cancellation_details',
         'bus_details',
+        'coupon_id',
+        'coupon_discount',
     ];
 
     // Add date mutator to fix invalid dates
@@ -183,6 +185,11 @@ class BookedTicket extends Model
     public function agent()
     {
         return $this->belongsTo(Agent::class);
+    }
+
+    public function coupon()
+    {
+        return $this->belongsTo(\App\Models\CouponTable::class, 'coupon_id');
     }
 
     public function agentBooking()

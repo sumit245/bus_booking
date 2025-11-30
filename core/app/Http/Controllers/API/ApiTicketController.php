@@ -14,6 +14,7 @@ use App\Services\BusService;
 use App\Services\BookingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Razorpay\Api\Api;
@@ -1264,7 +1265,37 @@ class ApiTicketController extends Controller
                 'Email' => 'required|email',
                 'Phoneno' => 'required',
                 'age' => 'nullable|integer',
+                'coupon_code' => 'nullable|string|max:255', // Optional coupon code
             ]);
+
+            // Get authenticated user (if available via Sanctum token)
+            // This is the user making the booking (User A), not necessarily the passenger (User B)
+            $authenticatedUser = null;
+
+            // Try multiple methods to get authenticated user
+            if ($request->bearerToken()) {
+                $authenticatedUser = $request->user('sanctum');
+            }
+
+            // Fallback: Try to get from Auth facade (for web requests or if Sanctum doesn't work)
+            if (!$authenticatedUser && Auth::check()) {
+                $authenticatedUser = Auth::user();
+            }
+
+            if ($authenticatedUser) {
+                Log::info('BlockSeat API: Authenticated user detected', [
+                    'user_id' => $authenticatedUser->id,
+                    'user_mobile' => $authenticatedUser->mobile,
+                    'passenger_phone' => $request->Phoneno ?? 'N/A',
+                    'note' => 'This user will be the booking owner'
+                ]);
+            } else {
+                Log::warning('BlockSeat API: No authenticated user detected', [
+                    'has_bearer_token' => !empty($request->bearerToken()),
+                    'auth_check' => Auth::check(),
+                    'note' => 'Booking will be associated with passenger phone number'
+                ]);
+            }
 
             // Get DateOfJourney from cache using SearchTokenId (same as getCounters)
             $dateOfJourney = $request->DateOfJourney ?? null;
@@ -1301,8 +1332,15 @@ class ApiTicketController extends Controller
                 'Phoneno' => $request->Phoneno,
                 'age' => $request->age ?? 0,
                 'Address' => $request->Address ?? '',
-                'DateOfJourney' => $dateOfJourney // Add DateOfJourney to request data
+                'DateOfJourney' => $dateOfJourney, // Add DateOfJourney to request data
+                'coupon_code' => $request->coupon_code ?? null, // Add coupon code from request
+                'authenticated_user_id' => $authenticatedUser ? $authenticatedUser->id : null // Add authenticated user ID (booking owner)
             ];
+
+            Log::info('BlockSeat API: Request data with coupon code', [
+                'has_coupon_code' => !empty($requestData['coupon_code']),
+                'coupon_code' => $requestData['coupon_code'] ?? 'none'
+            ]);
 
             Log::info('BlockSeat API: Prepared request data with DateOfJourney', [
                 'date_of_journey' => $dateOfJourney,
@@ -1547,6 +1585,34 @@ class ApiTicketController extends Controller
                 'Remarks' => 'nullable|string|max:500',
             ]);
 
+            // Get authenticated user (if available via token)
+            $authenticatedUser = null;
+            if ($request->bearerToken()) {
+                $authenticatedUser = $request->user('sanctum');
+            }
+
+            // Find the ticket to verify ownership
+            $bookedTicket = BookedTicket::where('booking_id', $request->BookingId)
+                ->orWhere('api_booking_id', $request->BookingId)
+                ->orWhere('operator_pnr', $request->BookingId)
+                ->first();
+
+            // Check authorization: Only the booking owner (user_id) can cancel, not passengers
+            if ($authenticatedUser && $bookedTicket) {
+                if ($bookedTicket->user_id != $authenticatedUser->id) {
+                    Log::warning('CancelTicket API: Unauthorized cancellation attempt', [
+                        'authenticated_user_id' => $authenticatedUser->id,
+                        'ticket_user_id' => $bookedTicket->user_id,
+                        'booking_id' => $request->BookingId
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized: Only the booking owner can cancel this ticket. Passengers cannot cancel tickets.',
+                        'error' => 'UNAUTHORIZED'
+                    ], 403);
+                }
+            }
+
             // Use BookingService to cancel the ticket
             $result = $this->bookingService->cancelTicket([
                 'UserIp' => $request->UserIp ?? request()->ip(),
@@ -1602,26 +1668,28 @@ class ApiTicketController extends Controller
     public function getPricingConfig()
     {
         try {
+            // Get markup data from MarkupTable (same as blade file logic)
+            $markupData = \App\Models\MarkupTable::orderBy('id', 'desc')->first();
+            $flatMarkup = isset($markupData->flat_markup) ? (float) $markupData->flat_markup : 0;
+            $percentageMarkup = isset($markupData->percentage_markup) ? (float) $markupData->percentage_markup : 0;
+            $threshold = isset($markupData->threshold) ? (float) $markupData->threshold : 0;
+
+            // Get fee settings from GeneralSetting
             $general = \App\Models\GeneralSetting::first();
-
-            // Get markup percentage (active markup from settings)
-            $markupPercentage = $general->markup_percentage ?? 0;
-
-            // Get service charge percentage (default 2%)
             $serviceChargePercentage = $general->service_charge_percentage ?? 0;
-
-            // Get platform fee (flat fee, default ₹5)
-            $platformFee = $general->platform_fee_fixed ?? 0;
-
-            // Get GST percentage (default 5%)
+            $platformFeePercentage = $general->platform_fee_percentage ?? 0;
+            $platformFeeFixed = $general->platform_fee_fixed ?? 0;
             $gstPercentage = $general->gst_percentage ?? 0;
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'markup_percentage' => (float) $markupPercentage,
+                    'flat_markup' => $flatMarkup,
+                    'percentage_markup' => $percentageMarkup,
+                    'markup_threshold' => $threshold,
                     'service_charge_percentage' => (float) $serviceChargePercentage,
-                    'platform_fee' => (float) $platformFee,
+                    'platform_fee_percentage' => (float) $platformFeePercentage,
+                    'platform_fee_fixed' => (float) $platformFeeFixed,
                     'gst_percentage' => (float) $gstPercentage,
                     'currency' => '₹',
                     'currency_code' => 'INR'

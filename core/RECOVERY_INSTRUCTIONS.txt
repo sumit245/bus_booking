@@ -1,0 +1,47 @@
+URGENT DATABASE RECOVERY INSTRUCTIONS
+=====================================
+
+The RefreshDatabase trait may have dropped your tables. Here's how to recover:
+
+OPTION 1: Restore via MySQL Command Line (FASTEST)
+---------------------------------------------------
+1. Open Terminal
+2. Run this command:
+
+   mysql -u root -p qwerty < /Applications/XAMPP/xamppfiles/htdocs/bus_booking/core/database/redbus.sql
+
+   (If you have a backup of qwerty.sql, use that instead)
+
+OPTION 2: Restore via phpMyAdmin
+---------------------------------
+1. Open http://localhost/phpmyadmin in browser
+2. Select 'qwerty' database from left sidebar
+3. Click "Import" tab
+4. Choose file: core/database/redbus.sql (or your qwerty.sql backup)
+5. Click "Go" button
+6. Wait for import to complete
+
+OPTION 3: Run Migrations (if migrations are complete)
+------------------------------------------------------
+1. Stop your Laravel application temporarily
+2. Comment out the line in app/Providers/AppServiceProvider.php that queries general_settings
+3. Run: php artisan migrate --force
+4. Uncomment the line
+
+OPTION 4: Check for MySQL Binary Logs
+--------------------------------------
+If binary logging is enabled, you might recover from MySQL binlogs:
+
+   mysqlbinlog /Applications/XAMPP/xamppfiles/var/mysql/mysql-bin.000001 | mysql -u root -p qwerty
+
+WHAT I FIXED:
+-------------
+1. Updated phpunit.xml to use SQLite in-memory database
+2. Removed RefreshDatabase trait from all tests
+3. Tests now isolated from production database
+
+After recovery, verify with:
+   mysql -u root -p -e "USE qwerty; SHOW TABLES;"
+
+I sincerely apologize for this issue.
+

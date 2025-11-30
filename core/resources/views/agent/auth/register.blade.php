@@ -71,11 +71,11 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 8px 8px 0 0;
         }
 
-        .agent-register-header > * {
+        .agent-register-header>* {
             position: relative;
             z-index: 1;
         }
@@ -85,7 +85,7 @@
             font-size: 1.8rem;
             font-weight: 600;
             color: #ffffff;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
         .agent-register-header p {
@@ -93,7 +93,7 @@
             color: #ffffff;
             font-size: 1.1rem;
             font-weight: 500;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
             opacity: 1;
         }
 
@@ -126,6 +126,42 @@
         .form-control:focus {
             border-color: #007bff;
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .password-toggle-wrapper {
+            position: relative;
+        }
+
+        .password-toggle-wrapper .form-control {
+            padding-right: 3rem;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            border: none;
+            background: transparent;
+            padding: 0 1rem;
+            color: #6c757d;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle-btn:hover {
+            color: #007bff;
+        }
+
+        .password-toggle-btn:focus {
+            outline: none;
+        }
+
+        .password-toggle-btn i {
+            font-size: 1.25rem;
         }
 
         .btn-register {
@@ -184,7 +220,7 @@
             border-radius: 8px;
             margin-top: 1.5rem;
             border: 2px solid #3498db;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .commission-preview h6 {
@@ -304,7 +340,8 @@
                                         id="name" name="name" value="{{ old('name') }}" required
                                         autocomplete="name" autofocus placeholder="@lang('Enter your full name')">
                                     @error('name')
-                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">
+                                            {{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -315,7 +352,8 @@
                                         id="email" name="email" value="{{ old('email') }}" required
                                         autocomplete="email" placeholder="@lang('Enter your email')">
                                     @error('email')
-                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">
+                                            {{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -329,7 +367,8 @@
                                         id="phone" name="phone" value="{{ old('phone') }}" required
                                         autocomplete="tel" placeholder="@lang('Enter your phone number')">
                                     @error('phone')
-                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">
+                                            {{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -340,7 +379,8 @@
                                         id="pan_number" name="pan_number" value="{{ old('pan_number') }}"
                                         autocomplete="off" placeholder="@lang('Enter PAN number')">
                                     @error('pan_number')
-                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">
+                                            {{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -351,7 +391,8 @@
                             <textarea class="form-control @error('address') is-invalid @enderror" id="address" name="address" rows="3"
                                 placeholder="@lang('Enter your address')">{{ old('address') }}</textarea>
                             @error('address')
-                                <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
+                                <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">
+                                    {{ $message }}</div>
                             @enderror
                         </div>
 
@@ -359,21 +400,20 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="password">@lang('Password') *</label>
-                                    <div class="input-group">
+                                    <div class="password-toggle-wrapper">
                                         <input type="password"
                                             class="form-control @error('password') is-invalid @enderror"
                                             id="password" name="password" required autocomplete="new-password"
                                             placeholder="@lang('Create a password')">
-                                        <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary" type="button"
-                                                id="togglePassword">
-                                                <i class="las la-eye" id="toggleIcon"></i>
-                                            </button>
-                                        </div>
+                                        <button class="password-toggle-btn" type="button" id="togglePassword"
+                                            tabindex="-1">
+                                            <i class="las la-eye" id="toggleIcon"></i>
+                                        </button>
                                     </div>
                                     <div class="password-strength" id="passwordStrength"></div>
                                     @error('password')
-                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
+                                        <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">
+                                            {{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -396,7 +436,8 @@
                                     @lang('and') <a href="#" class="text-primary">@lang('Privacy Policy')</a>
                                 </label>
                                 @error('terms')
-                                    <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">{{ $message }}</div>
+                                    <div class="invalid-feedback" style="color: #dc3545; font-weight: 500;">
+                                        {{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
@@ -457,87 +498,123 @@
     <script src="{{ asset('assets/global/js/bootstrap.min.js') }}"></script>
 
     <script>
-        $(document).ready(function() {
-            // Toggle password visibility
-            $('#togglePassword').click(function() {
-                const password = $('#password');
-                const toggleIcon = $('#toggleIcon');
+        // Vanilla JavaScript - More reliable
+        document.addEventListener('DOMContentLoaded', function() {
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const passwordStrength = document.getElementById('passwordStrength');
+            const nameInput = document.getElementById('name');
+            const phoneInput = document.getElementById('phone');
+            const panInput = document.getElementById('pan_number');
+            const registerForm = document.querySelector('form');
+            const submitButton = document.querySelector('button[type="submit"]');
 
-                if (password.attr('type') === 'password') {
-                    password.attr('type', 'text');
-                    toggleIcon.removeClass('la-eye').addClass('la-eye-slash');
-                } else {
-                    password.attr('type', 'password');
-                    toggleIcon.removeClass('la-eye-slash').addClass('la-eye');
-                }
-            });
+            // Toggle password visibility
+            if (togglePassword) {
+                togglePassword.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        toggleIcon.classList.remove('la-eye');
+                        toggleIcon.classList.add('la-eye-slash');
+                    } else {
+                        passwordInput.type = 'password';
+                        toggleIcon.classList.remove('la-eye-slash');
+                        toggleIcon.classList.add('la-eye');
+                    }
+                });
+            }
 
             // Password strength indicator
-            $('#password').on('input', function() {
-                const password = $(this).val();
-                const strength = getPasswordStrength(password);
-                updatePasswordStrength(strength);
-            });
+            if (passwordInput && passwordStrength) {
+                passwordInput.addEventListener('input', function() {
+                    const password = this.value;
+                    const strength = getPasswordStrength(password);
+                    updatePasswordStrength(strength);
+                });
+            }
 
             // Phone number formatting
-            $('#phone').on('input', function() {
-                let value = $(this).val().replace(/\D/g, '');
-                if (value.length > 10) {
-                    value = value.substring(0, 10);
-                }
-                $(this).val(value);
-            });
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function() {
+                    let value = this.value.replace(/\D/g, '');
+                    if (value.length > 10) {
+                        value = value.substring(0, 10);
+                    }
+                    this.value = value;
+                });
+            }
 
             // PAN number formatting
-            $('#pan_number').on('input', function() {
-                let value = $(this).val().toUpperCase();
-                $(this).val(value);
-            });
+            if (panInput) {
+                panInput.addEventListener('input', function() {
+                    this.value = this.value.toUpperCase();
+                });
+            }
 
             // Form validation
-            $('form').on('submit', function(e) {
-                const password = $('#password').val();
-                const confirmPassword = $('#password_confirmation').val();
+            if (registerForm) {
+                registerForm.addEventListener('submit', function(e) {
+                    if (!passwordInput) {
+                        return; // Can't validate without password input
+                    }
 
-                if (password !== confirmPassword) {
-                    e.preventDefault();
-                    alert('@lang('Passwords do not match')');
-                    return false;
-                }
+                    const password = passwordInput.value;
+                    const confirmPasswordInput = document.getElementById('password_confirmation');
+                    const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
 
-                if (!document.getElementById('terms').checked) {
-                    e.preventDefault();
-                    alert('@lang('Please accept the terms and conditions')');
-                    return false;
-                }
+                    if (password !== confirmPassword) {
+                        e.preventDefault();
+                        alert('@lang('Passwords do not match')');
+                        return false;
+                    }
 
-                // Show loading state
-                $('button[type="submit"]').html('<i class="las la-spinner la-spin"></i> @lang('Creating Account...')')
-                    .prop('disabled', true);
-            });
+                    const termsCheckbox = document.getElementById('terms');
+                    if (termsCheckbox && !termsCheckbox.checked) {
+                        e.preventDefault();
+                        alert('@lang('Please accept the terms and conditions')');
+                        return false;
+                    }
+
+                    // Show loading state
+                    if (submitButton) {
+                        submitButton.innerHTML =
+                            '<i class="las la-spinner la-spin"></i> @lang('Creating Account...')';
+                        submitButton.disabled = true;
+                    }
+                });
+            }
 
             // Auto-focus name field
-            $('#name').focus();
+            if (nameInput) {
+                nameInput.focus();
+            }
+
+            function getPasswordStrength(password) {
+                let strength = 0;
+                if (password.length >= 8) strength++;
+                if (/[a-z]/.test(password)) strength++;
+                if (/[A-Z]/.test(password)) strength++;
+                if (/[0-9]/.test(password)) strength++;
+                if (/[^A-Za-z0-9]/.test(password)) strength++;
+                return strength;
+            }
+
+            function updatePasswordStrength(strength) {
+                const strengthText = ['@lang('Very Weak')', '@lang('Weak')', '@lang('Fair')',
+                    '@lang('Good')',
+                    '@lang('Strong')'
+                ][strength] || '@lang('Very Weak')';
+                const strengthColor = ['#dc3545', '#fd7e14', '#ffc107', '#20c997', '#28a745'][strength] ||
+                    '#dc3545';
+
+                if (passwordStrength) {
+                    passwordStrength.innerHTML = `<span style="color: ${strengthColor};">${strengthText}</span>`;
+                }
+            }
         });
-
-        function getPasswordStrength(password) {
-            let strength = 0;
-            if (password.length >= 8) strength++;
-            if (/[a-z]/.test(password)) strength++;
-            if (/[A-Z]/.test(password)) strength++;
-            if (/[0-9]/.test(password)) strength++;
-            if (/[^A-Za-z0-9]/.test(password)) strength++;
-            return strength;
-        }
-
-        function updatePasswordStrength(strength) {
-            const strengthText = ['@lang('Very Weak')', '@lang('Weak')', '@lang('Fair')', '@lang('Good')',
-                '@lang('Strong')'
-            ][strength] || '@lang('Very Weak')';
-            const strengthColor = ['#dc3545', '#fd7e14', '#ffc107', '#20c997', '#28a745'][strength] || '#dc3545';
-
-            $('#passwordStrength').html(`<span style="color: ${strengthColor};">${strengthText}</span>`);
-        }
     </script>
 </body>
 

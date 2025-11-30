@@ -544,10 +544,82 @@ class OperatorBookingController extends Controller
             abort(403, 'Unauthorized access to this booking.');
         }
 
-        // Delete corresponding booked_ticket entry to free up seats
-        \App\Models\BookedTicket::where('operator_booking_id', $booking->id)->delete();
+        // Get booked ticket info (needed for cache invalidation and status update)
+        // First try by operator_booking_id, then fallback to matching bus/schedule/date/seats
+        $bookedTicket = \App\Models\BookedTicket::where('operator_booking_id', $booking->id)->first();
+        
+        // Fallback: If not found by operator_booking_id, try to find by matching bus/schedule/date/seats
+        if (!$bookedTicket) {
+            $bookedTicket = \App\Models\BookedTicket::where('bus_id', $booking->operator_bus_id)
+                ->where('schedule_id', $booking->bus_schedule_id)
+                ->whereDate('date_of_journey', $booking->journey_date)
+                ->whereIn('status', [0, 1]) // Only find active/pending tickets
+                ->where(function($query) use ($booking) {
+                    // Try to match by seats if blocked_seats is available
+                    if ($booking->blocked_seats && is_array($booking->blocked_seats)) {
+                        foreach ($booking->blocked_seats as $seat) {
+                            $query->orWhereJsonContains('seats', $seat)
+                                  ->orWhere('seats', 'LIKE', '%' . $seat . '%');
+                        }
+                    }
+                })
+                ->first();
+            
+            if ($bookedTicket) {
+                \Illuminate\Support\Facades\Log::info('OperatorBookingController: Found ticket by fallback matching', [
+                    'booking_id' => $booking->id,
+                    'ticket_id' => $bookedTicket->id,
+                    'matched_by' => 'bus_id/schedule_id/date/seats'
+                ]);
+            }
+        }
 
-        $booking->delete();
+        // Update operator booking status to cancelled (don't delete - keep for audit)
+        $booking->update(['status' => 'cancelled']);
+
+        // Update booked_ticket status to 3 (cancelled) instead of deleting
+        // Status 3 = cancelled, which makes seats available again
+        if ($bookedTicket) {
+            $bookedTicket->update([
+                'status' => 3, // Cancelled
+                'cancellation_remarks' => 'Cancelled by operator',
+                'cancelled_at' => now()
+            ]);
+
+            // Invalidate seat availability cache so seats become available immediately
+            if ($bookedTicket->bus_id && $bookedTicket->schedule_id && $bookedTicket->date_of_journey) {
+                $availabilityService = new \App\Services\SeatAvailabilityService();
+
+                // Ensure date is in Y-m-d format
+                $dateOfJourney = $bookedTicket->date_of_journey;
+                if ($dateOfJourney instanceof \Carbon\Carbon) {
+                    $dateOfJourney = $dateOfJourney->format('Y-m-d');
+                } elseif (is_string($dateOfJourney)) {
+                    try {
+                        $dateOfJourney = \Carbon\Carbon::parse($dateOfJourney)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::warning('OperatorBookingController: Invalid date format for cache invalidation in destroy', [
+                            'date_of_journey' => $dateOfJourney
+                        ]);
+                    }
+                }
+
+                $availabilityService->invalidateCache(
+                    $bookedTicket->bus_id,
+                    $bookedTicket->schedule_id,
+                    $dateOfJourney
+                );
+
+                \Illuminate\Support\Facades\Log::info('OperatorBookingController: Cancelled booking and invalidated seat availability cache', [
+                    'bus_id' => $bookedTicket->bus_id,
+                    'schedule_id' => $bookedTicket->schedule_id,
+                    'date_of_journey' => $dateOfJourney,
+                    'booking_id' => $booking->id,
+                    'ticket_id' => $bookedTicket->id,
+                    'note' => 'Booking and ticket status updated to cancelled - seats now available'
+                ]);
+            }
+        }
 
         $notify[] = ['success', 'Booking cancelled successfully. Seats are now available for users.'];
         return redirect()->route('operator.bookings.index')->withNotify($notify);
@@ -567,11 +639,49 @@ class OperatorBookingController extends Controller
         $newStatus = $booking->status === 'active' ? 'cancelled' : 'active';
         $booking->update(['status' => $newStatus]);
 
+        // Get booked ticket before updating status (needed for cache invalidation)
+        $bookedTicket = \App\Models\BookedTicket::where('operator_booking_id', $booking->id)->first();
+
         // Update corresponding booked_ticket status
         // Active = status 0 (pending, blocks seats), Cancelled = status 3 (cancelled, frees seats)
         $ticketStatus = $newStatus === 'active' ? 0 : 3;
-        \App\Models\BookedTicket::where('operator_booking_id', $booking->id)
-            ->update(['status' => $ticketStatus]);
+        if ($bookedTicket) {
+            $bookedTicket->update(['status' => $ticketStatus]);
+
+            // Invalidate seat availability cache so seat layout syncs immediately
+            if ($bookedTicket->bus_id && $bookedTicket->schedule_id && $bookedTicket->date_of_journey) {
+                $availabilityService = new \App\Services\SeatAvailabilityService();
+
+                // Ensure date is in Y-m-d format
+                $dateOfJourney = $bookedTicket->date_of_journey;
+                if ($dateOfJourney instanceof \Carbon\Carbon) {
+                    $dateOfJourney = $dateOfJourney->format('Y-m-d');
+                } elseif (is_string($dateOfJourney)) {
+                    try {
+                        $dateOfJourney = \Carbon\Carbon::parse($dateOfJourney)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::warning('OperatorBookingController: Invalid date format for cache invalidation', [
+                            'date_of_journey' => $dateOfJourney
+                        ]);
+                    }
+                }
+
+                $availabilityService->invalidateCache(
+                    $bookedTicket->bus_id,
+                    $bookedTicket->schedule_id,
+                    $dateOfJourney
+                );
+
+                \Illuminate\Support\Facades\Log::info('OperatorBookingController: Invalidated seat availability cache after status toggle', [
+                    'bus_id' => $bookedTicket->bus_id,
+                    'schedule_id' => $bookedTicket->schedule_id,
+                    'date_of_journey' => $dateOfJourney,
+                    'new_status' => $newStatus,
+                    'ticket_status' => $ticketStatus,
+                    'booking_id' => $booking->id
+                ]);
+            }
+        }
 
         $statusText = $newStatus === 'active' ? 'activated' : 'cancelled';
         $notify[] = ['success', "Booking {$statusText} successfully."];

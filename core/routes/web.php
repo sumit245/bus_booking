@@ -486,6 +486,9 @@ Route::
                 Route::get("markup", "ManageTripController@markup")->name(
                     "markup",
                 );
+                Route::post("markup", "ManageTripController@updateMarkup")->name(
+                    "markup.update",
+                );
             });
 
             // Coupon Management
@@ -1841,6 +1844,10 @@ Route::middleware(["auth:agent"])
                 "/profile/documents",
                 "ProfileController@uploadDocuments",
             )->name("profile.documents");
+            Route::post(
+                "/profile/change-password",
+                "ProfileController@changePassword",
+            )->name("profile.change-password");
 
             // API Routes for PWA
             Route::prefix("api")

@@ -250,4 +250,104 @@ class CouponController extends Controller
             ]
         ]);
     }
+
+    /**
+     * [API] Validate a coupon code with total amount.
+     * Used by mobile app to check if coupon is valid before booking.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateCouponApi(Request $request)
+    {
+        try {
+            $request->validate([
+                'coupon_code' => 'required|string|max:255',
+                'total_amount' => 'required|numeric|min:0',
+            ]);
+
+            $couponCode = trim($request->coupon_code);
+            $totalAmount = (float) $request->total_amount;
+
+            // Find the coupon
+            $coupon = CouponTable::where('coupon_name', $couponCode)
+                ->where('status', 1)
+                ->where('expiry_date', '>=', Carbon::today())
+                ->first();
+
+            if (!$coupon) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid or expired coupon code.',
+                    'valid' => false
+                ], 200); // Return 200 with valid: false so frontend can handle it gracefully
+            }
+
+            // Check if total amount meets the threshold
+            if ($totalAmount <= $coupon->coupon_threshold) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "This coupon requires a minimum order value of ₹" . number_format($coupon->coupon_threshold, 2) . ". Your current order value is ₹" . number_format($totalAmount, 2) . ".",
+                    'valid' => false,
+                    'threshold' => (float) $coupon->coupon_threshold,
+                    'current_amount' => $totalAmount
+                ], 200);
+            }
+
+            // Calculate discount
+            $discountAmount = 0;
+            if ($coupon->discount_type === 'fixed') {
+                $discountAmount = (float) $coupon->coupon_value;
+            } elseif ($coupon->discount_type === 'percentage') {
+                $discountAmount = ($totalAmount * (float) $coupon->coupon_value) / 100;
+            }
+
+            // Ensure discount doesn't exceed the total amount
+            $discountAmount = min($discountAmount, $totalAmount);
+            $finalAmount = max(0, $totalAmount - $discountAmount);
+
+            Log::info('Coupon validated successfully', [
+                'coupon_code' => $couponCode,
+                'total_amount' => $totalAmount,
+                'discount_amount' => $discountAmount,
+                'final_amount' => $finalAmount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'valid' => true,
+                'message' => 'Coupon is valid and applicable.',
+                'data' => [
+                    'coupon_code' => $coupon->coupon_name,
+                    'discount_type' => $coupon->discount_type,
+                    'discount_value' => (float) $coupon->coupon_value,
+                    'coupon_threshold' => (float) $coupon->coupon_threshold,
+                    'original_amount' => round($totalAmount, 2),
+                    'discount_amount' => round($discountAmount, 2),
+                    'final_amount' => round($finalAmount, 2),
+                    'expiry_date' => $coupon->expiry_date->toDateString(),
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'valid' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error validating coupon', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'valid' => false,
+                'message' => 'Failed to validate coupon: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

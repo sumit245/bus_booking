@@ -674,6 +674,94 @@ _Next update: After implementing critical fixes_
 
 ---
 
+## 2025-11-28 - PDF Print Layout Fix
+
+### Issue Fixed
+
+- **File:** `print_pdf.blade.php`
+- **Problem:** Terms-fare-wrapper section used float/div layout causing distorted rendering in dompdf
+- **Solution:** Converted to table-based layout for PDF compatibility
+
+### Changes Made
+
+1. Replaced `<div class="terms-fare-wrapper">` with `<table class="terms-fare-wrapper">`
+2. Split content into two table columns:
+   - `.terms-column` (60% width) - contains Terms & Conditions
+   - `.fare-column` (40% width) - contains Fare Breakdown table
+3. Removed CSS float properties (float: left, float: right, clear: both)
+4. Updated CSS to use table-specific styling with vertical-align: top
+
+### Result
+
+✅ PDF now renders correctly with proper layout alignment
+✅ Terms section stays on left, fare breakdown on right
+✅ No layout distortion when generated via dompdf
+
+---
+
+## 2025-11-28 - Agent Profile Change Password Feature
+
+### Feature Added
+
+- **Files Modified:**
+  - `ProfileController.php` - Added changePassword method
+  - `index.blade.php` - Added change password form section
+  - `web.php` - Added change password route
+
+### Implementation Details
+
+#### Controller Changes (`ProfileController.php`)
+
+1. Implemented `update()` method with full validation:
+
+   - Profile fields validation (name, email, phone, address, PAN, Aadhaar)
+   - Profile image upload with storage management
+   - Account activation/deactivation handling
+
+2. Implemented `uploadDocuments()` method:
+
+   - Multi-file upload support
+   - Document metadata storage (path, original name, timestamp)
+   - 5MB per file size limit
+   - Supports PDF, JPG, JPEG, PNG formats
+
+3. Added `changePassword()` method:
+   - Current password verification
+   - New password validation (min 8 characters)
+   - Password confirmation check
+   - Secure password hashing using Laravel Hash facade
+
+#### View Changes (`index.blade.php`)
+
+1. Added alert messages for success/error feedback
+2. Added "Change Password" card with form:
+   - Current password field
+   - New password field with validation hint
+   - Confirm password field
+   - Error display for validation failures
+3. Fixed documents display to handle new array structure with metadata
+
+#### Route Changes (`web.php`)
+
+- Added POST route: `/agent/profile/change-password` → `ProfileController@changePassword`
+
+### Security Features
+
+✅ Current password verification before change
+✅ Password confirmation required
+✅ Minimum 8 characters enforced
+✅ Passwords hashed using bcrypt
+✅ CSRF protection on all forms
+
+### User Experience
+
+✅ Clear validation messages
+✅ Success/error alerts with auto-dismiss
+✅ Inline form validation feedback
+✅ Password requirements displayed
+
+---
+
 # Seat Layout Population Research - Agent Booking Flow
 
 ## Date: 2025-11-28

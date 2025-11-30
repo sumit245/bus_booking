@@ -25,6 +25,27 @@ class BookingService
         try {
             Log::info('BookingService: Blocking seats and creating payment order', $requestData);
 
+            // Validate coupon code exists early if provided (full validation happens after fare calculation)
+            $couponCode = $requestData['coupon_code'] ?? null;
+            if ($couponCode) {
+                $couponExists = \App\Models\CouponTable::where('coupon_name', trim($couponCode))
+                    ->where('status', 1)
+                    ->where('expiry_date', '>=', Carbon::today())
+                    ->first();
+
+                if (!$couponExists) {
+                    return [
+                        'success' => false,
+                        'message' => 'Invalid or expired coupon code.',
+                        'error' => 'INVALID_COUPON'
+                    ];
+                }
+
+                Log::info('BookingService: Coupon code exists, will validate threshold after fare calculation', [
+                    'coupon_code' => $couponCode
+                ]);
+            }
+
             // Register or log in the user
             $user = $this->registerOrLoginUser($requestData);
 
@@ -43,14 +64,62 @@ class BookingService
             }
 
             // Calculate base fare with markup and coupon
-            $fareCalculation = $this->calculateTotalFare($blockResponse['Result']);
+            // Pass coupon_code from request if provided
+            $couponCode = $requestData['coupon_code'] ?? null;
+            $fareCalculation = $this->calculateTotalFare($blockResponse['Result'], $couponCode);
+
+            // Validate coupon threshold if coupon was provided
+            if ($couponCode && $fareCalculation['coupon_discount'] == 0) {
+                // Coupon was provided but discount is 0 - likely threshold not met
+                $coupon = \App\Models\CouponTable::where('coupon_name', trim($couponCode))->first();
+                if ($coupon && $fareCalculation['base_fare_after_markup'] <= $coupon->coupon_threshold) {
+                    return [
+                        'success' => false,
+                        'message' => "This coupon requires a minimum order value of ₹" . number_format($coupon->coupon_threshold, 2) . ". Your current order value is ₹" . number_format($fareCalculation['base_fare_after_markup'], 2) . ".",
+                        'error' => 'COUPON_THRESHOLD_NOT_MET'
+                    ];
+                }
+            }
+
             $baseFare = $fareCalculation['base_fare_after_coupon']; // Use fare after markup AND coupon for fee calculation
+
+            // Log coupon usage
+            if ($couponCode) {
+                Log::info('BookingService: Coupon applied in fare calculation', [
+                    'coupon_code' => $couponCode,
+                    'coupon_discount' => $fareCalculation['coupon_discount'],
+                    'base_fare_before_markup' => $fareCalculation['base_fare_before_markup'],
+                    'markup_amount' => $fareCalculation['markup_amount'],
+                    'base_fare_after_markup' => $fareCalculation['base_fare_after_markup'],
+                    'base_fare_after_coupon' => $fareCalculation['base_fare_after_coupon']
+                ]);
+            }
 
             // Create pending ticket record (will calculate fees and total_amount internally)
             $bookedTicket = $this->createPendingTicket($requestData, $blockResponse, $fareCalculation, $user->id);
 
-            // Create Razorpay order using the calculated total_amount from ticket
-            $razorpayOrder = $this->createRazorpayOrder($bookedTicket, $bookedTicket->total_amount ?? $baseFare);
+            // Ensure we have the total_amount (includes discount, fees, GST)
+            $finalAmount = $bookedTicket->total_amount ?? $baseFare;
+
+            // Log the amount breakdown for Razorpay order
+            Log::info('BookingService: Creating Razorpay order with correct calculation', [
+                'ticket_id' => $bookedTicket->id,
+                'base_fare_before_markup' => $fareCalculation['base_fare_before_markup'],
+                'markup_amount' => $fareCalculation['markup_amount'],
+                'base_fare_after_markup' => $fareCalculation['base_fare_after_markup'],
+                'service_charge' => $bookedTicket->service_charge ?? 0,
+                'platform_fee' => $bookedTicket->platform_fee ?? 0,
+                'gst' => $bookedTicket->gst ?? 0,
+                'total_before_coupon' => $feeCalculation['total_before_coupon'] ?? 0,
+                'coupon_code' => $couponCode,
+                'coupon_discount' => $fareCalculation['coupon_discount'] ?? 0,
+                'final_total_amount' => $finalAmount,
+                'razorpay_order_amount' => $finalAmount,
+                'calculation' => 'Sum(baseFare + markup) + service_charge + platform_fee + gst - coupon_discount'
+            ]);
+
+            // Create Razorpay order using the calculated total_amount from ticket (includes discount)
+            $razorpayOrder = $this->createRazorpayOrder($bookedTicket, $finalAmount);
 
             // Cache booking data for payment verification
             $this->cacheBookingData($bookedTicket->id, $requestData, $blockResponse);
@@ -173,9 +242,44 @@ class BookingService
     /**
      * Register or login user
      * Always creates/updates user profile during booking, even without mobile verification (sv=0)
+     * 
+     * Priority order:
+     * 1. Authenticated user from API token (User A - booking owner)
+     * 2. Web session authenticated user
+     * 3. Passenger phone (fallback for guest bookings)
      */
     private function registerOrLoginUser(array $requestData)
     {
+        // Priority 1: Use authenticated user if provided (API token - User A booking for User B)
+        if (!empty($requestData['authenticated_user_id'])) {
+            $user = User::find($requestData['authenticated_user_id']);
+            if ($user) {
+                Log::info('BookingService: Using authenticated user for booking', [
+                    'user_id' => $user->id,
+                    'user_mobile' => $user->mobile,
+                    'passenger_phone' => $requestData['Phoneno'] ?? $requestData['passenger_phone'] ?? null,
+                    'note' => 'Authenticated user (User A) is booking for passenger (User B)'
+                ]);
+                return $user;
+            } else {
+                Log::warning('BookingService: Authenticated user ID provided but user not found', [
+                    'authenticated_user_id' => $requestData['authenticated_user_id']
+                ]);
+                // Fall through to other methods
+            }
+        }
+
+        // Priority 2: Check web session auth (existing behavior)
+        if (Auth::check()) {
+            $user = Auth::user();
+            Log::info('BookingService: Using web session authenticated user', [
+                'user_id' => $user->id,
+                'user_mobile' => $user->mobile
+            ]);
+            return $user;
+        }
+
+        // Priority 3: Fallback to passenger phone (guest booking or backward compatibility)
         if (!Auth::check()) {
             $fullPhone = $requestData['Phoneno'] ?? $requestData['passenger_phone'];
 
@@ -632,7 +736,14 @@ class BookingService
      * Calculate total fare from block response with markup and coupon applied
      * Returns: ['base_fare_before_markup' => X, 'markup_amount' => Y, 'base_fare_after_markup' => Z, 'coupon_discount' => W, 'base_fare_after_coupon' => V]
      */
-    private function calculateTotalFare(array $blockResult)
+    /**
+     * Calculate total fare with markup and optional coupon discount
+     * 
+     * @param array $blockResult Block seat API response
+     * @param string|null $couponCode Optional coupon code to apply (if null, uses active coupon)
+     * @return array Fare calculation breakdown
+     */
+    private function calculateTotalFare(array $blockResult, ?string $couponCode = null)
     {
         // Get markup settings
         $markupData = \App\Models\MarkupTable::orderBy('id', 'desc')->first();
@@ -640,15 +751,29 @@ class BookingService
         $percentageMarkup = isset($markupData->percentage_markup) ? (float) $markupData->percentage_markup : 0;
         $threshold = isset($markupData->threshold) ? (float) $markupData->threshold : 0;
 
-        // Get active coupon settings
-        $currentCoupon = \App\Models\CouponTable::where('status', 1)
-            ->where('expiry_date', '>=', \Carbon\Carbon::today())
-            ->first();
+        // Get coupon - only if coupon code is explicitly provided by user
+        $currentCoupon = null;
+        if ($couponCode) {
+            // Validate and get the specific coupon code
+            $currentCoupon = \App\Models\CouponTable::where('coupon_name', trim($couponCode))
+                ->where('status', 1)
+                ->where('expiry_date', '>=', \Carbon\Carbon::today())
+                ->first();
+
+            if (!$currentCoupon) {
+                Log::warning('BookingService: Invalid coupon code provided', [
+                    'coupon_code' => $couponCode
+                ]);
+                // Don't throw error - just proceed without coupon
+                $currentCoupon = null;
+            }
+        }
+        // No fallback - coupons are only applied when user explicitly provides a coupon code
 
         $baseFareBeforeMarkup = 0;
         $totalMarkupAmount = 0;
-        $totalCouponDiscount = 0;
 
+        // First, calculate base fare and markup for all seats
         foreach ($blockResult['Passenger'] as $passenger) {
             $seatPrice = $passenger['Seat']['Price']['PublishedPrice'] ?? 0;
             $baseFareBeforeMarkup += $seatPrice;
@@ -656,29 +781,48 @@ class BookingService
             // Apply markup per seat (matching frontend logic)
             $markupAmount = $seatPrice < $threshold ? $flatMarkup : ($seatPrice * $percentageMarkup / 100);
             $totalMarkupAmount += $markupAmount;
-
-            // Apply coupon discount per seat (matching frontend logic)
-            $priceWithMarkup = $seatPrice + $markupAmount;
-            if ($currentCoupon && $currentCoupon->status == 1) {
-                $couponThreshold = (float) $currentCoupon->coupon_threshold;
-                $couponValue = (float) $currentCoupon->coupon_value;
-
-                // Apply discount ONLY if price is ABOVE the threshold
-                if ($priceWithMarkup > $couponThreshold) {
-                    $discountAmount = 0;
-                    if ($currentCoupon->discount_type === 'fixed') {
-                        $discountAmount = $couponValue;
-                    } elseif ($currentCoupon->discount_type === 'percentage') {
-                        $discountAmount = ($priceWithMarkup * $couponValue / 100);
-                    }
-                    // Ensure discount doesn't exceed the price
-                    $discountAmount = min($discountAmount, $priceWithMarkup);
-                    $totalCouponDiscount += $discountAmount;
-                }
-            }
         }
 
         $baseFareAfterMarkup = $baseFareBeforeMarkup + $totalMarkupAmount;
+
+        // Apply coupon discount on TOTAL amount after markup (not per seat)
+        // This matches frontend logic where discount is applied to total order value
+        $totalCouponDiscount = 0;
+        $couponApplied = false;
+
+        if ($currentCoupon && $currentCoupon->status == 1) {
+            $couponThreshold = (float) $currentCoupon->coupon_threshold;
+            $couponValue = (float) $currentCoupon->coupon_value;
+
+            // Apply discount ONLY if total price (after markup) is ABOVE the threshold
+            if ($baseFareAfterMarkup > $couponThreshold) {
+                if ($currentCoupon->discount_type === 'fixed') {
+                    $totalCouponDiscount = $couponValue;
+                } elseif ($currentCoupon->discount_type === 'percentage') {
+                    $totalCouponDiscount = ($baseFareAfterMarkup * $couponValue / 100);
+                }
+
+                // Ensure discount doesn't exceed the total amount
+                $totalCouponDiscount = min($totalCouponDiscount, $baseFareAfterMarkup);
+                $couponApplied = true;
+
+                Log::info('BookingService: Coupon discount calculated on total amount', [
+                    'coupon_code' => $currentCoupon->coupon_name,
+                    'discount_type' => $currentCoupon->discount_type,
+                    'coupon_value' => $couponValue,
+                    'base_fare_after_markup' => $baseFareAfterMarkup,
+                    'coupon_threshold' => $couponThreshold,
+                    'total_coupon_discount' => $totalCouponDiscount
+                ]);
+            } else {
+                Log::info('BookingService: Coupon threshold not met', [
+                    'coupon_code' => $currentCoupon->coupon_name,
+                    'base_fare_after_markup' => $baseFareAfterMarkup,
+                    'coupon_threshold' => $couponThreshold
+                ]);
+            }
+        }
+
         $baseFareAfterCoupon = $baseFareAfterMarkup - $totalCouponDiscount;
 
         return [
@@ -686,7 +830,10 @@ class BookingService
             'markup_amount' => round($totalMarkupAmount, 2),
             'base_fare_after_markup' => round($baseFareAfterMarkup, 2),
             'coupon_discount' => round($totalCouponDiscount, 2),
-            'base_fare_after_coupon' => round($baseFareAfterCoupon, 2)
+            'base_fare_after_coupon' => round($baseFareAfterCoupon, 2),
+            'coupon_id' => $currentCoupon ? $currentCoupon->id : null,
+            'coupon_code' => $currentCoupon ? $currentCoupon->coupon_name : null, // Keep for backward compatibility in logs
+            'coupon_applied' => $couponApplied
         ];
     }
 
@@ -857,16 +1004,32 @@ class BookingService
         $unitPrice = count($seats) > 0 ? round($totalUnitPrice / count($seats), 2) : round($totalUnitPrice, 2);
 
         // Extract fare breakdown
-        $baseFare = $fareCalculation['base_fare_after_coupon']; // Base fare after markup AND coupon
+        $baseFareBeforeMarkup = $fareCalculation['base_fare_before_markup'];
         $markupAmount = $fareCalculation['markup_amount'];
+        $baseFareAfterMarkup = $fareCalculation['base_fare_after_markup']; // Base fare + markup (before coupon)
         $couponDiscount = $fareCalculation['coupon_discount'];
+        $baseFareAfterCoupon = $fareCalculation['base_fare_after_coupon']; // Base fare + markup - coupon
 
-        // Calculate fees and total amount (on base fare after markup)
+        // Calculate fees and total amount on (base fare + markup) - NOT on discounted amount
+        // Fees should be calculated BEFORE coupon discount is applied
         $agentCommission = isset($requestData['agent_id']) && isset($requestData['commission_rate'])
-            ? round($baseFare * $requestData['commission_rate'], 2)
+            ? round($baseFareAfterMarkup * $requestData['commission_rate'], 2)
             : null;
 
-        $feeCalculation = $this->calculateFeesAndTotal($baseFare, $agentCommission);
+        $feeCalculation = $this->calculateFeesAndTotal($baseFareAfterMarkup, $agentCommission);
+
+        // Apply coupon discount AFTER fees are calculated
+        // Total before coupon = base_fare_after_markup + service_charge + platform_fee + gst
+        $totalBeforeCoupon = $feeCalculation['total_amount'];
+        $finalTotal = $totalBeforeCoupon - $couponDiscount;
+
+        // Ensure final total doesn't go negative
+        $finalTotal = max(0, $finalTotal);
+
+        // Update fee calculation with final total after coupon discount
+        $feeCalculation['total_amount'] = round($finalTotal, 2);
+        $feeCalculation['coupon_discount'] = $couponDiscount;
+        $feeCalculation['total_before_coupon'] = $totalBeforeCoupon;
 
         // Get operator bus data if applicable
         $operatorBusId = null;
@@ -1001,8 +1164,8 @@ class BookingService
 
         $bookedTicket->ticket_count = count($seats);
         $bookedTicket->unit_price = $unitPrice; // API price per seat (before markup)
-        // sub_total = unit_price + markup (base fare after markup, before fees)
-        $bookedTicket->sub_total = round($baseFare, 2); // This is base_fare_after_markup
+        // sub_total = base fare after markup (before coupon and fees)
+        $bookedTicket->sub_total = round($baseFareAfterMarkup, 2); // base_fare_after_markup (includes markup, excludes coupon)
 
         // Save fee breakdown with amounts and percentages
         $bookedTicket->service_charge = $feeCalculation['service_charge'];
@@ -1140,7 +1303,7 @@ class BookingService
 
                 Log::info('Agent commission calculated', [
                     'agent_id' => $requestData['agent_id'],
-                    'base_fare' => $baseFare,
+                    'base_fare_after_markup' => $baseFareAfterMarkup,
                     'commission_rate' => $requestData['commission_rate'],
                     'commission_amount' => $agentCommission
                 ]);
@@ -1153,7 +1316,7 @@ class BookingService
 
             Log::info('Admin booking created', [
                 'admin_id' => $requestData['admin_id'],
-                'base_fare' => $baseFare,
+                'base_fare_after_markup' => $baseFareAfterMarkup,
                 'total_amount' => $feeCalculation['total_amount']
             ]);
         }
@@ -1255,19 +1418,32 @@ class BookingService
 
         $bookedTicket->status = 0; // Pending
 
+        // Save coupon ID and discount if applicable (save even if discount is 0 for tracking)
+        $couponId = $fareCalculation['coupon_id'] ?? null;
+        if ($couponId) {
+            $bookedTicket->coupon_id = $couponId;
+            $bookedTicket->coupon_discount = round($couponDiscount, 2);
+        }
+
         // Log fee calculation for debugging
         Log::info('BookingService: Ticket created with fee calculation', [
             'ticket_id' => 'pending',
-            'base_fare' => $feeCalculation['base_fare'],
+            'base_fare_before_markup' => $baseFareBeforeMarkup,
+            'markup_amount' => $markupAmount,
+            'base_fare_after_markup' => $baseFareAfterMarkup,
+            'coupon_discount' => $couponDiscount,
+            'base_fare_after_coupon' => $baseFareAfterCoupon,
             'service_charge' => $feeCalculation['service_charge'],
             'platform_fee' => $feeCalculation['platform_fee'],
             'gst' => $feeCalculation['gst'],
+            'total_before_coupon' => $feeCalculation['total_before_coupon'] ?? $totalBeforeCoupon,
             'total_amount' => $feeCalculation['total_amount'],
             'is_operator_bus' => $isOperatorBus,
             'origin_id' => $originId,
             'destination_id' => $destinationId,
             'origin_name' => $originName,
-            'destination_name' => $destinationName
+            'destination_name' => $destinationName,
+            'calculation_flow' => 'Sum(baseFare + markup) + fees - coupon_discount'
         ]);
 
         $bookedTicket->save();
@@ -1294,21 +1470,108 @@ class BookingService
     }
 
     /**
+     * Validate coupon code
+     * 
+     * @param string $couponCode
+     * @return array ['valid' => bool, 'message' => string, 'coupon' => CouponTable|null]
+     */
+    private function validateCoupon(string $couponCode): array
+    {
+        if (empty(trim($couponCode))) {
+            return [
+                'valid' => false,
+                'message' => 'Coupon code is required',
+                'coupon' => null
+            ];
+        }
+
+        $coupon = \App\Models\CouponTable::where('coupon_name', trim($couponCode))
+            ->where('status', 1)
+            ->where('expiry_date', '>=', Carbon::today())
+            ->first();
+
+        if (!$coupon) {
+            return [
+                'valid' => false,
+                'message' => 'Invalid or expired coupon code.',
+                'coupon' => null
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'message' => 'Coupon is valid',
+            'coupon' => $coupon
+        ];
+    }
+
+    /**
      * Create Razorpay order
      */
     private function createRazorpayOrder(BookedTicket $bookedTicket, float $totalFare)
     {
-        $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
+        try {
+            $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
 
-        return $api->order->create([
-            'receipt' => $bookedTicket->pnr_number,
-            'amount' => $totalFare * 100, // Amount in paisa
-            'currency' => 'INR',
-            'notes' => [
+            // Ensure amount is in paisa (multiply by 100 and round to avoid decimal issues)
+            $amountInPaisa = (int) round($totalFare * 100);
+
+            // Validate minimum amount (Razorpay requires minimum 1 rupee = 100 paisa)
+            if ($amountInPaisa < 100) {
+                throw new \Exception('Amount too low. Minimum payment amount is ₹1.00 (100 paisa).');
+            }
+
+            // Ensure receipt is a string (not null or array)
+            $receipt = (string) ($bookedTicket->pnr_number ?? 'TICKET_' . $bookedTicket->id);
+
+            Log::info('BookingService: Creating Razorpay order', [
                 'ticket_id' => $bookedTicket->id,
-                'pnr_number' => $bookedTicket->pnr_number,
-            ]
-        ]);
+                'pnr_number' => $receipt,
+                'total_fare' => $totalFare,
+                'amount_in_paisa' => $amountInPaisa
+            ]);
+
+            $orderData = [
+                'receipt' => $receipt,
+                'amount' => $amountInPaisa, // Amount in paisa (discounted amount)
+                'currency' => 'INR',
+                'notes' => [
+                    'ticket_id' => (string) $bookedTicket->id,
+                    'pnr_number' => $receipt,
+                    'total_amount' => (string) round($totalFare, 2),
+                ]
+            ];
+
+            Log::info('BookingService: Razorpay order data prepared', [
+                'order_data' => $orderData
+            ]);
+
+            $order = $api->order->create($orderData);
+
+            Log::info('BookingService: Razorpay order created successfully', [
+                'ticket_id' => $bookedTicket->id,
+                'razorpay_order_id' => $order->id ?? 'N/A',
+                'order_status' => $order->status ?? 'N/A'
+            ]);
+
+            return $order;
+
+        } catch (\Razorpay\Api\Errors\Error $e) {
+            Log::error('BookingService: Razorpay API error', [
+                'ticket_id' => $bookedTicket->id,
+                'error_code' => $e->getCode(),
+                'error_message' => $e->getMessage(),
+                'error_data' => method_exists($e, 'getData') ? $e->getData() : null,
+            ]);
+            throw new \Exception('Failed to create Razorpay order: ' . $e->getMessage() . ' (Code: ' . $e->getCode() . ')');
+        } catch (\Exception $e) {
+            Log::error('BookingService: Error creating Razorpay order', [
+                'ticket_id' => $bookedTicket->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -1316,6 +1579,15 @@ class BookingService
      */
     private function cacheBookingData(int $ticketId, array $requestData, array $blockResponse)
     {
+        // Get authenticated user mobile if available (for WhatsApp notifications)
+        $authenticatedUserMobile = null;
+        if (!empty($requestData['authenticated_user_id'])) {
+            $user = \App\Models\User::find($requestData['authenticated_user_id']);
+            if ($user && $user->mobile) {
+                $authenticatedUserMobile = $user->mobile;
+            }
+        }
+
         $bookingData = [
             'user_ip' => $requestData['UserIp'] ?? $requestData['user_ip'] ?? request()->ip(),
             'search_token_id' => $requestData['SearchTokenId'] ?? $requestData['search_token_id'],
@@ -1324,7 +1596,9 @@ class BookingService
             'dropping_point_id' => $requestData['DroppingPointId'] ?? $requestData['dropping_point_index'],
             'passengers' => $this->preparePassengerData($requestData),
             'block_response' => $blockResponse,
-            'ticket_id' => $ticketId // Include ticket ID for bookOperatorBusTicket
+            'ticket_id' => $ticketId, // Include ticket ID for bookOperatorBusTicket
+            'authenticated_user_id' => $requestData['authenticated_user_id'] ?? null, // Store authenticated user ID
+            'authenticated_user_mobile' => $authenticatedUserMobile // Store authenticated user mobile for WhatsApp
         ];
 
         Cache::put('booking_data_' . $ticketId, $bookingData, now()->addMinutes(15));
@@ -1735,24 +2009,117 @@ class BookingService
     private function sendWhatsAppNotifications(BookedTicket $bookedTicket, array $apiResponse, array $bookingData)
     {
         try {
+            // Ensure user relationship is loaded
+            if (!$bookedTicket->relationLoaded('user')) {
+                $bookedTicket->load('user');
+            }
+
             Log::info('Starting WhatsApp notification process', [
                 'ticket_id' => $bookedTicket->id,
                 'pnr' => $bookedTicket->pnr_number,
-                'result_index' => $bookingData['result_index']
+                'result_index' => $bookingData['result_index'],
+                'user_id' => $bookedTicket->user_id,
+                'user_exists' => $bookedTicket->user ? 'yes' : 'no',
+                'user_mobile' => $bookedTicket->user ? ($bookedTicket->user->mobile ?? 'no mobile') : 'no user',
+                'passenger_phone' => $bookedTicket->passenger_phone ?? 'no passenger phone'
             ]);
 
             // Prepare ticket details for WhatsApp
             $ticketDetails = $this->prepareTicketDetailsForWhatsApp($bookedTicket, $apiResponse, $bookingData);
 
-            // Send ticket details to passenger (use passenger_phone from booking, fallback to user mobile)
-            $passengerMobile = $bookedTicket->passenger_phone ?? ($bookedTicket->user->mobile ?? null);
-            $passengerWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $passengerMobile);
+            // Send ticket details to passenger (use passenger_phone from booking)
+            $passengerMobile = $bookedTicket->passenger_phone ?? null;
+            $passengerWhatsAppSuccess = false;
 
-            Log::info('Passenger WhatsApp notification attempted', [
-                'ticket_id' => $bookedTicket->id,
-                'passenger_phone' => $passengerMobile,
-                'success' => $passengerWhatsAppSuccess
-            ]);
+            if ($passengerMobile) {
+                $passengerWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $passengerMobile);
+                Log::info('Passenger WhatsApp notification attempted', [
+                    'ticket_id' => $bookedTicket->id,
+                    'passenger_phone' => $passengerMobile,
+                    'success' => $passengerWhatsAppSuccess
+                ]);
+            } else {
+                Log::warning('Passenger WhatsApp notification skipped - no passenger phone', [
+                    'ticket_id' => $bookedTicket->id
+                ]);
+            }
+
+            // Send ticket details to booking owner (User A - the person who made the booking)
+            // Always send to booking owner if they exist and have different phone - both passenger and owner should receive notifications
+            $bookingOwnerMobile = null;
+            $ownerWhatsAppSuccess = true; // Default to true so it doesn't fail the booking
+
+            // Try multiple sources to get booking owner mobile:
+            // 1. From booked_ticket.user relationship (most reliable)
+            // 2. From cached bookingData (fallback if user relationship isn't loaded)
+            // 3. From authenticated_user_mobile in bookingData
+
+            // Ensure we load the user relationship if not already loaded
+            if (!$bookedTicket->relationLoaded('user')) {
+                $bookedTicket->load('user');
+            }
+
+            // Get booking owner mobile from user relationship
+            if ($bookedTicket->user && $bookedTicket->user->mobile) {
+                $bookingOwnerMobile = $bookedTicket->user->mobile;
+            }
+            // Fallback: Get from cached bookingData if user relationship doesn't have mobile
+            else if (isset($bookingData['authenticated_user_mobile']) && !empty($bookingData['authenticated_user_mobile'])) {
+                $bookingOwnerMobile = $bookingData['authenticated_user_mobile'];
+                Log::info('Booking owner mobile retrieved from cached bookingData', [
+                    'ticket_id' => $bookedTicket->id,
+                    'owner_mobile' => $bookingOwnerMobile,
+                    'note' => 'User relationship not available, using cached authenticated user mobile'
+                ]);
+            }
+
+            if ($bookingOwnerMobile) {
+                // Normalize both numbers for comparison (remove country codes, get last 10 digits)
+                $normalizedPassenger = $passengerMobile ? preg_replace('/[^0-9]/', '', substr($passengerMobile, -10)) : null;
+                $normalizedOwner = preg_replace('/[^0-9]/', '', substr($bookingOwnerMobile, -10));
+
+                // Always send to owner if phone is different from passenger (to avoid duplicate messages)
+                if ($normalizedPassenger && $normalizedPassenger !== $normalizedOwner) {
+                    $ownerWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $bookingOwnerMobile);
+                    Log::info('Booking owner WhatsApp notification sent', [
+                        'ticket_id' => $bookedTicket->id,
+                        'owner_phone' => $bookingOwnerMobile,
+                        'passenger_phone' => $passengerMobile,
+                        'owner_user_id' => $bookedTicket->user_id,
+                        'success' => $ownerWhatsAppSuccess,
+                        'note' => 'Owner notification sent - different phone from passenger. Both passenger and owner will receive WhatsApp.'
+                    ]);
+                } else if ($normalizedPassenger && $normalizedPassenger === $normalizedOwner) {
+                    // Same phone number - skip to avoid duplicate
+                    Log::info('Booking owner WhatsApp notification skipped', [
+                        'ticket_id' => $bookedTicket->id,
+                        'owner_phone' => $bookingOwnerMobile,
+                        'passenger_phone' => $passengerMobile,
+                        'owner_user_id' => $bookedTicket->user_id,
+                        'reason' => 'Owner and passenger have same phone number - passenger already notified'
+                    ]);
+                } else {
+                    // No passenger phone to compare - send to owner anyway
+                    $ownerWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, $bookingOwnerMobile);
+                    Log::info('Booking owner WhatsApp notification sent', [
+                        'ticket_id' => $bookedTicket->id,
+                        'owner_phone' => $bookingOwnerMobile,
+                        'passenger_phone' => $passengerMobile,
+                        'owner_user_id' => $bookedTicket->user_id,
+                        'success' => $ownerWhatsAppSuccess,
+                        'note' => 'Owner notification sent - no passenger phone to compare'
+                    ]);
+                }
+            } else {
+                Log::warning('Booking owner WhatsApp notification skipped', [
+                    'ticket_id' => $bookedTicket->id,
+                    'reason' => 'Booking owner mobile not found in user relationship or cached bookingData',
+                    'user_id' => $bookedTicket->user_id,
+                    'user_exists' => $bookedTicket->user ? 'yes' : 'no',
+                    'user_has_mobile' => ($bookedTicket->user && $bookedTicket->user->mobile) ? 'yes' : 'no',
+                    'cached_mobile_available' => isset($bookingData['authenticated_user_mobile']) ? 'yes' : 'no'
+                ]);
+            }
 
             // Send ticket details to admin (always notify admin)
             $adminWhatsAppSuccess = sendTicketDetailsWhatsApp($ticketDetails, "8269566034");
@@ -1796,6 +2163,7 @@ class BookingService
             Log::info('WhatsApp notification results for all stakeholders', [
                 'ticket_id' => $bookedTicket->id,
                 'passenger_success' => $passengerWhatsAppSuccess,
+                'owner_success' => $ownerWhatsAppSuccess,
                 'admin_success' => $adminWhatsAppSuccess,
                 'agent_success' => $agentWhatsAppSuccess,
                 'operator_success' => $operatorWhatsAppSuccess

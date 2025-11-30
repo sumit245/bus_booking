@@ -39,6 +39,7 @@ Route::prefix('bus')->group(function () {
 
 // Coupon routes
 Route::get('/coupons', [CouponController::class, 'getActiveCouponsApi']);
+Route::post('/coupons/validate', [CouponController::class, 'validateCouponApi']);
 Route::post('/apply-coupon', [CouponController::class, 'applyCouponApi']);
 
 // Trip management

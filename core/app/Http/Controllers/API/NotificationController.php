@@ -28,14 +28,19 @@ class NotificationController extends Controller
      */
     protected function checkAdminAuth(Request $request)
     {
-        // Check admin guard first (for web session or API with admin token)
+        // Check Sanctum token first (for API authentication)
+        if ($request->bearerToken()) {
+            $admin = $request->user('sanctum');
+            // Verify that the authenticated user is an Admin model instance
+            if ($admin instanceof \App\Models\Admin) {
+                return $admin;
+            }
+        }
+
+        // Check admin guard (for web session authentication)
         if (Auth::guard('admin')->check()) {
             return Auth::guard('admin')->user();
         }
-
-        // Check Sanctum token - if user has admin role/flag
-        // For now, admin endpoints should use admin guard
-        // This can be extended later if admin Sanctum tokens are needed
         
         return null;
     }

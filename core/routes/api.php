@@ -8,6 +8,7 @@ use App\Http\Controllers\API\ManageTripController;
 use App\Http\Controllers\Admin\VehicleTicketController;
 use App\Http\Controllers\API\ReferralController;
 use App\Http\Controllers\API\NotificationController;
+use App\Http\Controllers\API\AdminAuthController;
 
 // Auth-related
 Route::post('/send-otp', [UserController::class, 'sendOTP'])->name('user.send-otp');
@@ -70,6 +71,15 @@ Route::prefix('users')->name('users.')->group(function () {
     Route::get('/referral-data', [ReferralController::class, 'getReferralData'])->name('referral.data');
     Route::get('/referral-stats', [ReferralController::class, 'getReferralStats'])->name('referral.stats');
     Route::get('/referral-history', [ReferralController::class, 'getReferralHistory'])->name('referral.history');
+});
+
+// Admin Authentication Routes
+Route::prefix('admin')->group(function () {
+    Route::post('/login', [AdminAuthController::class, 'login']);
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AdminAuthController::class, 'logout']);
+        Route::get('/profile', [AdminAuthController::class, 'profile']);
+    });
 });
 
 // Notification Endpoints (Admin authentication handled in controller - supports Sanctum and admin guard)

@@ -1273,6 +1273,20 @@ class BookingService
         $bookedTicket->passenger_name = trim(($leadPassenger['FirstName'] ?? '') . ' ' . ($leadPassenger['LastName'] ?? ''));
         $bookedTicket->passenger_age = $leadPassenger['Age'] ?? null;
 
+        // Extract and save gender from lead passenger (from API response) or fallback to request data
+        $gender = null;
+        if (isset($leadPassenger['Gender'])) {
+            $gender = (int) $leadPassenger['Gender'];
+        } elseif (isset($requestData['passenger_genders']) && is_array($requestData['passenger_genders'])) {
+            // Agent booking - use first passenger's gender
+            $gender = (int) ($requestData['passenger_genders'][0] ?? 1);
+        } elseif (isset($requestData['Gender'])) {
+            $gender = (int) $requestData['Gender'];
+        } elseif (isset($requestData['gender'])) {
+            $gender = (int) $requestData['gender'];
+        }
+        $bookedTicket->gender = $gender ?? 1; // Default to 1 (Male) if not found
+
         // Save all passenger names - ensure consistent JSON encoding (array format)
         $passengerNames = [];
         if (isset($requestData['passenger_firstnames']) && isset($requestData['passenger_lastnames'])) {

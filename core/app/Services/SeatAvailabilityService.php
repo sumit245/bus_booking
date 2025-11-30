@@ -424,10 +424,61 @@ class SeatAvailabilityService
         // Clear cache for all date format variations
         $clearedKeys = [];
         foreach ($alternativeDateFormats as $dateFormat) {
-            // Clear the main cache key (no boarding/dropping points)
+            // Clear the main cache key (no boarding/dropping points) - this is the most common case
             $mainKey = $this->getCacheKey($operatorBusId, $scheduleId, $dateFormat, null, null);
             Cache::forget($mainKey);
             $clearedKeys[] = $mainKey;
+            
+            // Also try to get all possible boarding/dropping point indices for this route
+            // and clear cache entries with those indices
+            try {
+                $bus = \App\Models\OperatorBus::find($operatorBusId);
+                if ($bus && $bus->current_route_id) {
+                    $route = \App\Models\OperatorRoute::find($bus->current_route_id);
+                    if ($route) {
+                        // Get all boarding and dropping point indices
+                        $boardingIndices = \App\Models\BoardingPoint::where('operator_route_id', $route->id)
+                            ->orWhere('bus_schedule_id', $scheduleId)
+                            ->pluck('point_index')
+                            ->unique()
+                            ->toArray();
+                        
+                        $droppingIndices = \App\Models\DroppingPoint::where('operator_route_id', $route->id)
+                            ->orWhere('bus_schedule_id', $scheduleId)
+                            ->pluck('point_index')
+                            ->unique()
+                            ->toArray();
+                        
+                        // Clear cache for all combinations of boarding/dropping points
+                        // This ensures we clear cache entries that might have been created with specific indices
+                        foreach ($boardingIndices as $boardingIndex) {
+                            foreach ($droppingIndices as $droppingIndex) {
+                                $specificKey = $this->getCacheKey($operatorBusId, $scheduleId, $dateFormat, $boardingIndex, $droppingIndex);
+                                Cache::forget($specificKey);
+                                $clearedKeys[] = $specificKey;
+                            }
+                            // Also clear with null dropping point
+                            $keyWithBoarding = $this->getCacheKey($operatorBusId, $scheduleId, $dateFormat, $boardingIndex, null);
+                            Cache::forget($keyWithBoarding);
+                            $clearedKeys[] = $keyWithBoarding;
+                        }
+                        
+                        foreach ($droppingIndices as $droppingIndex) {
+                            // Also clear with null boarding point
+                            $keyWithDropping = $this->getCacheKey($operatorBusId, $scheduleId, $dateFormat, null, $droppingIndex);
+                            Cache::forget($keyWithDropping);
+                            $clearedKeys[] = $keyWithDropping;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // If we can't get route/points, just log and continue with basic cache clearing
+                Log::warning('SeatAvailabilityService: Could not clear all cache variations', [
+                    'error' => $e->getMessage(),
+                    'operator_bus_id' => $operatorBusId,
+                    'schedule_id' => $scheduleId
+                ]);
+            }
         }
 
         // Also try to clear cache with schedule_id = 0 (in case it was cached that way)

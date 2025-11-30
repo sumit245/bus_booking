@@ -76,13 +76,20 @@ class ExpirePendingTickets extends Command
 
                 // Invalidate seat availability cache so seats are immediately available
                 if ($ticket->bus_id && $ticket->schedule_id && $ticket->date_of_journey) {
+                    // Invalidate cache - this will clear all variations
                     $seatAvailabilityService->invalidateCache(
                         $ticket->bus_id,
                         $ticket->schedule_id,
                         $ticket->date_of_journey
                     );
                     
+                    // Also clear any seat layout cache that might be using this bus/schedule
+                    // The seat layout cache uses searchTokenId and resultIndex, which we don't have,
+                    // but we can at least ensure the availability cache is cleared
+                    // The next request will recalculate with the updated status
+                    
                     $this->line("    ✅ Status updated to 4 (Expired) and seat cache invalidated");
+                    $this->line("    💡 Note: Frontend may need to refresh to see updated seat availability");
                 } else {
                     $this->line("    ✅ Status updated to 4 (Expired) - no seat cache to invalidate");
                 }

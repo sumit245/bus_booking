@@ -1260,7 +1260,7 @@ class ApiTicketController extends Controller
                 'DroppingPointId' => 'required',
                 'Seats' => 'required|string',
                 'FirstName' => 'required',
-                'LastName' => 'nullable',
+                'LastName' => 'required',
                 'Gender' => 'required|in:0,1,2',
                 'Email' => 'required|email',
                 'Phoneno' => 'required',

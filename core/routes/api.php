@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\API\ManageTripController;
 use App\Http\Controllers\Admin\VehicleTicketController;
 use App\Http\Controllers\API\ReferralController;
+use App\Http\Controllers\API\NotificationController;
 
 // Auth-related
 Route::post('/send-otp', [UserController::class, 'sendOTP'])->name('user.send-otp');
@@ -15,6 +16,10 @@ Route::post('/users/get-my-tickets', [UserController::class, 'userHistoryByPhone
 Route::post('/users/get-ticket-by-booking-id', [UserController::class, 'getTicketByBookingId']);
 Route::post('/users/cancel-ticket', [ApiTicketController::class, 'cancelTicketApi']);
 Route::get('/users/print-ticket/{id}', [\App\Http\Controllers\TicketController::class, 'printTicket'])->name('api.print.ticket');
+
+// FCM Token Management
+Route::post('/users/fcm-token', [UserController::class, 'storeFcmToken']);
+Route::delete('/users/fcm-token', [UserController::class, 'deleteFcmToken']);
 
 // Autocomplete
 Route::get('/autocomplete-city', [ApiTicketController::class, 'autocompleteCity']);
@@ -65,5 +70,13 @@ Route::prefix('users')->name('users.')->group(function () {
     Route::get('/referral-data', [ReferralController::class, 'getReferralData'])->name('referral.data');
     Route::get('/referral-stats', [ReferralController::class, 'getReferralStats'])->name('referral.stats');
     Route::get('/referral-history', [ReferralController::class, 'getReferralHistory'])->name('referral.history');
+});
+
+// Notification Endpoints (Admin authentication handled in controller - supports Sanctum and admin guard)
+Route::prefix('notifications')->group(function () {
+    Route::post('/send-release', [NotificationController::class, 'sendReleaseNotification']);
+    Route::post('/send-promotional', [NotificationController::class, 'sendPromotionalNotification']);
+    Route::post('/send-booking', [NotificationController::class, 'sendBookingNotification']);
+    Route::post('/send-general', [NotificationController::class, 'sendGeneralNotification']);
 });
 

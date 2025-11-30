@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Models\BookedTicket;
 use App\Services\ReferralService;
+use App\Models\FcmToken;
 
 class UserController extends Controller
 {
@@ -745,6 +746,158 @@ class UserController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
                 'status' => 500,
+            ], 500);
+        }
+    }
+
+    /**
+     * Store or update FCM token for a user
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeFcmToken(Request $request)
+    {
+        try {
+            $request->validate([
+                'fcm_token' => 'required|string|max:255',
+                'device_type' => 'required|in:android,ios',
+                'user_id' => 'nullable|integer|exists:users,id',
+            ]);
+
+            // Extract user_id from Sanctum token if authenticated
+            $userId = null;
+            if ($request->bearerToken()) {
+                $user = $request->user('sanctum');
+                if ($user) {
+                    $userId = $user->id;
+                }
+            }
+
+            // Override with explicit user_id if provided
+            if ($request->has('user_id') && $request->user_id) {
+                $userId = $request->user_id;
+            }
+
+            $fcmToken = $request->fcm_token;
+            $deviceType = $request->device_type;
+
+            // Check if token already exists
+            $existingToken = FcmToken::where('fcm_token', $fcmToken)->first();
+
+            if ($existingToken) {
+                // Update existing token with new user_id if different
+                if ($userId && $existingToken->user_id != $userId) {
+                    $existingToken->update([
+                        'user_id' => $userId,
+                        'device_type' => $deviceType,
+                    ]);
+                    Log::info('FCM token updated with new user_id', [
+                        'token_id' => $existingToken->id,
+                        'old_user_id' => $existingToken->user_id,
+                        'new_user_id' => $userId
+                    ]);
+                } else {
+                    // Just update device type if changed
+                    $existingToken->update(['device_type' => $deviceType]);
+                }
+            } else {
+                // Create new token
+                FcmToken::create([
+                    'user_id' => $userId,
+                    'fcm_token' => $fcmToken,
+                    'device_type' => $deviceType,
+                ]);
+            }
+
+            Log::info('FCM token stored successfully', [
+                'user_id' => $userId,
+                'device_type' => $deviceType,
+                'has_token' => !empty($fcmToken)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'FCM token stored successfully'
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to store FCM token', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to store FCM token',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete FCM token (on logout or token deletion)
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteFcmToken(Request $request)
+    {
+        try {
+            $request->validate([
+                'fcm_token' => 'nullable|string|max:255',
+            ]);
+
+            // Try to get user from Sanctum token
+            $user = null;
+            if ($request->bearerToken()) {
+                $user = $request->user('sanctum');
+            }
+
+            if ($request->has('fcm_token') && $request->fcm_token) {
+                // Delete by token
+                $deleted = FcmToken::where('fcm_token', $request->fcm_token)->delete();
+                
+                Log::info('FCM token deleted by token', [
+                    'token' => substr($request->fcm_token, 0, 20) . '...',
+                    'deleted' => $deleted
+                ]);
+            } elseif ($user) {
+                // Delete all tokens for this user
+                $deleted = FcmToken::where('user_id', $user->id)->delete();
+                
+                Log::info('FCM tokens deleted for user', [
+                    'user_id' => $user->id,
+                    'deleted' => $deleted
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Either fcm_token or authentication required'
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'FCM token removed successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to delete FCM token', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove FCM token',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

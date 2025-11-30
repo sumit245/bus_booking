@@ -207,6 +207,18 @@ class BookingService
                 ];
             }
 
+            // Send FCM push notification for booking confirmation
+            // Don't fail the booking if FCM fails - it's not critical
+            try {
+                $this->sendBookingConfirmationNotification($bookedTicket, $apiResponse, $bookingData);
+            } catch (\Exception $e) {
+                Log::error('Failed to send booking confirmation FCM notification', [
+                    'ticket_id' => $bookedTicket->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Continue - FCM failure shouldn't cancel booking
+            }
+
             // Clean up cache
             Cache::forget('booking_data_' . $bookedTicket->id);
 
@@ -2273,6 +2285,98 @@ class BookingService
                 'trace' => $e->getTraceAsString()
             ]);
             return false;
+        }
+    }
+
+    /**
+     * Send FCM push notification for booking confirmation
+     *
+     * @param BookedTicket $bookedTicket
+     * @param array $apiResponse
+     * @param array $bookingData
+     * @return void
+     */
+    private function sendBookingConfirmationNotification(BookedTicket $bookedTicket, array $apiResponse, array $bookingData)
+    {
+        try {
+            // Only send if booking is confirmed (status = 1)
+            if ($bookedTicket->status != 1) {
+                Log::info('Skipping FCM notification - booking not confirmed', [
+                    'ticket_id' => $bookedTicket->id,
+                    'status' => $bookedTicket->status
+                ]);
+                return;
+            }
+
+            // Load user relationship if not already loaded
+            if (!$bookedTicket->relationLoaded('user')) {
+                $bookedTicket->load('user');
+            }
+
+            // Get origin and destination
+            $origin = $bookedTicket->origin_city ?? 'Origin';
+            $destination = $bookedTicket->destination_city ?? 'Destination';
+            
+            // Get booking ID
+            $bookingId = $bookedTicket->api_booking_id 
+                ?? $bookedTicket->booking_id 
+                ?? $bookedTicket->pnr_number;
+
+            // Build notification message
+            $title = 'Booking Confirmed!';
+            $message = "Your booking from {$origin} to {$destination} is confirmed. PNR: {$bookedTicket->pnr_number}";
+
+            // Prepare notification data
+            $data = [
+                'type' => 'booking',
+                'notification_type' => 'booking',
+                'deep_link' => 'Main/Bookings',
+                'booking_id' => (string) $bookingId,
+                'pnr' => $bookedTicket->pnr_number,
+                'journey_date' => $bookedTicket->date_of_journey,
+                'origin' => $origin,
+                'destination' => $destination,
+            ];
+
+            $fcmService = new \App\Services\FcmNotificationService();
+
+            // Send to booking owner
+            if ($bookedTicket->user_id) {
+                $sentToOwner = $fcmService->sendToUser($bookedTicket->user_id, $title, $message, $data);
+                Log::info('FCM booking notification sent to owner', [
+                    'ticket_id' => $bookedTicket->id,
+                    'user_id' => $bookedTicket->user_id,
+                    'success' => $sentToOwner
+                ]);
+            }
+
+            // Send to passenger if different from owner
+            if ($bookedTicket->passenger_phone) {
+                // Find passenger by phone
+                $passenger = User::where('mobile', $bookedTicket->passenger_phone)
+                    ->orWhere('mobile', '91' . $bookedTicket->passenger_phone)
+                    ->orWhere('mobile', '+91' . $bookedTicket->passenger_phone)
+                    ->orWhereRaw('RIGHT(mobile, 10) = ?', [$bookedTicket->passenger_phone])
+                    ->first();
+
+                if ($passenger && $passenger->id != $bookedTicket->user_id) {
+                    $sentToPassenger = $fcmService->sendToUser($passenger->id, $title, $message, $data);
+                    Log::info('FCM booking notification sent to passenger', [
+                        'ticket_id' => $bookedTicket->id,
+                        'passenger_user_id' => $passenger->id,
+                        'passenger_phone' => $bookedTicket->passenger_phone,
+                        'success' => $sentToPassenger
+                    ]);
+                }
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send booking confirmation FCM notification', [
+                'ticket_id' => $bookedTicket->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Don't throw - FCM failure shouldn't affect booking
         }
     }
 

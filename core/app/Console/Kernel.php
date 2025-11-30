@@ -31,6 +31,13 @@ class Kernel extends ConsoleKernel
             ->everyMinute()
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Expire pending tickets that haven't been paid within 15 minutes
+        // Run every 5 minutes to ensure tickets are expired promptly
+        $schedule->command('tickets:expire-pending')
+            ->everyFiveMinutes()
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

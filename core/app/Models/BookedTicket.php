@@ -89,6 +89,7 @@ class BookedTicket extends Model
         'bus_details',
         'coupon_id',
         'coupon_discount',
+        'expired_at',
     ];
 
     // Add date mutator to fix invalid dates
@@ -190,6 +191,30 @@ class BookedTicket extends Model
     public function coupon()
     {
         return $this->belongsTo(\App\Models\CouponTable::class, 'coupon_id');
+    }
+
+    /**
+     * Get formatted status text for display
+     * Status codes: 0 = Pending, 1 = Booked, 2 = Rejected, 3 = Cancelled, 4 = Expired/Abandoned
+     */
+    public function getStatusTextAttribute(): string
+    {
+        return match ($this->status) {
+            0 => 'Pending',
+            1 => 'Booked',
+            2 => 'Rejected',
+            3 => 'Cancelled',
+            4 => 'Expired',
+            default => 'Unknown',
+        };
+    }
+
+    /**
+     * Check if ticket is expired (status 4)
+     */
+    public function isExpired(): bool
+    {
+        return $this->status === 4;
     }
 
     public function agentBooking()

@@ -22,6 +22,7 @@ class SyncSeatAvailability extends Command
                             {--date= : Sync specific date (Y-m-d format)}
                             {--clear-all : Clear all seat availability cache}
                             {--sync-cancelled : Sync cancelled tickets (status 3) to free up seats}
+                            {--sync-expired : Sync expired tickets (status 4) to free up seats}
                             {--from-date= : Sync bookings from this date onwards (Y-m-d format)}
                             {--to-date= : Sync bookings until this date (Y-m-d format)}';
 
@@ -50,6 +51,11 @@ class SyncSeatAvailability extends Command
             // Sync cancelled tickets if requested
             if ($this->option('sync-cancelled')) {
                 return $this->syncCancelledTickets();
+            }
+
+            // Sync expired tickets if requested
+            if ($this->option('sync-expired')) {
+                return $this->syncExpiredTickets();
             }
 
             // Get unique combinations of bus_id, schedule_id, and date_of_journey from bookings
@@ -391,6 +397,143 @@ class SyncSeatAvailability extends Command
             $this->info('🎉 Cancelled tickets synced successfully!');
             $this->line('');
             $this->comment('💡 Seats from cancelled tickets are now available again. Seat layouts will reflect this immediately.');
+        } else {
+            $this->warn('⚠️  Sync completed with some errors. Check logs for details.');
+        }
+
+        return $errors > 0 ? 1 : 0;
+    }
+
+    /**
+     * Sync expired tickets - invalidate cache to free up seats
+     */
+    private function syncExpiredTickets(): int
+    {
+        $this->info('🔄 Syncing expired tickets (status 4) to free up seats...');
+        $this->line('');
+
+        // Get unique combinations of bus_id, schedule_id, and date_of_journey from expired bookings
+        $query = BookedTicket::whereNotNull('bus_id')
+            ->whereNotNull('schedule_id')
+            ->whereNotNull('date_of_journey')
+            ->where('status', 4); // expired/abandoned
+
+        // Apply filters
+        if ($busId = $this->option('bus-id')) {
+            $query->where('bus_id', $busId);
+        }
+
+        if ($scheduleId = $this->option('schedule-id')) {
+            $query->where('schedule_id', $scheduleId);
+        }
+
+        if ($date = $this->option('date')) {
+            try {
+                $parsedDate = Carbon::parse($date)->format('Y-m-d');
+                $query->whereDate('date_of_journey', $parsedDate);
+            } catch (\Exception $e) {
+                $this->error("Invalid date format: {$date}. Use Y-m-d format (e.g., 2025-11-27)");
+                return 1;
+            }
+        }
+
+        if ($fromDate = $this->option('from-date')) {
+            try {
+                $parsedDate = Carbon::parse($fromDate)->format('Y-m-d');
+                $query->whereDate('date_of_journey', '>=', $parsedDate);
+            } catch (\Exception $e) {
+                $this->error("Invalid from-date format: {$fromDate}. Use Y-m-d format");
+                return 1;
+            }
+        }
+
+        if ($toDate = $this->option('to-date')) {
+            try {
+                $parsedDate = Carbon::parse($toDate)->format('Y-m-d');
+                $query->whereDate('date_of_journey', '<=', $parsedDate);
+            } catch (\Exception $e) {
+                $this->error("Invalid to-date format: {$toDate}. Use Y-m-d format");
+                return 1;
+            }
+        }
+
+        // Get unique combinations
+        $uniqueCombinations = $query->select('bus_id', 'schedule_id', 'date_of_journey')
+            ->distinct()
+            ->get();
+
+        if ($uniqueCombinations->isEmpty()) {
+            $this->warn('⚠️  No expired tickets found matching the criteria.');
+            $this->info('💡 Expired tickets (status 4) are already excluded from seat availability.');
+            return 0;
+        }
+
+        $this->info("📊 Found {$uniqueCombinations->count()} unique bus/schedule/date combinations from expired tickets");
+        $this->line('');
+
+        // Show progress bar
+        $bar = $this->output->createProgressBar($uniqueCombinations->count());
+        $bar->start();
+
+        $synced = 0;
+        $errors = 0;
+        $availabilityService = new SeatAvailabilityService();
+
+        foreach ($uniqueCombinations as $combination) {
+            try {
+                // Normalize date format
+                $dateOfJourney = $combination->date_of_journey;
+                if ($dateOfJourney instanceof Carbon) {
+                    $dateOfJourney = $dateOfJourney->format('Y-m-d');
+                } elseif (is_string($dateOfJourney)) {
+                    // Handle m/d/Y format from session
+                    if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $dateOfJourney)) {
+                        $dateOfJourney = Carbon::createFromFormat('m/d/Y', $dateOfJourney)->format('Y-m-d');
+                    } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateOfJourney)) {
+                        $dateOfJourney = Carbon::parse($dateOfJourney)->format('Y-m-d');
+                    }
+                }
+
+                // Invalidate cache for this combination
+                // This will force recalculation that excludes expired tickets (status 4)
+                $availabilityService->invalidateCache(
+                    $combination->bus_id,
+                    $combination->schedule_id,
+                    $dateOfJourney
+                );
+
+                $synced++;
+            } catch (\Exception $e) {
+                $errors++;
+                Log::error('SyncSeatAvailability: Error invalidating cache for expired tickets', [
+                    'bus_id' => $combination->bus_id,
+                    'schedule_id' => $combination->schedule_id,
+                    'date_of_journey' => $combination->date_of_journey,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->line('');
+        $this->line('');
+
+        // Display results
+        $this->info('📈 Sync Results:');
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['✅ Cache Entries Invalidated', $synced],
+                ['❌ Errors', $errors]
+            ]
+        );
+
+        if ($errors === 0) {
+            $this->info('🎉 Expired tickets synced successfully!');
+            $this->line('');
+            $this->comment('💡 Seats from expired tickets are now available again. Seat layouts will reflect this immediately.');
         } else {
             $this->warn('⚠️  Sync completed with some errors. Check logs for details.');
         }

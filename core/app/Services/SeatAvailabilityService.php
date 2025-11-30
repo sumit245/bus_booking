@@ -84,8 +84,9 @@ class SeatAvailabilityService
         }
 
         // Get all bookings for this bus, schedule, and date
-        // Status: 0 = pending, 1 = confirmed, 2 = rejected
-        // We only care about pending and confirmed bookings
+        // Status: 0 = pending, 1 = confirmed, 2 = rejected, 3 = cancelled, 4 = expired/abandoned
+        // We only care about pending and confirmed bookings (status 0 and 1)
+        // Status 3 (cancelled) and 4 (expired) are excluded - seats are available
         // Check both Y-m-d and m/d/Y formats in database
         $bookings = BookedTicket::where('bus_id', $operatorBusId)
             ->where('schedule_id', $scheduleId)
@@ -97,7 +98,7 @@ class SeatAvailabilityService
                     // Also try date comparison if stored as date
                     ->orWhereDate('date_of_journey', $normalizedDate);
             })
-            ->whereIn('status', [0, 1]) // pending or confirmed
+            ->whereIn('status', [0, 1]) // pending or confirmed (excludes 3=cancelled, 4=expired)
             ->whereNotNull('seats')
             ->get();
 

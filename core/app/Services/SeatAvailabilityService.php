@@ -86,20 +86,50 @@ class SeatAvailabilityService
         // Get all bookings for this bus, schedule, and date
         // Status: 0 = pending, 1 = confirmed, 2 = rejected, 3 = cancelled, 4 = expired/abandoned
         // We only care about pending and confirmed bookings (status 0 and 1)
+        // Status 0 (pending) tickets older than 15 minutes should be excluded (treated as expired)
         // Status 3 (cancelled) and 4 (expired) are excluded - seats are available
-        // Check both Y-m-d and m/d/Y formats in database
-        $bookings = BookedTicket::where('bus_id', $operatorBusId)
-            ->where('schedule_id', $scheduleId)
-            ->where(function ($query) use ($normalizedDate, $dateOfJourney) {
-                // Try exact match first (Y-m-d format)
-                $query->where('date_of_journey', $normalizedDate)
-                    // Also try original format if different
-                    ->orWhere('date_of_journey', $dateOfJourney)
-                    // Also try date comparison if stored as date
-                    ->orWhereDate('date_of_journey', $normalizedDate);
+        // IMPORTANT: Must filter by EXACT schedule_id and date_of_journey to prevent cross-contamination
+        
+        $cutoffTime = Carbon::now()->subMinutes(15);
+        
+        // Build query with strict filtering: bus_id AND schedule_id AND date_of_journey
+        // IMPORTANT: Only include bookings that match the EXACT schedule_id and date
+        // This prevents cross-schedule and cross-date contamination
+        $bookingsQuery = BookedTicket::where('bus_id', $operatorBusId)
+            ->whereNotNull('seats');
+        
+        // Filter by schedule_id - MUST be exact match to prevent cross-schedule bookings
+        if ($scheduleId && $scheduleId > 0) {
+            $bookingsQuery->where('schedule_id', $scheduleId);
+        } else {
+            // If schedule_id is 0/null, this is an error - we cannot determine availability without schedule
+            Log::error('SeatAvailabilityService: Invalid schedule_id', [
+                'operator_bus_id' => $operatorBusId,
+                'schedule_id' => $scheduleId,
+                'date_of_journey' => $normalizedDate,
+                'error' => 'Cannot query seat availability without valid schedule_id'
+            ]);
+            return []; // Return empty array if no valid schedule
+        }
+        
+        // Filter by date_of_journey - try multiple date formats for compatibility
+        $bookingsQuery->where(function ($query) use ($normalizedDate, $dateOfJourney) {
+            $query->where('date_of_journey', $normalizedDate) // Primary: normalized Y-m-d format
+                ->orWhere('date_of_journey', $dateOfJourney) // Fallback: original format
+                ->orWhereDate('date_of_journey', $normalizedDate); // Fallback: date comparison
+        });
+        
+        // Filter by status: confirmed (1) OR pending (0) within 15 minutes
+        $bookings = $bookingsQuery
+            ->where(function ($query) use ($cutoffTime) {
+                // Include confirmed bookings (status 1) - always included
+                $query->where('status', 1)
+                    // OR include pending bookings (status 0) only if created within last 15 minutes
+                    ->orWhere(function ($q) use ($cutoffTime) {
+                        $q->where('status', 0)
+                            ->where('created_at', '>=', $cutoffTime); // Only recent pending tickets (within 15 min)
+                    });
             })
-            ->whereIn('status', [0, 1]) // pending or confirmed (excludes 3=cancelled, 4=expired)
-            ->whereNotNull('seats')
             ->get();
 
         Log::info('SeatAvailabilityService: Found bookings', [
@@ -107,7 +137,25 @@ class SeatAvailabilityService
             'schedule_id' => $scheduleId,
             'date_of_journey' => $normalizedDate,
             'original_date' => $dateOfJourney,
-            'bookings_count' => $bookings->count()
+            'bookings_count' => $bookings->count(),
+            'cutoff_time' => $cutoffTime->toDateTimeString(),
+            'filter_applied' => [
+                'bus_id' => $operatorBusId,
+                'schedule_id' => $scheduleId,
+                'date' => $normalizedDate,
+                'status' => '1 OR (0 with created_at >= cutoff)',
+                'exclude_expired_pending' => true
+            ],
+            'sample_booking_details' => $bookings->take(3)->map(function ($booking) {
+                return [
+                    'id' => $booking->id,
+                    'schedule_id' => $booking->schedule_id,
+                    'date_of_journey' => $booking->date_of_journey,
+                    'status' => $booking->status,
+                    'created_at' => $booking->created_at->toDateTimeString(),
+                    'seats' => $booking->seats
+                ];
+            })->toArray()
         ]);
 
         $bookedSeats = [];

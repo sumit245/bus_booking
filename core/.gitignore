@@ -16,3 +16,4 @@ yarn-error.log
 # Documentation markdown files (moved to readme/README.md)
 *.md
 !tests/README_TESTING.md
+/readme/

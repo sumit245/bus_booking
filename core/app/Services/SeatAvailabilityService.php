@@ -40,19 +40,33 @@ class SeatAvailabilityService
         int $scheduleId,
         string $dateOfJourney,
         ?int $boardingPointIndex = null,
-        ?int $droppingPointIndex = null
+        ?int $droppingPointIndex = null,
+        bool $useCache = false
     ): array {
-        $cacheKey = $this->getCacheKey($operatorBusId, $scheduleId, $dateOfJourney, $boardingPointIndex, $droppingPointIndex);
-
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($operatorBusId, $scheduleId, $dateOfJourney, $boardingPointIndex, $droppingPointIndex) {
-            return $this->calculateBookedSeats(
-                $operatorBusId,
-                $scheduleId,
-                $dateOfJourney,
-                $boardingPointIndex,
-                $droppingPointIndex
-            );
-        });
+        // For on-the-fly checks, skip cache to ensure real-time accuracy
+        // Cache is only used for performance optimization when needed
+        if ($useCache) {
+            $cacheKey = $this->getCacheKey($operatorBusId, $scheduleId, $dateOfJourney, $boardingPointIndex, $droppingPointIndex);
+            
+            return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($operatorBusId, $scheduleId, $dateOfJourney, $boardingPointIndex, $droppingPointIndex) {
+                return $this->calculateBookedSeats(
+                    $operatorBusId,
+                    $scheduleId,
+                    $dateOfJourney,
+                    $boardingPointIndex,
+                    $droppingPointIndex
+                );
+            });
+        }
+        
+        // On-the-fly calculation - no cache, always fresh data
+        return $this->calculateBookedSeats(
+            $operatorBusId,
+            $scheduleId,
+            $dateOfJourney,
+            $boardingPointIndex,
+            $droppingPointIndex
+        );
     }
 
     /**
@@ -92,18 +106,13 @@ class SeatAvailabilityService
         
         $cutoffTime = Carbon::now()->subMinutes(15);
         
-        // Build query with strict filtering: bus_id AND schedule_id AND date_of_journey
-        // IMPORTANT: Only include bookings that match the EXACT schedule_id and date
-        // This prevents cross-schedule and cross-date contamination
-        $bookingsQuery = BookedTicket::where('bus_id', $operatorBusId)
-            ->whereNotNull('seats');
+        // Build query with STRICT filtering: bus_id AND schedule_id AND date_of_journey
+        // CRITICAL: Each filter must be exact match to prevent cross-contamination
+        // This is an "on-the-fly" check - must be real-time and accurate
         
-        // Filter by schedule_id - MUST be exact match to prevent cross-schedule bookings
-        if ($scheduleId && $scheduleId > 0) {
-            $bookingsQuery->where('schedule_id', $scheduleId);
-        } else {
-            // If schedule_id is 0/null, this is an error - we cannot determine availability without schedule
-            Log::error('SeatAvailabilityService: Invalid schedule_id', [
+        // Validate schedule_id is valid
+        if (!$scheduleId || $scheduleId <= 0) {
+            Log::error('SeatAvailabilityService: Invalid schedule_id for on-the-fly check', [
                 'operator_bus_id' => $operatorBusId,
                 'schedule_id' => $scheduleId,
                 'date_of_journey' => $normalizedDate,
@@ -112,48 +121,59 @@ class SeatAvailabilityService
             return []; // Return empty array if no valid schedule
         }
         
-        // Filter by date_of_journey - try multiple date formats for compatibility
-        $bookingsQuery->where(function ($query) use ($normalizedDate, $dateOfJourney) {
-            $query->where('date_of_journey', $normalizedDate) // Primary: normalized Y-m-d format
-                ->orWhere('date_of_journey', $dateOfJourney) // Fallback: original format
-                ->orWhereDate('date_of_journey', $normalizedDate); // Fallback: date comparison
-        });
-        
-        // Filter by status: confirmed (1) OR pending (0) within 15 minutes
-        $bookings = $bookingsQuery
+        // Build query with ALL filters applied strictly in sequence
+        // CRITICAL: These must ALL match - bus_id AND schedule_id AND date_of_journey AND status
+        $bookings = BookedTicket::where('bus_id', $operatorBusId) // Filter 1: Exact bus match
+            ->where('schedule_id', $scheduleId) // Filter 2: Exact schedule match - CRITICAL for preventing cross-schedule bookings
+            ->where(function ($query) use ($normalizedDate, $dateOfJourney) {
+                // Filter 3: Exact date match - try normalized format first, then fallbacks
+                $query->where('date_of_journey', $normalizedDate); // Primary: normalized Y-m-d format
+                // Only add fallbacks if the original format is different
+                if ($dateOfJourney !== $normalizedDate) {
+                    $query->orWhere('date_of_journey', $dateOfJourney); // Fallback: original format
+                }
+                // Fallback: date comparison (for datetime columns)
+                $query->orWhereDate('date_of_journey', $normalizedDate);
+            })
             ->where(function ($query) use ($cutoffTime) {
-                // Include confirmed bookings (status 1) - always included
-                $query->where('status', 1)
-                    // OR include pending bookings (status 0) only if created within last 15 minutes
+                // Filter 4: Status filter - confirmed (1) OR pending (0) within 15 minutes
+                $query->where('status', 1) // Confirmed bookings - always included
                     ->orWhere(function ($q) use ($cutoffTime) {
+                        // Pending bookings only if created within last 15 minutes
                         $q->where('status', 0)
-                            ->where('created_at', '>=', $cutoffTime); // Only recent pending tickets (within 15 min)
+                            ->where('created_at', '>=', $cutoffTime);
                     });
             })
+            ->whereNotNull('seats') // Must have seats data
             ->get();
 
-        Log::info('SeatAvailabilityService: Found bookings', [
+        Log::info('SeatAvailabilityService: Found bookings (on-the-fly check - NO CACHE)', [
             'operator_bus_id' => $operatorBusId,
             'schedule_id' => $scheduleId,
             'date_of_journey' => $normalizedDate,
             'original_date' => $dateOfJourney,
             'bookings_count' => $bookings->count(),
             'cutoff_time' => $cutoffTime->toDateTimeString(),
-            'filter_applied' => [
+            'strict_filters_applied' => [
                 'bus_id' => $operatorBusId,
                 'schedule_id' => $scheduleId,
-                'date' => $normalizedDate,
-                'status' => '1 OR (0 with created_at >= cutoff)',
-                'exclude_expired_pending' => true
+                'date_normalized' => $normalizedDate,
+                'date_original' => $dateOfJourney,
+                'status_filter' => '1 (confirmed) OR 0 (pending within 15 min)',
+                'exclude_expired_pending' => true,
+                'cache_used' => false,
+                'note' => 'On-the-fly check - filters by EXACT bus_id + schedule_id + date_of_journey'
             ],
-            'sample_booking_details' => $bookings->take(3)->map(function ($booking) {
+            'sample_booking_details' => $bookings->take(5)->map(function ($booking) {
                 return [
                     'id' => $booking->id,
+                    'bus_id' => $booking->bus_id,
                     'schedule_id' => $booking->schedule_id,
                     'date_of_journey' => $booking->date_of_journey,
                     'status' => $booking->status,
                     'created_at' => $booking->created_at->toDateTimeString(),
-                    'seats' => $booking->seats
+                    'age_minutes' => $booking->created_at->diffInMinutes(now()),
+                    'seats' => is_array($booking->seats) ? $booking->seats : (is_string($booking->seats) ? json_decode($booking->seats, true) : [])
                 ];
             })->toArray()
         ]);

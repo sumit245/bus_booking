@@ -810,25 +810,34 @@ class SiteController extends Controller
      */
     private function modifyHtmlLayoutForBookedSeats(string $htmlLayout, array $bookedSeats): string
     {
-        if (empty($bookedSeats)) {
-            return $htmlLayout;
-        }
-
         $dom = new \DOMDocument();
         @$dom->loadHTML('<?xml encoding="UTF-8">' . $htmlLayout, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         $xpath = new \DOMXPath($dom);
 
-        foreach ($bookedSeats as $seatName) {
-            // CRITICAL FIX: Match by @id attribute, not text content
-            // This prevents "1" from matching "U1", "11", "21", etc.
-            // Seat IDs are stored in the id attribute: <div id="U1" class="nseat"> or <div id="1" class="nseat">
-            $nodes = $xpath->query("//*[@id='{$seatName}' and (contains(@class, 'nseat') or contains(@class, 'hseat') or contains(@class, 'vseat'))]");
+        // STEP 1: Reset ALL seats to available first (bseat→nseat, bhseat→hseat, bvseat→vseat)
+        // This ensures we start with a clean slate for this specific schedule/date query
+        $allSeatNodes = $xpath->query("//*[contains(@class, 'bseat') or contains(@class, 'bhseat') or contains(@class, 'bvseat')]");
+        foreach ($allSeatNodes as $node) {
+            $class = $node->getAttribute('class');
+            // Reset booked seats to available
+            $class = str_replace(['bseat', 'bhseat', 'bvseat'], ['nseat', 'hseat', 'vseat'], $class);
+            $node->setAttribute('class', $class);
+        }
 
-            foreach ($nodes as $node) {
-                $class = $node->getAttribute('class');
-                // Replace nseat with bseat, hseat with bhseat, vseat with bvseat
-                $class = str_replace(['nseat', 'hseat', 'vseat'], ['bseat', 'bhseat', 'bvseat'], $class);
-                $node->setAttribute('class', $class);
+        // STEP 2: Now mark only the seats that are booked for THIS specific schedule/date
+        if (!empty($bookedSeats)) {
+            foreach ($bookedSeats as $seatName) {
+                // CRITICAL FIX: Match by @id attribute, not text content
+                // This prevents "1" from matching "U1", "11", "21", etc.
+                // Seat IDs are stored in the id attribute: <div id="U1" class="nseat"> or <div id="1" class="nseat">
+                $nodes = $xpath->query("//*[@id='{$seatName}' and (contains(@class, 'nseat') or contains(@class, 'hseat') or contains(@class, 'vseat'))]");
+
+                foreach ($nodes as $node) {
+                    $class = $node->getAttribute('class');
+                    // Replace nseat with bseat, hseat with bhseat, vseat with bvseat
+                    $class = str_replace(['nseat', 'hseat', 'vseat'], ['bseat', 'bhseat', 'bvseat'], $class);
+                    $node->setAttribute('class', $class);
+                }
             }
         }
 
@@ -948,7 +957,8 @@ class SiteController extends Controller
                 'search_token_id' => session()->get('search_token_id'),
                 'origin_city' => session()->get('origin_id'),
                 'destination_city' => session()->get('destination_id'),
-                'user_ip' => $request->ip()
+                'user_ip' => $request->ip(),
+                'coupon_code' => $request->coupon_code ?? null
             ];
         } else {
             // Regular booking - single passenger
@@ -967,7 +977,8 @@ class SiteController extends Controller
                 'search_token_id' => session()->get('search_token_id'),
                 'origin_city' => session()->get('origin_id'),
                 'destination_city' => session()->get('destination_id'),
-                'user_ip' => $request->ip()
+                'user_ip' => $request->ip(),
+                'coupon_code' => $request->coupon_code ?? null
             ];
         }
 

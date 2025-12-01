@@ -63,45 +63,74 @@
 
                                 {{-- Fare Breakdown --}}
                                 <div class="fare-breakdown">
-                                    {{-- Subtotal --}}
+                                    {{-- Subtotal: Sum of (BaseFare + Markup) for all selected seats --}}
                                     <div class="fare-item">
-                                        <span class="fare-label">@lang('Base Fare')</span>
+                                        <span class="fare-label">@lang('Subtotal')</span>
                                         <span class="fare-amount" id="subtotalDisplay">₹0.00</span>
-                                    </div>
-
-                                    {{-- Service Charge --}}
-                                    <div class="fare-item service-charge-display d-none">
-                                        <span class="fare-label">@lang('Service Charge') (<span
-                                                id="serviceChargePercentage">0</span>%)</span>
-                                        <span class="fare-amount" id="serviceChargeAmount">₹0.00</span>
                                     </div>
 
                                     {{-- Platform Fee --}}
                                     <div class="fare-item platform-fee-display d-none">
-                                        <span class="fare-label">@lang('Platform Fee') (<span
-                                                id="platformFeePercentage">0</span>% + ₹<span
-                                                id="platformFeeFixed">0</span>)</span>
+                                        <span class="fare-label">
+                                            @lang('Platform Fee')
+                                            <span id="platformFeeLabel" class="fee-percentage-label"></span>
+                                        </span>
                                         <span class="fare-amount" id="platformFeeAmount">₹0.00</span>
+                                    </div>
+
+                                    {{-- Service Charge --}}
+                                    <div class="fare-item service-charge-display d-none">
+                                        <span class="fare-label">
+                                            @lang('Service Charge')
+                                            <span id="serviceChargeLabel" class="fee-percentage-label"></span>
+                                        </span>
+                                        <span class="fare-amount" id="serviceChargeAmount">₹0.00</span>
                                     </div>
 
                                     {{-- GST --}}
                                     <div class="fare-item gst-display d-none">
-                                        <span class="fare-label">@lang('GST') (<span
-                                                id="gstPercentage">0</span>%)</span>
+                                        <span class="fare-label">
+                                            @lang('GST')
+                                            <span id="gstLabel" class="fee-percentage-label"></span>
+                                        </span>
                                         <span class="fare-amount" id="gstAmount">₹0.00</span>
                                     </div>
 
-                                    {{-- Coupon Discount --}}
-                                    @if (isset($currentCoupon) &&
-                                            $currentCoupon->status &&
-                                            $currentCoupon->expiry_date &&
-                                            $currentCoupon->expiry_date->isFuture())
-                                        <div class="fare-item coupon-discount-display">
-                                            <span class="fare-label text-success">@lang('Coupon Discount')</span>
-                                            <span class="fare-amount text-success"
-                                                id="totalCouponDiscountDisplay">-₹0.00</span>
-                                        </div>
-                                    @endif
+                                    {{-- Apply Coupon Code Section --}}
+                                    <div class="fare-item coupon-apply-section">
+                                        <span class="fare-label">
+                                            <button type="button" class="btn-link apply-coupon-btn" id="applyCouponBtn">
+                                                <i class="las la-tag"></i> @lang('Apply Coupon Code')
+                                            </button>
+                                        </span>
+                                        <span class="fare-amount coupon-input-wrapper">
+                                            <div class="coupon-input-container d-none" id="couponInputContainer">
+                                                <div class="input-group">
+                                                    <input type="text" class="form--control" id="couponCodeInput"
+                                                        placeholder="@lang('Enter coupon code')">
+                                                    <button type="button" class="btn btn-sm btn-primary"
+                                                        id="applyCouponCodeBtn">
+                                                        @lang('Apply')
+                                                    </button>
+                                                </div>
+                                                <div class="coupon-error-message text-danger d-none"
+                                                    id="couponErrorMessage">
+                                                </div>
+                                            </div>
+                                        </span>
+                                    </div>
+
+                                    {{-- Coupon Discount (shown only when coupon is applied) --}}
+                                    <div class="fare-item coupon-discount-display d-none">
+                                        <span class="fare-label text-success">
+                                            <span id="discountLabelText">@lang('Discount')</span>
+                                            <button type="button" class="btn-link remove-coupon-btn" id="removeCouponBtn"
+                                                title="@lang('Remove coupon')">
+                                                <i class="las la-times"></i>
+                                            </button>
+                                        </span>
+                                        <span class="fare-amount text-success" id="totalCouponDiscountDisplay">-₹0.00</span>
+                                    </div>
                                 </div>
 
                                 {{-- Total --}}
@@ -115,6 +144,7 @@
                         </div>
                         <input type="text" name="seats" hidden>
                         <input type="text" name="price" hidden>
+                        <input type="text" name="coupon_code" id="form_coupon_code" hidden>
 
                         {{-- Hidden fields for booking data --}}
                         <input type="hidden" name="boarding_point_index" id="form_boarding_point_index">
@@ -482,10 +512,11 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         let selectedSeats = [];
-        let baseFareTotal = 0; // Sum of all seat prices (with markup, after coupon)
+        let subtotalBeforeCoupon = 0; // Sum of (BaseFare + Markup) for all selected seats (BEFORE coupon)
         let finalTotalPrice = 0; // Final total with all fees
-        let totalCouponDiscountApplied = 0; // Track total discount applied across all seats
-        let subtotalAmount = 0; // Track subtotal before fees
+        let totalCouponDiscountApplied = 0; // Track total discount applied on subtotal
+        let appliedCouponCode = null; // Track applied coupon code
+        let appliedCouponData = null; // Store coupon data for validation
         let serviceChargeAmount = 0;
         let platformFeeAmount = 0;
         let gstAmount = 0;
@@ -501,84 +532,125 @@
         const currentCoupon = {!! $currentCouponJson !!}; // Coupon object from PHP, will be null if no active coupon
         console.log(currentCoupon)
 
-        function calculatePerSeatDiscount(seatPriceWithMarkup) {
-            // Check if coupon exists, is active, and not expired
-            // Use loose equality for status to handle potential type differences (e.g., 1 vs true)
-            const isCouponValid = currentCoupon &&
-                currentCoupon.status == 1 &&
-                (currentCoupon.expiry_date && new Date(currentCoupon.expiry_date) >= new Date());
-
-            if (!isCouponValid) {
-                return 0; // No active or valid coupon
+        // Calculate coupon discount on subtotal (not per seat)
+        function calculateCouponDiscount(subtotal) {
+            if (!appliedCouponCode || !appliedCouponData) {
+                return 0;
             }
 
-            const couponThreshold = parseFloat(currentCoupon.coupon_threshold);
-            const discountType = currentCoupon.discount_type;
-            const couponValue = parseFloat(currentCoupon.coupon_value);
+            const couponThreshold = parseFloat(appliedCouponData.coupon_threshold) || 0;
+            const discountType = appliedCouponData.discount_type;
+            // API returns 'discount_value', not 'coupon_value'
+            const couponValue = parseFloat(appliedCouponData.discount_value || appliedCouponData.coupon_value) || 0;
+
+            // Check if subtotal meets threshold
+            if (isNaN(subtotal) || subtotal <= 0 || isNaN(couponThreshold) || subtotal <= couponThreshold) {
+                return 0;
+            }
+
+            if (!discountType || isNaN(couponValue) || couponValue <= 0) {
+                return 0;
+            }
 
             let discountAmount = 0;
-
-            // Apply discount ONLY if price is ABOVE the threshold
-            if (seatPriceWithMarkup > couponThreshold) {
-                if (discountType === 'fixed') {
-                    discountAmount = couponValue;
-                } else if (discountType === 'percentage') {
-                    discountAmount = (seatPriceWithMarkup * couponValue / 100);
-                }
+            if (discountType === 'fixed') {
+                discountAmount = couponValue;
+            } else if (discountType === 'percentage') {
+                discountAmount = (subtotal * couponValue / 100);
             }
 
-            // Ensure discount amount does not exceed the price after markup
-            const finalDiscount = Math.min(discountAmount, seatPriceWithMarkup);
-            return finalDiscount;
+            // Ensure discount doesn't exceed subtotal and is a valid number
+            discountAmount = Math.min(discountAmount, subtotal);
+            return isNaN(discountAmount) ? 0 : Math.max(0, discountAmount);
         }
 
         function updatePriceDisplays() {
-            // Use baseFareTotal as subtotal (not finalTotalPrice which gets overwritten)
-            subtotalAmount = baseFareTotal;
+            // Calculate coupon discount on subtotal (not per seat)
+            totalCouponDiscountApplied = calculateCouponDiscount(subtotalBeforeCoupon);
 
-            // Service Charge
-            serviceChargeAmount = (subtotalAmount * serviceChargePercentage / 100);
+            // Platform Fee (percentage + fixed) - calculated on subtotal
+            platformFeeAmount = (subtotalBeforeCoupon * platformFeePercentage / 100) + platformFeeFixed;
 
-            // Platform Fee (percentage + fixed)
-            platformFeeAmount = (subtotalAmount * platformFeePercentage / 100) + platformFeeFixed;
+            // Service Charge - calculated on subtotal
+            serviceChargeAmount = (subtotalBeforeCoupon * serviceChargePercentage / 100);
 
             // GST (on subtotal + service charge + platform fee)
-            const amountBeforeGST = subtotalAmount + serviceChargeAmount + platformFeeAmount;
+            const amountBeforeGST = subtotalBeforeCoupon + serviceChargeAmount + platformFeeAmount;
             gstAmount = (amountBeforeGST * gstPercentage / 100);
 
-            // Final total with all fees
-            finalTotalPrice = amountBeforeGST + gstAmount;
+            // Final total: subtotal + fees - discount
+            finalTotalPrice = subtotalBeforeCoupon + serviceChargeAmount + platformFeeAmount + gstAmount -
+                totalCouponDiscountApplied;
 
             // Update displays with currency symbol
-            $('#subtotalDisplay').text('₹' + subtotalAmount.toFixed(2));
-            $('#totalCouponDiscountDisplay').text('-₹' + totalCouponDiscountApplied.toFixed(2));
-            $('#totalPriceDisplay').text('₹' + finalTotalPrice.toFixed(2));
+            $('#subtotalDisplay').text('₹' + subtotalBeforeCoupon.toFixed(2));
 
-            // Show/hide fee rows based on values
-            if (serviceChargePercentage > 0) {
-                $('#serviceChargePercentage').text(serviceChargePercentage);
-                $('#serviceChargeAmount').text('₹' + serviceChargeAmount.toFixed(2));
-                $('.service-charge-display').removeClass('d-none').addClass('d-flex');
-            } else {
-                $('.service-charge-display').removeClass('d-flex').addClass('d-none');
-            }
-
+            // Platform Fee
             if (platformFeePercentage > 0 || platformFeeFixed > 0) {
-                $('#platformFeePercentage').text(platformFeePercentage);
-                $('#platformFeeFixed').text(platformFeeFixed.toFixed(2));
+                let platformFeeLabel = '';
+                if (platformFeePercentage > 0 && platformFeeFixed > 0) {
+                    platformFeeLabel = ` (${platformFeePercentage}% + ₹${platformFeeFixed.toFixed(2)})`;
+                } else if (platformFeePercentage > 0) {
+                    platformFeeLabel = ` (${platformFeePercentage}%)`;
+                } else {
+                    platformFeeLabel = '';
+                }
+                $('#platformFeeLabel').text(platformFeeLabel);
                 $('#platformFeeAmount').text('₹' + platformFeeAmount.toFixed(2));
                 $('.platform-fee-display').removeClass('d-none').addClass('d-flex');
             } else {
                 $('.platform-fee-display').removeClass('d-flex').addClass('d-none');
             }
 
+            // Service Charge
+            if (serviceChargePercentage > 0) {
+                $('#serviceChargeLabel').text(` (${serviceChargePercentage}%)`);
+                $('#serviceChargeAmount').text('₹' + serviceChargeAmount.toFixed(2));
+                $('.service-charge-display').removeClass('d-none').addClass('d-flex');
+            } else {
+                $('.service-charge-display').removeClass('d-flex').addClass('d-none');
+            }
+
+            // GST
             if (gstPercentage > 0) {
-                $('#gstPercentage').text(gstPercentage);
+                $('#gstLabel').text(` (${gstPercentage}%)`);
                 $('#gstAmount').text('₹' + gstAmount.toFixed(2));
                 $('.gst-display').removeClass('d-none').addClass('d-flex');
             } else {
                 $('.gst-display').removeClass('d-flex').addClass('d-none');
             }
+
+            // Coupon Discount - Show/hide mutually exclusive with Apply Coupon Code
+            if (totalCouponDiscountApplied > 0 && appliedCouponCode && !isNaN(totalCouponDiscountApplied) &&
+                appliedCouponData) {
+                // Build discount label with percentage if applicable
+                let discountLabel = 'Discount';
+                if (appliedCouponData.discount_type === 'percentage') {
+                    const discountPercent = parseFloat(appliedCouponData.discount_value || appliedCouponData
+                        .coupon_value) || 0;
+                    if (!isNaN(discountPercent) && discountPercent > 0) {
+                        discountLabel = `Discount (${discountPercent}%)`;
+                    }
+                }
+
+                // Update discount label text
+                $('#discountLabelText').text(discountLabel);
+
+                $('#totalCouponDiscountDisplay').text('-₹' + totalCouponDiscountApplied.toFixed(2));
+                $('.coupon-discount-display').removeClass('d-none').addClass('d-flex');
+
+                // Hide Apply Coupon Code section when discount is shown
+                $('.coupon-apply-section').addClass('d-none');
+            } else {
+                $('.coupon-discount-display').removeClass('d-flex').addClass('d-none');
+
+                // Show Apply Coupon Code section when no discount (and hide input if it was shown)
+                $('.coupon-apply-section').removeClass('d-none');
+                $('#couponInputContainer').addClass('d-none').removeClass('d-flex');
+            }
+
+            // Total Amount
+            $('#totalPriceDisplay').text('₹' + finalTotalPrice.toFixed(2));
 
             // Update the hidden input for the final price to be sent to the backend
             $('input[name="price"]').val(finalTotalPrice.toFixed(2));
@@ -588,37 +660,32 @@
             const seatNumber = seatId;
             const seatOriginalPrice = parseFloat(price);
 
+            // Calculate markup
             const markupAmount = seatOriginalPrice < threshold ?
                 flatMarkup :
                 (seatOriginalPrice * percentageMarkup / 100);
 
+            // Price with markup (this is what goes into subtotal)
             const priceWithMarkup = seatOriginalPrice + markupAmount;
-
-            const discountAmountPerSeat = calculatePerSeatDiscount(priceWithMarkup);
-            const priceAfterCouponPerSeat = Math.max(0, priceWithMarkup - discountAmountPerSeat);
 
             el.classList.toggle('selected');
             const alreadySelected = selectedSeats.includes(seatNumber);
 
             if (!alreadySelected) {
                 selectedSeats.push(seatNumber);
-                baseFareTotal += priceAfterCouponPerSeat; // Add to base fare
-                totalCouponDiscountApplied += discountAmountPerSeat; // Add to total discount
+                subtotalBeforeCoupon += priceWithMarkup; // Add to subtotal (BEFORE coupon)
                 $('.selected-seat-details').append(
-                    `<span class="list-group-item d-flex justify-content-between" data-seat-id="${seatNumber}" data-price="${priceAfterCouponPerSeat.toFixed(2)}" data-discount-applied="${discountAmountPerSeat.toFixed(2)}">
-                        @lang('Seat') ${seatNumber} <span>{{ __($general->cur_sym) }}${priceAfterCouponPerSeat.toFixed(2)}</span>
+                    `<span class="list-group-item d-flex justify-content-between" data-seat-id="${seatNumber}" data-price="${priceWithMarkup.toFixed(2)}">
+                        @lang('Seat') ${seatNumber} <span>{{ __($general->cur_sym) }}${priceWithMarkup.toFixed(2)}</span>
                     </span>`
                 );
             } else {
                 selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
-                // Get the stored price from the data attribute to avoid recalculation issues
+                // Get the stored price from the data attribute
                 const storedPrice = parseFloat($(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).data(
                     'price'));
-                const storedDiscount = parseFloat($(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).data(
-                    'discount-applied'));
-                baseFareTotal -= storedPrice; // Subtract from base fare
-                totalCouponDiscountApplied -= storedDiscount;
-                $(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).remove(); // Remove specific seat display
+                subtotalBeforeCoupon -= storedPrice; // Subtract from subtotal
+                $(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).remove();
             }
 
             // Update hidden input for selected seats
@@ -628,6 +695,12 @@
                 $('.booked-seat-details').removeClass('d-none').addClass('d-block');
             } else {
                 $('.booked-seat-details').removeClass('d-block').addClass('d-none');
+                // Clear coupon when no seats selected
+                if (appliedCouponCode) {
+                    appliedCouponCode = null;
+                    appliedCouponData = null;
+                    $('#form_coupon_code').val('');
+                }
             }
             // Toggle booking button enabled state and gray out based on seat selection
             const bookBtn = document.querySelector('.book-bus-btn');
@@ -740,6 +813,91 @@
                 $('#selected_dropping_point').val($(this).data('index'));
             });
         }
+
+        // Coupon validation and application
+        $('#applyCouponBtn').on('click', function() {
+            const $container = $('#couponInputContainer');
+            if ($container.hasClass('d-none')) {
+                $container.removeClass('d-none').addClass('d-flex');
+                $('#couponCodeInput').focus();
+            }
+        });
+
+        $('#applyCouponCodeBtn').on('click', function() {
+            const couponCode = $('#couponCodeInput').val().trim();
+            if (!couponCode) {
+                $('#couponErrorMessage').text('Please enter a coupon code').removeClass('d-none');
+                return;
+            }
+
+            if (subtotalBeforeCoupon <= 0) {
+                $('#couponErrorMessage').text('Please select seats first').removeClass('d-none');
+                return;
+            }
+
+            const $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Validating...');
+            $('#couponErrorMessage').addClass('d-none');
+
+            $.ajax({
+                url: "{{ url('/api/coupons/validate') }}",
+                type: "POST",
+                data: {
+                    coupon_code: couponCode,
+                    total_amount: subtotalBeforeCoupon
+                },
+                headers: {
+                    'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.success && response.valid && response.data) {
+                        // Coupon is valid, apply it
+                        appliedCouponCode = couponCode;
+                        appliedCouponData = response.data;
+
+                        // Debug: Log coupon data to console
+                        console.log('Coupon applied:', appliedCouponData);
+
+                        $('#form_coupon_code').val(couponCode);
+
+                        // Hide coupon input, show discount row
+                        $('#couponInputContainer').addClass('d-none').removeClass('d-flex');
+                        $('#couponCodeInput').val('');
+                        // Show the link button again if needed (will be hidden when discount is shown)
+                        updatePriceDisplays();
+                    } else {
+                        $('#couponErrorMessage').text(response.message || 'Invalid coupon code')
+                            .removeClass('d-none');
+                    }
+                },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON?.message ||
+                        'Failed to validate coupon. Please try again.';
+                    $('#couponErrorMessage').text(errorMsg).removeClass('d-none');
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html('@lang('Apply')');
+                }
+            });
+        });
+
+        // Remove coupon
+        $('#removeCouponBtn').on('click', function() {
+            appliedCouponCode = null;
+            appliedCouponData = null;
+            $('#form_coupon_code').val('');
+            // Reset discount label
+            $('#discountLabelText').text('Discount');
+            updatePriceDisplays();
+        });
+
+        // Allow Enter key to apply coupon
+        $('#couponCodeInput').on('keypress', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                $('#applyCouponCodeBtn').click();
+            }
+        });
 
         $(document).ready(function() {
             // Disable booked seats
@@ -1002,6 +1160,89 @@
         }
 
         // Old Razorpay functions removed - now using direct booking
+
+        // Coupon validation and application
+        $(document).on('click', '#applyCouponBtn', function() {
+            const $container = $('#couponInputContainer');
+            if ($container.hasClass('d-none')) {
+                $container.removeClass('d-none').addClass('d-flex');
+                $('#couponCodeInput').focus();
+            }
+        });
+
+        $(document).on('click', '#applyCouponCodeBtn', function() {
+            const couponCode = $('#couponCodeInput').val().trim();
+            if (!couponCode) {
+                $('#couponErrorMessage').text('Please enter a coupon code').removeClass('d-none');
+                return;
+            }
+
+            if (subtotalBeforeCoupon <= 0) {
+                $('#couponErrorMessage').text('Please select seats first').removeClass('d-none');
+                return;
+            }
+
+            const $btn = $(this);
+            $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Validating...');
+            $('#couponErrorMessage').addClass('d-none');
+
+            $.ajax({
+                url: "{{ url('/api/coupons/validate') }}",
+                type: "POST",
+                data: {
+                    coupon_code: couponCode,
+                    total_amount: subtotalBeforeCoupon
+                },
+                headers: {
+                    'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                },
+                success: function(response) {
+                    if (response.success && response.valid && response.data) {
+                        // Coupon is valid, apply it
+                        appliedCouponCode = couponCode;
+                        appliedCouponData = response.data;
+
+                        // Debug: Log coupon data to console
+                        console.log('Coupon applied:', appliedCouponData);
+
+                        $('#form_coupon_code').val(couponCode);
+
+                        // Hide coupon input, show discount row
+                        $('#couponInputContainer').addClass('d-none').removeClass('d-flex');
+                        $('#couponCodeInput').val('');
+                        // Show the link button again if needed (will be hidden when discount is shown)
+                        updatePriceDisplays();
+                    } else {
+                        $('#couponErrorMessage').text(response.message || 'Invalid coupon code')
+                            .removeClass('d-none');
+                    }
+                },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON?.message ||
+                        'Failed to validate coupon. Please try again.';
+                    $('#couponErrorMessage').text(errorMsg).removeClass('d-none');
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html('@lang('Apply')');
+                }
+            });
+        });
+
+        // Remove coupon
+        $(document).on('click', '#removeCouponBtn', function() {
+            appliedCouponCode = null;
+            appliedCouponData = null;
+            $('#form_coupon_code').val('');
+            updatePriceDisplays();
+        });
+
+        // Allow Enter key to apply coupon
+        $(document).on('keypress', '#couponCodeInput', function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                $('#applyCouponCodeBtn').click();
+            }
+        });
 
         $(document).ready(function() {
             // If user is logged in, mark OTP as verified and hide OTP section
@@ -1812,6 +2053,120 @@
             font-weight: 600;
             margin-bottom: 16px;
             font-size: 1rem;
+        }
+
+        /* Coupon Apply Button */
+        .apply-coupon-btn {
+            background: none;
+            border: none;
+            color: #D63942;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 0;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s ease;
+        }
+
+        .apply-coupon-btn:hover {
+            color: #c32d36;
+            text-decoration: underline;
+        }
+
+        .apply-coupon-btn i {
+            font-size: 1rem;
+        }
+
+        /* Coupon Input Wrapper */
+        .coupon-input-wrapper {
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+        }
+
+        /* Coupon Input Container */
+        .coupon-input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+
+        .coupon-input-container .input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .coupon-input-container .form--control {
+            width: 150px;
+            padding: 6px 10px;
+            font-size: 0.85rem;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+        }
+
+        .coupon-input-container .btn {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .coupon-error-message {
+            font-size: 0.75rem;
+            max-width: 200px;
+            text-align: right;
+        }
+
+        /* Remove Coupon Button */
+        .remove-coupon-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            padding: 0;
+            margin-left: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            transition: color 0.2s ease;
+        }
+
+        .remove-coupon-btn:hover {
+            color: #c82333;
+        }
+
+        .remove-coupon-btn i {
+            font-size: 0.85rem;
+        }
+
+        /* Fee Percentage Label */
+        .fee-percentage-label {
+            color: #666;
+            font-size: 0.85rem;
+            font-weight: normal;
+        }
+
+        /* Coupon Apply Section */
+        .coupon-apply-section {
+            border-top: 1px solid #e9ecef;
+            padding-top: 10px;
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .coupon-apply-section .fare-label {
+            flex: 1;
+        }
+
+        .coupon-apply-section .fare-amount {
+            flex: 1;
+            display: flex;
+            justify-content: flex-end;
         }
     </style>
 @endpush

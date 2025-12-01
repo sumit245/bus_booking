@@ -576,14 +576,32 @@ class ApiTicketController extends Controller
                 ], 404);
             }
 
-            // Get booked seats using SeatAvailabilityService
+            // Validate schedule_id is valid before querying
+            if (!$scheduleId || $scheduleId <= 0) {
+                Log::error('API handleOperatorBusSeatLayout: Invalid or missing schedule_id', [
+                    'operator_bus_id' => $operatorBusId,
+                    'schedule_id' => $scheduleId,
+                    'result_index' => $resultIndex,
+                    'date_of_journey' => $dateOfJourney,
+                    'error' => 'Cannot determine seat availability without valid schedule_id'
+                ]);
+                return response()->json([
+                    'Error' => [
+                        'ErrorCode' => 400,
+                        'ErrorMessage' => 'Invalid schedule ID in ResultIndex. Expected format: OP_{bus_id}_{schedule_id}'
+                    ]
+                ], 400);
+            }
+            
+            // Get booked seats using SeatAvailabilityService (on-the-fly, no cache)
             $availabilityService = new \App\Services\SeatAvailabilityService();
             $bookedSeats = $availabilityService->getBookedSeats(
                 $operatorBusId,
-                $scheduleId ?? 0,
+                $scheduleId, // Use schedule_id directly (already validated above)
                 $dateOfJourney,
                 null, // boardingPointIndex - will be calculated for all segments
-                null  // droppingPointIndex - will be calculated for all segments
+                null, // droppingPointIndex - will be calculated for all segments
+                false // useCache = false for real-time on-the-fly checks
             );
 
             Log::info('API handleOperatorBusSeatLayout: Booked seats calculated', [
@@ -738,28 +756,38 @@ class ApiTicketController extends Controller
 
     /**
      * Modify HTML layout to mark booked seats
+     * CRITICAL: First resets ALL seats to available, then marks only seats booked for THIS schedule/date
      */
     private function modifyHtmlLayoutForBookedSeats(string $htmlLayout, array $bookedSeats): string
     {
-        if (empty($bookedSeats)) {
-            return $htmlLayout; // No modifications needed
-        }
-
         $dom = new \DOMDocument();
         @$dom->loadHTML('<?xml encoding="UTF-8">' . $htmlLayout, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         $xpath = new \DOMXPath($dom);
 
-        foreach ($bookedSeats as $seatName) {
-            // CRITICAL FIX: Match by @id attribute, not text content or onclick
-            // This prevents "1" from matching "U1", "11", "21", etc.
-            // Seat IDs are stored in the id attribute: <div id="U1" class="nseat"> or <div id="1" class="nseat">
-            $nodes = $xpath->query("//*[@id='{$seatName}' and (contains(@class, 'nseat') or contains(@class, 'hseat') or contains(@class, 'vseat'))]");
+        // STEP 1: Reset ALL seats to available first (bseat→nseat, bhseat→hseat, bvseat→vseat)
+        // This ensures we start with a clean slate for this specific schedule/date query
+        $allSeatNodes = $xpath->query("//*[contains(@class, 'bseat') or contains(@class, 'bhseat') or contains(@class, 'bvseat')]");
+        foreach ($allSeatNodes as $node) {
+            $class = $node->getAttribute('class');
+            // Reset booked seats to available
+            $class = str_replace(['bseat', 'bhseat', 'bvseat'], ['nseat', 'hseat', 'vseat'], $class);
+            $node->setAttribute('class', $class);
+        }
 
-            foreach ($nodes as $node) {
-                $class = $node->getAttribute('class');
-                // Replace nseat with bseat, hseat with bhseat, vseat with bvseat
-                $class = str_replace(['nseat', 'hseat', 'vseat'], ['bseat', 'bhseat', 'bvseat'], $class);
-                $node->setAttribute('class', $class);
+        // STEP 2: Now mark only the seats that are booked for THIS specific schedule/date
+        if (!empty($bookedSeats)) {
+            foreach ($bookedSeats as $seatName) {
+                // CRITICAL FIX: Match by @id attribute, not text content or onclick
+                // This prevents "1" from matching "U1", "11", "21", etc.
+                // Seat IDs are stored in the id attribute: <div id="U1" class="nseat"> or <div id="1" class="nseat">
+                $nodes = $xpath->query("//*[@id='{$seatName}' and (contains(@class, 'nseat') or contains(@class, 'hseat') or contains(@class, 'vseat'))]");
+
+                foreach ($nodes as $node) {
+                    $class = $node->getAttribute('class');
+                    // Replace nseat with bseat, hseat with bhseat, vseat with bvseat
+                    $class = str_replace(['nseat', 'hseat', 'vseat'], ['bseat', 'bhseat', 'bvseat'], $class);
+                    $node->setAttribute('class', $class);
+                }
             }
         }
 

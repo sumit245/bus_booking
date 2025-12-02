@@ -1,9 +1,23 @@
 {{-- Log to the console the seat HTML for debugging purposes $seatHtml  --}}
 
-<div class="bus">{!! renderSeatHTML($seatHtml, $parsedLayout ?? null, $isOperatorBus ?? false) !!}</div>
+<div class="bus-wrapper-mobile">
+    <div class="bus">{!! renderSeatHTML($seatHtml, $parsedLayout ?? null, $isOperatorBus ?? false) !!}</div>
+</div>
 
 @push('style')
     <style>
+        .bus-wrapper-mobile {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: block;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .bus-wrapper-mobile::-webkit-scrollbar {
+            display: none;
+        }
+
         .bus {
             max-width: 460px;
             margin: 0 auto;
@@ -14,13 +28,165 @@
             align-items: stretch;
         }
 
+        /* Mobile: Rotate bus layout vertically (90 degrees clockwise) */
+        @media (max-width: 991px) {
+
+            /* Override parent padding on mobile */
+            .seat-overview-wrapper .bus-wrapper-mobile {
+                margin: 0px -20px 0 -20px !important;
+            }
+
+            .bus-wrapper-mobile {
+                height: 60vh;
+                width: 100%;
+                margin: 0;
+                padding: 0 !important;
+                position: relative;
+                left: 5%;
+                overflow-x: scroll;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .bus {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%) rotate(90deg);
+                transform-origin: center center;
+                width: calc(100vh - 10px);
+                height: auto;
+                margin: 0;
+                gap: 8px;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* Preserve structure - outerseat/outerlowerseat maintain relative positioning and start from top */
+            .bus .outerseat,
+            .bus .outerlowerseat,
+            .bus .outerupperseat {
+                position: relative !important;
+                display: flex !important;
+                margin: 0 !important;
+                padding: 8px !important;
+                box-sizing: border-box;
+                overflow: hidden !important;
+            }
+
+            /* Preserve busSeatlft width - steering and driver cabin */
+            .bus .busSeatlft {
+                width: 12% !important;
+                min-width: 50px !important;
+                max-width: 60px !important;
+                flex-shrink: 0 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                position: relative !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                height: 100% !important;
+                box-sizing: border-box;
+            }
+
+            /* Ensure busSeatrgt alignment and containment */
+            .bus .busSeatrgt {
+                flex: 1 !important;
+                margin-left: 1rem !important;
+                display: grid !important;
+                grid-auto-rows: min-content !important;
+                justify-items: center !important;
+                gap: 6px !important;
+                width: auto !important;
+                max-width: 100% !important;
+                overflow: visible !important;
+                box-sizing: border-box;
+            }
+
+            /* Ensure seatcontainer alignment and containment */
+            .bus .seatcontainer {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                overflow: visible !important;
+                box-sizing: border-box;
+            }
+
+            /* Center seat rows */
+            .bus .seat-row,
+            .bus [class^="row"] {
+                display: flex !important;
+                justify-content: center !important;
+                gap: 6px !important;
+                margin-bottom: 6px !important;
+                width: 100% !important;
+            }
+
+            /* Prevent busSeat overflow - keep it contained */
+            .bus .busSeat {
+                overflow: visible !important;
+                height: auto !important;
+                box-sizing: border-box;
+            }
+
+            /* Make seats touch-friendly */
+            .bus .nseat {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 11px !important;
+            }
+
+            .bus .hseat {
+                width: 65px !important;
+                height: 30px !important;
+                font-size: 11px !important;
+            }
+
+            .bus .vseat {
+                width: 30px !important;
+                height: 65px !important;
+                font-size: 11px !important;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .bus-wrapper-mobile {
+                margin: 0;
+                padding: 0 !important;
+            }
+
+            .bus {
+                top: 0;
+                gap: 6px;
+            }
+
+            .bus .nseat {
+                width: 30px !important;
+                height: 30px !important;
+                font-size: 10px !important;
+            }
+
+            .bus .hseat {
+                width: 60px !important;
+                height: 28px !important;
+                font-size: 10px !important;
+            }
+
+            .bus .vseat {
+                width: 28px !important;
+                height: 60px !important;
+                font-size: 10px !important;
+            }
+        }
+
         .outerseat,
         .outerlowerseat {
             display: flex;
-            padding: 12px 8px;
             position: relative;
             background: linear-gradient(145deg, #ebebeb, #e0e0e0);
             border: 1px solid #d5d5d5;
+            border-radius: 6px;
         }
 
         /* Prevent seat overflow */
@@ -36,7 +202,6 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            /* flex-shrink: 0; */
         }
 
         .upper,
@@ -101,8 +266,6 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            width: 100%;
-            height: auto;
         }
 
         .seat-row {

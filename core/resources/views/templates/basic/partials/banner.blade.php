@@ -19,37 +19,33 @@
                 <form action="{{ route('search') }}" class="ticket-form row g-3 justify-content-center mt-4 pt-4">
                     <h4 class="title my-4">@lang('Choose Your Ticket')</h4>
 
-                    <div class="col-md-12 d-flex justify-content-between">
-                        <div class="row align-items-center">
-                            <!-- Origin Field -->
-                            <div class="col-md-5 my-2">
-                                <div class="form--group">
-                                    <i class="las la-location-arrow"></i>
-                                    <input type="hidden" id="origin-id" name="OriginId"
-                                        value="{{ request()->OriginId }}">
-                                    <input type="text" id="origin" class="form--control"
-                                        placeholder="@lang('From')" autocomplete="off">
-                                    <div id="autocomplete-list-origin" class="autocomplete-items"></div>
-                                </div>
+                    <div class="col-md-12 position-relative swap-button-container">
+                        <!-- Origin Field -->
+                        <div class="col-12 my-2">
+                            <div class="form--group">
+                                <i class="las la-location-arrow"></i>
+                                <input type="hidden" id="origin-id" name="OriginId"
+                                    value="{{ request()->OriginId }}">
+                                <input type="text" id="origin" class="form--control"
+                                    placeholder="@lang('From')" autocomplete="off">
+                                <div id="autocomplete-list-origin" class="autocomplete-items"></div>
                             </div>
+                        </div>
 
-                            <!-- Swap Button -->
-                            <div class="col-md-2 text-center my-2">
-                                <button type="button" id="swap-btn" class="swap-button" title="@lang('Swap locations')">
-                                    <i class="las la-exchange-alt"></i>
-                                </button>
-                            </div>
+                        <!-- Swap Button -->
+                        <button type="button" id="swap-btn" class="swap-button" title="@lang('Swap locations')">
+                            <i class="las la-exchange-alt"></i>
+                        </button>
 
-                            <!-- Destination Field -->
-                            <div class="col-md-5 my-2">
-                                <div class="form--group">
-                                    <i class="las la-map-marker"></i>
-                                    <input type="hidden" id="destination-id" name="DestinationId"
-                                        value="{{ request()->DestinationId }}">
-                                    <input type="text" id="destination" class="form--control"
-                                        placeholder="@lang('To')" autocomplete="off">
-                                    <div id="autocomplete-list-destination" class="autocomplete-items"></div>
-                                </div>
+                        <!-- Destination Field -->
+                        <div class="col-12 my-2">
+                            <div class="form--group">
+                                <i class="las la-map-marker"></i>
+                                <input type="hidden" id="destination-id" name="DestinationId"
+                                    value="{{ request()->DestinationId }}">
+                                <input type="text" id="destination" class="form--control"
+                                    placeholder="@lang('To')" autocomplete="off">
+                                <div id="autocomplete-list-destination" class="autocomplete-items"></div>
                             </div>
                         </div>
                     </div>
@@ -61,9 +57,9 @@
                                 placeholder="@lang('Departure Date')" autocomplete="off">
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-12 my-2">
                         <div class="form--group">
-                            <button>@lang('Find Tickets')</button>
+                            <button class="form--control find-tickets-btn">@lang('Find Tickets')</button>
                         </div>
                     </div>
                 </form>
@@ -220,32 +216,40 @@
         }
 
         /* Swap Button Styles */
-        .swap-button {
+        .swap-button-container {
+            padding-bottom: 10px;
+        }
 
+        .swap-button {
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            padding: 0px;
-            !important color: white;
-            font-size: 20px;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            background: var(--main-color);
+            color: white;
+            font-size: 18px;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 15;
             overflow: hidden;
         }
 
-
         .swap-button:hover {
-            transform: translateY(-2px);
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
 
         .swap-button:active {
-            transform: translateY(0);
+            transform: translateY(-50%) scale(0.95);
             box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
         }
 
@@ -261,29 +265,37 @@
             animation: swapPulse 0.3s ease;
         }
 
-
-
         @media (max-width: 768px) {
             .swap-button {
-                width: 40px;
-                height: 40px;
+                width: 35px;
+                height: 35px;
                 font-size: 16px;
-                margin: 10px 0;
+                right: 12px;
+            }
+            
+            .swap-button i {
+                transform: rotate(90deg);
+            }
+            
+            .swap-button:hover i {
+                transform: rotate(270deg);
             }
         }
 
         @media (max-width: 576px) {
-            .ticket-form .row.align-items-center {
-                flex-direction: column;
-            }
-
             .swap-button {
-                transform: rotate(90deg);
-                margin: 15px 0;
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+                right: 10px;
             }
-
-            .swap-button:hover {
-                transform: rotate(90deg) translateY(-2px);
+            
+            .swap-button i {
+                transform: rotate(90deg);
+            }
+            
+            .swap-button:hover i {
+                transform: rotate(270deg);
             }
         }
     </style>

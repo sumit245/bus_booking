@@ -1,7 +1,7 @@
 @extends($activeTemplate . $layout)
 
 @section('content')
-    <div class="row justify-content-between mx-2 p-2">
+    <div class="row justify-content-between mx-2 p-2 seat-selection-container">
         {{-- Display active coupon banner --}}
         @if (isset($currentCoupon) &&
                 $currentCoupon->status &&
@@ -20,8 +20,37 @@
             </div>
         @endif
 
-        {{-- Left column to denote seat details and booking form --}}
-        <div class="col-lg-4 col-md-4">
+        <!-- Seat Layout Column - On top for mobile, on right for desktop -->
+        <div class="col-lg-7 col-md-7 order-1 order-lg-2">
+            <div class="seat-overview-wrapper">
+                @include($activeTemplate . 'partials.seatlayout', ['seatHtml' => $seatHtml])
+                <div class="seat-for-reserved">
+                    <div class="seat-condition available-seat">
+                        <span class="seat"><span></span></span>
+                        <p>@lang('Available Seats')</p>
+                    </div>
+                    <div class="seat-condition selected-by-you">
+                        <span class="seat"><span></span></span>
+                        <p>@lang('Selected by You')</p>
+                    </div>
+                    <div class="seat-condition selected-by-gents">
+                        <div class="seat"><span></span></div>
+                        <p>@lang('Booked by Gents')</p>
+                    </div>
+                    <div class="seat-condition selected-by-ladies">
+                        <div class="seat"><span></span></div>
+                        <p>@lang('Booked by Ladies')</p>
+                    </div>
+                    <div class="seat-condition selected-by-others">
+                        <div class="seat"><span></span></div>
+                        <p>@lang('Booked by Others')</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Form Column - On bottom for mobile, on left for desktop -->
+        <div class="col-lg-4 col-md-4 order-2 order-lg-1">
             <div class="seat-overview-wrapper">
                 <form action="{{ route('block.seat') }}" method="POST" id="bookingForm" class="row gy-2">
                     @csrf
@@ -168,34 +197,6 @@
                             disabled>@lang('Continue to Booking')</button>
                     </div>
                 </form>
-            </div>
-        </div>
-        <!-- Right column with seat layout -->
-        <div class="col-lg-7 col-md-7">
-            <div class="seat-overview-wrapper">
-                @include($activeTemplate . 'partials.seatlayout', ['seatHtml' => $seatHtml])
-                <div class="seat-for-reserved">
-                    <div class="seat-condition available-seat">
-                        <span class="seat"><span></span></span>
-                        <p>@lang('Available Seats')</p>
-                    </div>
-                    <div class="seat-condition selected-by-you">
-                        <span class="seat"><span></span></span>
-                        <p>@lang('Selected by You')</p>
-                    </div>
-                    <div class="seat-condition selected-by-gents">
-                        <div class="seat"><span></span></div>
-                        <p>@lang('Booked by Gents')</p>
-                    </div>
-                    <div class="seat-condition selected-by-ladies">
-                        <div class="seat"><span></span></div>
-                        <p>@lang('Booked by Ladies')</p>
-                    </div>
-                    <div class="seat-condition selected-by-others">
-                        <div class="seat"><span></span></div>
-                        <p>@lang('Booked by Others')</p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1416,6 +1417,22 @@
 
     @push('style')
     <style>
+        .seat-selection-container {
+            margin-top: 30px;
+        }
+
+        @media (max-width: 991px) {
+            .seat-selection-container {
+                margin-top: 20px;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .seat-selection-container {
+                margin-top: 15px;
+            }
+        }
+
         .row {
             gap: 0px;
         }

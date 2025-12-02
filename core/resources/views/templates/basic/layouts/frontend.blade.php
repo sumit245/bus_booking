@@ -37,7 +37,7 @@
 
     @include($activeTemplate . 'partials.preloader')
     @include($activeTemplate . 'partials.header')
-    @if (!request()->routeIs('home') && !request()->routeIs('ticket') && !request()->routeIs('search'))
+    @if (!request()->routeIs('home') && !request()->routeIs('ticket') && !request()->routeIs('search') && !request()->routeIs('ticket.seats'))
         @include($activeTemplate . 'partials.breadcrumb')
     @endif
 

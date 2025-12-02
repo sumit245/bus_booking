@@ -14,7 +14,7 @@ $policies = getContent('policies.element',false,null,true);
                             <img src="{{ getImage(imagePath()['logoIcon']['path'].'/logo_2.png') }}" alt="@lang('Logo')">
                         </div>
                         <p>{{ __(@$content->data_values->short_description) }}</p>
-                        <ul class="social-icons">
+                        <ul class="social-icons d-none d-lg-flex footer-social-desktop">
                             @foreach ($socialLinks as $item)
                             <li>
                                 <a href="{{ $item->data_values->url }}">@php echo $item->data_values->icon @endphp</a>
@@ -74,6 +74,16 @@ $policies = getContent('policies.element',false,null,true);
                             </li>
                         </ul>
                     </div>
+                </div>
+                <!-- Social Icons - moved to bottom on mobile -->
+                <div class="col-12 d-lg-none footer-social-mobile">
+                    <ul class="social-icons">
+                        @foreach ($socialLinks as $item)
+                        <li>
+                            <a href="{{ $item->data_values->url }}">@php echo $item->data_values->icon @endphp</a>
+                        </li>
+                        @endforeach
+                    </ul>
                 </div>
             </div>
         </div>

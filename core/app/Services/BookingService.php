@@ -918,7 +918,16 @@ class BookingService
             $destinationId = $requestData['destination_city'];
         }
 
-        // PRIORITY 2: Fallback to operator bus route (only if session data not available)
+        // PRIORITY 2: Check for OriginCity and DestinationCity keys (city names as strings)
+        if (!$originName && isset($requestData['OriginCity'])) {
+            $originName = $requestData['OriginCity'];
+        }
+        if (!$destinationName && isset($requestData['DestinationCity'])) {
+            $destinationName = $requestData['DestinationCity'];
+        }
+
+        Log::info('BookingService: Request data in getCityIdsAndNames', ['request_data_keys' => array_keys($requestData)]);
+        // PRIORITY 3: Fallback to operator bus route (only if session data not available)
         // Note: This fallback may not respect the actual search direction for bidirectional routes
         if ((!$originId || !$destinationId) && str_starts_with($resultIndex, 'OP_')) {
             $operatorBusId = (int) str_replace('OP_', '', $resultIndex);
@@ -2316,10 +2325,10 @@ class BookingService
             // Get origin and destination
             $origin = $bookedTicket->origin_city ?? 'Origin';
             $destination = $bookedTicket->destination_city ?? 'Destination';
-            
+
             // Get booking ID
-            $bookingId = $bookedTicket->api_booking_id 
-                ?? $bookedTicket->booking_id 
+            $bookingId = $bookedTicket->api_booking_id
+                ?? $bookedTicket->booking_id
                 ?? $bookedTicket->pnr_number;
 
             // Build notification message

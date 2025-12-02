@@ -57,13 +57,13 @@
         <div class="header-bottom-area">
             <div class="logo">
                 <a href="{{ route('home') }}">
-                    <span>Ghumantoo</span>
+                    <span class="d-none d-md-inline">Ghumantoo</span>
                     <img src="{{ getImage(imagePath()['logoIcon']['path'] . '/logo.png') }}" alt="@lang('Logo')">
-                    <span>Powered by Vindhyashri Ecom Private Limited</span>
+                    <span class="d-none d-md-inline">Powered by Vindhyashri Ecom Private Limited</span>
                 </a>
             </div> <!-- Logo End -->
             <ul class="menu">
-                <li>
+                <li class="d-none d-lg-block">
                     <a href="{{ route('home') }}">@lang('Home')</a>
                 </li>
                 @foreach ($pages as $k => $data)
@@ -78,15 +78,24 @@
                 <li>
                     <a href="{{ route('contact') }}">@lang('Contact')</a>
                 </li>
+                <!-- Mobile Auth Menu Items (hidden on desktop) -->
+                <li class="mobile-menu-divider d-lg-none"></li>
+                @guest
+                    <li class="d-lg-none"><a href="{{ route('mobile.login') }}"><i class="fas fa-mobile-alt"></i>@lang('Mobile Login')</a></li>
+                    <li class="d-lg-none"><a href="{{ route('user.login') }}"><i class="fas fa-sign-in-alt"></i>@lang('Sign In')</a></li>
+                    <li class="d-lg-none"><a href="{{ route('user.register') }}"><i class="fas fa-user-plus"></i>@lang('Sign Up')</a></li>
+                @endguest
+                @auth
+                    <li class="d-lg-none">
+                        <a href="{{ route('user.home') }}">@lang('Dashboard')</a>
+                    </li>
+                @endauth
             </ul>
             <div class="d-flex algin-items-center flex-wrap">
                 <a href="{{ route('home') }}" class="cmn--btn btn--sm">@lang('Buy Tickets')</a>
                 <div class="header-trigger-wrapper d-flex d-lg-none ms-4">
                     <div class="header-trigger d-block d-lg-none">
                         <span></span>
-                    </div>
-                    <div class="top-bar-trigger">
-                        <i class="las la-ellipsis-v"></i>
                     </div>
                 </div><!-- Trigger End-->
             </div>

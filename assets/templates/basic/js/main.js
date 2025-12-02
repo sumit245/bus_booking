@@ -28,8 +28,15 @@ $(".menu li a").on("click", function (e) {
 var headerTrigger = $(".header-trigger");
 headerTrigger.on("click", function () {
     $(".menu,.header-trigger").toggleClass("active");
-    $(".overlay").toggleClass("overlay-color");
+    $(".overlay").toggleClass("active");
+    $("body").toggleClass("menu-open");
+});
+
+// Close menu when overlay is clicked
+$(".overlay").on("click", function () {
+    $(".menu,.header-trigger").removeClass("active");
     $(".overlay").removeClass("active");
+    $("body").removeClass("menu-open");
 });
 
 var headerTrigger2 = $(".top-bar-trigger");
@@ -98,7 +105,7 @@ $(".amenities-slider").slick({
     autoplay: true,
     pauseOnHover: true,
     centerMode: false,
-    dots: false,
+    dots: true,
     arrows: false,
     // asNavFor: '.testimonial-img-slider',
     nextArrow: '<i class="las la-arrow-right arrow-right"></i>',

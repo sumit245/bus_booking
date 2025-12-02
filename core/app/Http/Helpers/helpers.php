@@ -1143,7 +1143,7 @@ function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
     // Prepare payload
     $payload = [
         "apiKey" => $apiKey,
-        "campaignName" => "ticket_pdf_user",
+        "campaignName" => "ticket_pdf_consumer",
         "destination" => $cleanNumber,
         "userName" => $ticketDetails["passenger_name"],
         "templateParams" => [

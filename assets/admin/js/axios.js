@@ -1,15 +1,15 @@
 /* axios v0.18.0 | (c) 2018 by Matt Zabriskie */
 (function webpackUniversalModuleDefinition(root, factory) {
-    if(typeof exports === 'object' && typeof module === 'object')
+    if (typeof exports === 'object' && typeof module === 'object')
         module.exports = factory();
-    else if(typeof define === 'function' && define.amd)
+    else if (typeof define === 'function' && define.amd)
         define([], factory);
-    else if(typeof exports === 'object')
+    else if (typeof exports === 'object')
         exports["axios"] = factory();
     else
         root["axios"] = factory();
-})(this, function() {
-    return /******/ (function(modules) { // webpackBootstrap
+})(this, function () {
+    return /******/ (function (modules) { // webpackBootstrap
         /******/ 	// The module cache
         /******/ 	var installedModules = {};
         /******/
@@ -17,7 +17,7 @@
         /******/ 	function __webpack_require__(moduleId) {
             /******/
             /******/ 		// Check if module is in cache
-            /******/ 		if(installedModules[moduleId])
+            /******/ 		if (installedModules[moduleId])
             /******/ 			return installedModules[moduleId].exports;
             /******/
             /******/ 		// Create a new module (and put it into the cache)
@@ -25,7 +25,8 @@
                 /******/ 			exports: {},
                 /******/ 			id: moduleId,
                 /******/ 			loaded: false
-                /******/ 		};
+                /******/
+};
             /******/
             /******/ 		// Execute the module function
             /******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
@@ -35,7 +36,8 @@
             /******/
             /******/ 		// Return the exports of the module
             /******/ 		return module.exports;
-            /******/ 	}
+            /******/
+}
         /******/
         /******/
         /******/ 	// expose the modules object (__webpack_modules__)
@@ -49,17 +51,19 @@
         /******/
         /******/ 	// Load entry module and return exports
         /******/ 	return __webpack_require__(0);
-        /******/ })
+        /******/
+})
     /************************************************************************/
-    /******/ ([
+    /******/([
         /* 0 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             module.exports = __webpack_require__(1);
 
-            /***/ }),
+            /***/
+}),
         /* 1 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -115,9 +119,10 @@
             module.exports.default = axios;
 
 
-            /***/ }),
+            /***/
+}),
         /* 2 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -359,7 +364,7 @@
              *
              * ```js
              * var result = merge({foo: 123}, {foo: 456});
-             * console.log(result.foo); // outputs 456
+             * (result.foo); // outputs 456
              * ```
              *
              * @param {Object} obj1 Object to merge
@@ -424,9 +429,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 3 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             'use strict';
 
@@ -441,9 +447,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 4 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             /*!
              * Determine if an object is a Buffer
@@ -458,19 +465,20 @@
                 return obj != null && (isBuffer(obj) || isSlowBuffer(obj) || !!obj._isBuffer)
             }
 
-            function isBuffer (obj) {
+            function isBuffer(obj) {
                 return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
             }
 
             // For Node v0.10 support. Remove this eventually.
-            function isSlowBuffer (obj) {
+            function isSlowBuffer(obj) {
                 return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
             }
 
 
-            /***/ }),
+            /***/
+}),
         /* 5 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -506,7 +514,7 @@
                     }, arguments[1]);
                 }
 
-                config = utils.merge(defaults, {method: 'get'}, this.defaults, config);
+                config = utils.merge(defaults, { method: 'get' }, this.defaults, config);
                 config.method = config.method.toLowerCase();
 
                 // Hook up interceptors middleware
@@ -531,7 +539,7 @@
             // Provide aliases for supported request methods
             utils.forEach(['delete', 'get', 'head', 'options'], function forEachMethodNoData(method) {
                 /*eslint func-names:0*/
-                Axios.prototype[method] = function(url, config) {
+                Axios.prototype[method] = function (url, config) {
                     return this.request(utils.merge(config || {}, {
                         method: method,
                         url: url
@@ -541,7 +549,7 @@
 
             utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
                 /*eslint func-names:0*/
-                Axios.prototype[method] = function(url, data, config) {
+                Axios.prototype[method] = function (url, data, config) {
                     return this.request(utils.merge(config || {}, {
                         method: method,
                         url: url,
@@ -553,9 +561,10 @@
             module.exports = Axios;
 
 
-            /***/ }),
+            /***/
+}),
         /* 6 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -655,9 +664,10 @@
             module.exports = defaults;
 
 
-            /***/ }),
+            /***/
+}),
         /* 7 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -673,9 +683,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 8 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -710,8 +721,8 @@
                         request = new window.XDomainRequest();
                         loadEvent = 'onload';
                         xDomain = true;
-                        request.onprogress = function handleProgress() {};
-                        request.ontimeout = function handleTimeout() {};
+                        request.onprogress = function handleProgress() { };
+                        request.ontimeout = function handleTimeout() { };
                     }
 
                     // HTTP basic authentication
@@ -859,9 +870,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 9 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -891,9 +903,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 10 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -915,9 +928,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 11 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             'use strict';
 
@@ -942,9 +956,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 12 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -952,13 +967,13 @@
 
             function encode(val) {
                 return encodeURIComponent(val).
-                replace(/%40/gi, '@').
-                replace(/%3A/gi, ':').
-                replace(/%24/g, '$').
-                replace(/%2C/gi, ',').
-                replace(/%20/g, '+').
-                replace(/%5B/gi, '[').
-                replace(/%5D/gi, ']');
+                    replace(/%40/gi, '@').
+                    replace(/%3A/gi, ':').
+                    replace(/%24/g, '$').
+                    replace(/%2C/gi, ',').
+                    replace(/%20/g, '+').
+                    replace(/%5B/gi, '[').
+                    replace(/%5D/gi, ']');
             }
 
             /**
@@ -1014,9 +1029,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 13 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -1073,9 +1089,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 14 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -1147,9 +1164,10 @@
             );
 
 
-            /***/ }),
+            /***/
+}),
         /* 15 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             'use strict';
 
@@ -1189,9 +1207,10 @@
             module.exports = btoa;
 
 
-            /***/ }),
+            /***/
+}),
         /* 16 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -1240,17 +1259,18 @@
                     // Non standard browser env (web workers, react-native) lack needed support.
                     (function nonStandardBrowserEnv() {
                         return {
-                            write: function write() {},
+                            write: function write() { },
                             read: function read() { return null; },
-                            remove: function remove() {}
+                            remove: function remove() { }
                         };
                     })()
             );
 
 
-            /***/ }),
+            /***/
+}),
         /* 17 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -1306,9 +1326,10 @@
             module.exports = InterceptorManager;
 
 
-            /***/ }),
+            /***/
+}),
         /* 18 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -1398,9 +1419,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 19 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -1424,9 +1446,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 20 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             'use strict';
 
@@ -1435,9 +1458,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 21 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             'use strict';
 
@@ -1455,9 +1479,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 22 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             'use strict';
 
@@ -1475,9 +1500,10 @@
             };
 
 
-            /***/ }),
+            /***/
+}),
         /* 23 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             'use strict';
 
@@ -1500,9 +1526,10 @@
             module.exports = Cancel;
 
 
-            /***/ }),
+            /***/
+}),
         /* 24 */
-        /***/ (function(module, exports, __webpack_require__) {
+        /***/ (function (module, exports, __webpack_require__) {
 
             'use strict';
 
@@ -1563,9 +1590,10 @@
             module.exports = CancelToken;
 
 
-            /***/ }),
+            /***/
+}),
         /* 25 */
-        /***/ (function(module, exports) {
+        /***/ (function (module, exports) {
 
             'use strict';
 
@@ -1596,8 +1624,9 @@
             };
 
 
-            /***/ })
-        /******/ ])
+            /***/
+})
+        /******/])
 });
 ;
 //# sourceMappingURL=axios.map

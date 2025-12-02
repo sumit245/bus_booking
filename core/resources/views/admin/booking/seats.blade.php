@@ -135,7 +135,7 @@
                             <input type="hidden" name="dropping_point_index" id="dropping_point_index">
                             <input type="hidden" name="seats" id="selected_seats">
                             <input type="hidden" name="price" id="total_price">
-                            @if(auth('admin')->check())
+                            @if (auth('admin')->check())
                                 <input type="hidden" name="admin_id" value="{{ auth('admin')->id() }}">
                                 <input type="hidden" name="booking_source" value="admin">
                             @elseif(auth('agent')->check())
@@ -483,7 +483,7 @@
                 points.forEach(point => {
                     const option = document.createElement('option');
                     option.value = point.CityPointIndex;
-                    
+
                     // Format time for display
                     let timeStr = '';
                     if (point.CityPointTime) {
@@ -493,7 +493,7 @@
                             minute: '2-digit'
                         });
                     }
-                    
+
                     // Build display text with name, time, and contact
                     let displayText = point.CityPointName || '';
                     if (timeStr) {
@@ -502,7 +502,7 @@
                     if (point.CityPointContactNumber) {
                         displayText += ` (${point.CityPointContactNumber})`;
                     }
-                    
+
                     option.textContent = displayText;
                     // Store additional data in data attributes for tooltip/display
                     option.setAttribute('data-time', timeStr);
@@ -517,7 +517,7 @@
                 points.forEach(point => {
                     const option = document.createElement('option');
                     option.value = point.CityPointIndex;
-                    
+
                     // Format time for display
                     let timeStr = '';
                     if (point.CityPointTime) {
@@ -527,7 +527,7 @@
                             minute: '2-digit'
                         });
                     }
-                    
+
                     // Build display text with name, time, and contact
                     let displayText = point.CityPointName || '';
                     if (timeStr) {
@@ -536,7 +536,7 @@
                     if (point.CityPointContactNumber) {
                         displayText += ` (${point.CityPointContactNumber})`;
                     }
-                    
+
                     option.textContent = displayText;
                     // Store additional data in data attributes
                     option.setAttribute('data-time', timeStr);
@@ -556,7 +556,7 @@
                 points.forEach(point => {
                     const option = document.createElement('option');
                     option.value = point.CityPointIndex;
-                    
+
                     // Format time for display
                     let timeStr = '';
                     if (point.CityPointTime) {
@@ -566,7 +566,7 @@
                             minute: '2-digit'
                         });
                     }
-                    
+
                     // Build display text with name, time, and contact
                     let displayText = point.CityPointName || '';
                     if (timeStr) {
@@ -575,7 +575,7 @@
                     if (point.CityPointContactNumber) {
                         displayText += ` (${point.CityPointContactNumber})`;
                     }
-                    
+
                     option.textContent = displayText;
                     // Store additional data in data attributes for tooltip/display
                     option.setAttribute('data-time', timeStr);
@@ -590,7 +590,7 @@
                 points.forEach(point => {
                     const option = document.createElement('option');
                     option.value = point.CityPointIndex;
-                    
+
                     // Format time for display
                     let timeStr = '';
                     if (point.CityPointTime) {
@@ -600,7 +600,7 @@
                             minute: '2-digit'
                         });
                     }
-                    
+
                     // Build display text with name, time, and contact
                     let displayText = point.CityPointName || '';
                     if (timeStr) {
@@ -609,7 +609,7 @@
                     if (point.CityPointContactNumber) {
                         displayText += ` (${point.CityPointContactNumber})`;
                     }
-                    
+
                     option.textContent = displayText;
                     // Store additional data in data attributes
                     option.setAttribute('data-time', timeStr);

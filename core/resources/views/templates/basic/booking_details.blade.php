@@ -774,10 +774,10 @@
             }
 
             /*
-                            .footer-wrapper {
-                                flex-direction: column;
-                                text-align: center;
-                            } */
+                                .footer-wrapper {
+                                    flex-direction: column;
+                                    text-align: center;
+                                } */
         }
 
         /* Hide action bar and adjust print view */

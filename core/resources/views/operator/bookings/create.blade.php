@@ -510,18 +510,18 @@
 
                         // Add click handlers for seat selection - use event delegation for dynamically created elements
                         $('#seatLayoutContainer').off('click').on('click', '.nseat, .hseat, .vseat',
-                    function() {
-                            // Only available seats (nseat, hseat, vseat) are clickable
-                            // Blocked seats (bseat, bhseat, bvseat) won't trigger this
-                            const seatId = $(this).attr('id');
-                            if ($(this).hasClass('selected')) {
-                                $(this).removeClass('selected');
-                                removeSeatFromInput(seatId);
-                            } else {
-                                $(this).addClass('selected');
-                                addSeatToInput(seatId);
-                            }
-                        });
+                            function() {
+                                // Only available seats (nseat, hseat, vseat) are clickable
+                                // Blocked seats (bseat, bhseat, bvseat) won't trigger this
+                                const seatId = $(this).attr('id');
+                                if ($(this).hasClass('selected')) {
+                                    $(this).removeClass('selected');
+                                    removeSeatFromInput(seatId);
+                                } else {
+                                    $(this).addClass('selected');
+                                    addSeatToInput(seatId);
+                                }
+                            });
                     })
                     .fail(function(xhr, status, error) {
                         console.log('Seat layout loading failed:', xhr.responseText, error);

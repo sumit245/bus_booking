@@ -38,7 +38,11 @@
 
     @include($activeTemplate . 'partials.preloader')
     @include($activeTemplate . 'partials.user_header')
-    @if (!request()->routeIs('home') && !request()->routeIs('ticket') && !request()->routeIs('search') && !request()->routeIs('ticket.seats'))
+    @if (
+        !request()->routeIs('home') &&
+            !request()->routeIs('ticket') &&
+            !request()->routeIs('search') &&
+            !request()->routeIs('ticket.seats'))
         @include($activeTemplate . 'partials.breadcrumb')
     @endif
 
@@ -76,7 +80,7 @@
                     type: "GET",
                     url: actionUrl,
                     success: function(data) {
-                        console.log(data);
+                        (data);
                         $('#cookiePolicy').hide();
                         if (data.success) {
                             notify('success', data.success);

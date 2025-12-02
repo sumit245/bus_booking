@@ -21,7 +21,7 @@
         @endif
 
         <!-- Seat Layout Column - On top for mobile, on right for desktop -->
-        <div class="col-lg-7 col-md-7 order-1 order-lg-2">
+        <div class="col-lg-7 col-md-7 order-1 mx-1 order-lg-2" id="seatLayoutContainer">
             <div class="seat-overview-wrapper">
                 @include($activeTemplate . 'partials.seatlayout', ['seatHtml' => $seatHtml])
                 <div class="seat-for-reserved">
@@ -50,7 +50,7 @@
         </div>
 
         <!-- Booking Form Column - On bottom for mobile, on left for desktop -->
-        <div class="col-lg-4 col-md-4 order-2 order-lg-1">
+        <div class="col-lg-4 col-md-4 order-2 order-lg-1" id="bookingFormContainer">
             <div class="seat-overview-wrapper">
                 <form action="{{ route('block.seat') }}" method="POST" id="bookingForm" class="row gy-2">
                     @csrf
@@ -153,12 +153,13 @@
                                     <div class="fare-item coupon-discount-display d-none">
                                         <span class="fare-label text-success">
                                             <span id="discountLabelText">@lang('Discount')</span>
-                                            <button type="button" class="btn-link remove-coupon-btn" id="removeCouponBtn"
-                                                title="@lang('Remove coupon')">
+                                            <button type="button" class="btn-link remove-coupon-btn"
+                                                id="removeCouponBtn" title="@lang('Remove coupon')">
                                                 <i class="las la-times"></i>
                                             </button>
                                         </span>
-                                        <span class="fare-amount text-success" id="totalCouponDiscountDisplay">-₹0.00</span>
+                                        <span class="fare-amount text-success"
+                                            id="totalCouponDiscountDisplay">-₹0.00</span>
                                     </div>
                                 </div>
 
@@ -199,6 +200,116 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    {{-- Mobile booking summary bottom bar + sheet --}}
+    <div class="booking-bottom-overlay d-lg-none" id="bookingBottomOverlay"></div>
+
+    {{-- Mobile Bottom Sheet Container --}}
+    <div class="booking-bottom-sheet d-lg-none" id="bookingBottomSheet">
+        <div class="booked-seat-details-mobile">
+            <div class="booking-summary-header">
+                <h6 class="booking-summary-title">@lang('Booking Summary')</h6>
+                <button type="button" class="close-bottom-sheet-btn" id="closeBottomSheet" aria-label="Close">
+                    <i class="las la-times"></i>
+                </button>
+            </div>
+            <div class="booking-summary-card">
+                {{-- Selected Seats --}}
+                <div class="selected-seats-section">
+                    <div class="selected-seat-details-mobile"></div>
+                </div>
+
+                {{-- Fare Breakdown --}}
+                <div class="fare-breakdown">
+                    {{-- Subtotal: Sum of (BaseFare + Markup) for all selected seats --}}
+                    <div class="fare-item">
+                        <span class="fare-label">@lang('Subtotal')</span>
+                        <span class="fare-amount" id="subtotalDisplayMobile">₹0.00</span>
+                    </div>
+
+                    {{-- Platform Fee --}}
+                    <div class="fare-item platform-fee-display-mobile d-none">
+                        <span class="fare-label">
+                            @lang('Platform Fee')
+                            <span id="platformFeeLabelMobile" class="fee-percentage-label"></span>
+                        </span>
+                        <span class="fare-amount" id="platformFeeAmountMobile">₹0.00</span>
+                    </div>
+
+                    {{-- Service Charge --}}
+                    <div class="fare-item service-charge-display-mobile d-none">
+                        <span class="fare-label">
+                            @lang('Service Charge')
+                            <span id="serviceChargeLabelMobile" class="fee-percentage-label"></span>
+                        </span>
+                        <span class="fare-amount" id="serviceChargeAmountMobile">₹0.00</span>
+                    </div>
+
+                    {{-- GST --}}
+                    <div class="fare-item gst-display-mobile d-none">
+                        <span class="fare-label">
+                            @lang('GST')
+                            <span id="gstLabelMobile" class="fee-percentage-label"></span>
+                        </span>
+                        <span class="fare-amount" id="gstAmountMobile">₹0.00</span>
+                    </div>
+
+                    {{-- Apply Coupon Code Section --}}
+                    <div class="fare-item coupon-apply-section-mobile">
+                        <span class="fare-label">
+                            <button type="button" class="btn-link apply-coupon-btn" id="applyCouponBtnMobile">
+                                <i class="las la-tag"></i> @lang('Apply Coupon Code')
+                            </button>
+                        </span>
+                        <span class="fare-amount coupon-input-wrapper">
+                            <div class="coupon-input-container d-none" id="couponInputContainerMobile">
+                                <div class="input-group">
+                                    <input type="text" class="form--control" id="couponCodeInputMobile"
+                                        placeholder="@lang('Enter coupon code')">
+                                    <button type="button" class="btn btn-sm btn-primary" id="applyCouponCodeBtnMobile">
+                                        @lang('Apply')
+                                    </button>
+                                </div>
+                                <div class="coupon-error-message text-danger d-none" id="couponErrorMessageMobile">
+                                </div>
+                            </div>
+                        </span>
+                    </div>
+
+                    {{-- Coupon Discount (shown only when coupon is applied) --}}
+                    <div class="fare-item coupon-discount-display-mobile d-none">
+                        <span class="fare-label text-success">
+                            <span id="discountLabelTextMobile">@lang('Discount')</span>
+                            <button type="button" class="btn-link remove-coupon-btn" id="removeCouponBtnMobile"
+                                title="@lang('Remove coupon')">
+                                <i class="las la-times"></i>
+                            </button>
+                        </span>
+                        <span class="fare-amount text-success" id="totalCouponDiscountDisplayMobile">-₹0.00</span>
+                    </div>
+                </div>
+
+                {{-- Total --}}
+                <div class="total-section">
+                    <div class="total-item">
+                        <span class="total-label">@lang('Total Amount')</span>
+                        <span class="total-amount" id="totalPriceDisplayMobile">₹0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="booking-bottom-bar d-lg-none" id="bookingBottomBar">
+        <div class="bottom-bar-info" id="toggleBottomSheetInfo">
+            <span class="bottom-bar-seat-count" id="bottomBarSeatCount">@lang('No seat selected')</span>
+            <span class="bottom-bar-total" id="bottomBarTotal">₹0.00</span>
+            <i class="las la-chevron-up bottom-bar-chevron"></i>
+        </div>
+        <button type="button" class="btn btn-primary bottom-bar-button" id="continueToBookingMobileBtn">
+            @lang('Continue to Booking')
+        </button>
     </div>
 @endsection
 
@@ -474,7 +585,7 @@
         </div>
     </div>
 </div>
-</div>
+
 <!-- End of Booking Flyout -->
 
 @php
@@ -531,7 +642,7 @@
         const platformFeePercentage = parseFloat("{{ $platformFeePercentage }}");
         const platformFeeFixed = parseFloat("{{ $platformFeeFixed }}");
         const currentCoupon = {!! $currentCouponJson !!}; // Coupon object from PHP, will be null if no active coupon
-        console.log(currentCoupon)
+
 
         // Calculate coupon discount on subtotal (not per seat)
         function calculateCouponDiscount(subtotal) {
@@ -583,8 +694,8 @@
             finalTotalPrice = subtotalBeforeCoupon + serviceChargeAmount + platformFeeAmount + gstAmount -
                 totalCouponDiscountApplied;
 
-            // Update displays with currency symbol
-            $('#subtotalDisplay').text('₹' + subtotalBeforeCoupon.toFixed(2));
+            // Update displays with currency symbol (both desktop and mobile)
+            $('#subtotalDisplay, #subtotalDisplayMobile').text('₹' + subtotalBeforeCoupon.toFixed(2));
 
             // Platform Fee
             if (platformFeePercentage > 0 || platformFeeFixed > 0) {
@@ -596,29 +707,35 @@
                 } else {
                     platformFeeLabel = '';
                 }
-                $('#platformFeeLabel').text(platformFeeLabel);
-                $('#platformFeeAmount').text('₹' + platformFeeAmount.toFixed(2));
+                $('#platformFeeLabel, #platformFeeLabelMobile').text(platformFeeLabel);
+                $('#platformFeeAmount, #platformFeeAmountMobile').text('₹' + platformFeeAmount.toFixed(2));
                 $('.platform-fee-display').removeClass('d-none').addClass('d-flex');
+                $('.platform-fee-display-mobile').removeClass('d-none').addClass('d-flex');
             } else {
                 $('.platform-fee-display').removeClass('d-flex').addClass('d-none');
+                $('.platform-fee-display-mobile').removeClass('d-flex').addClass('d-none');
             }
 
             // Service Charge
             if (serviceChargePercentage > 0) {
-                $('#serviceChargeLabel').text(` (${serviceChargePercentage}%)`);
-                $('#serviceChargeAmount').text('₹' + serviceChargeAmount.toFixed(2));
+                $('#serviceChargeLabel, #serviceChargeLabelMobile').text(` (${serviceChargePercentage}%)`);
+                $('#serviceChargeAmount, #serviceChargeAmountMobile').text('₹' + serviceChargeAmount.toFixed(2));
                 $('.service-charge-display').removeClass('d-none').addClass('d-flex');
+                $('.service-charge-display-mobile').removeClass('d-none').addClass('d-flex');
             } else {
                 $('.service-charge-display').removeClass('d-flex').addClass('d-none');
+                $('.service-charge-display-mobile').removeClass('d-flex').addClass('d-none');
             }
 
             // GST
             if (gstPercentage > 0) {
-                $('#gstLabel').text(` (${gstPercentage}%)`);
-                $('#gstAmount').text('₹' + gstAmount.toFixed(2));
+                $('#gstLabel, #gstLabelMobile').text(` (${gstPercentage}%)`);
+                $('#gstAmount, #gstAmountMobile').text('₹' + gstAmount.toFixed(2));
                 $('.gst-display').removeClass('d-none').addClass('d-flex');
+                $('.gst-display-mobile').removeClass('d-none').addClass('d-flex');
             } else {
                 $('.gst-display').removeClass('d-flex').addClass('d-none');
+                $('.gst-display-mobile').removeClass('d-flex').addClass('d-none');
             }
 
             // Coupon Discount - Show/hide mutually exclusive with Apply Coupon Code
@@ -634,27 +751,36 @@
                     }
                 }
 
-                // Update discount label text
-                $('#discountLabelText').text(discountLabel);
+                // Update discount label text (both desktop and mobile)
+                $('#discountLabelText, #discountLabelTextMobile').text(discountLabel);
 
-                $('#totalCouponDiscountDisplay').text('-₹' + totalCouponDiscountApplied.toFixed(2));
+                $('#totalCouponDiscountDisplay, #totalCouponDiscountDisplayMobile').text('-₹' + totalCouponDiscountApplied
+                    .toFixed(2));
                 $('.coupon-discount-display').removeClass('d-none').addClass('d-flex');
+                $('.coupon-discount-display-mobile').removeClass('d-none').addClass('d-flex');
 
                 // Hide Apply Coupon Code section when discount is shown
                 $('.coupon-apply-section').addClass('d-none');
+                $('.coupon-apply-section-mobile').addClass('d-none');
             } else {
                 $('.coupon-discount-display').removeClass('d-flex').addClass('d-none');
+                $('.coupon-discount-display-mobile').removeClass('d-flex').addClass('d-none');
 
                 // Show Apply Coupon Code section when no discount (and hide input if it was shown)
                 $('.coupon-apply-section').removeClass('d-none');
+                $('.coupon-apply-section-mobile').removeClass('d-none');
                 $('#couponInputContainer').addClass('d-none').removeClass('d-flex');
+                $('#couponInputContainerMobile').addClass('d-none').removeClass('d-flex');
             }
 
-            // Total Amount
-            $('#totalPriceDisplay').text('₹' + finalTotalPrice.toFixed(2));
+            // Total Amount (both desktop and mobile)
+            $('#totalPriceDisplay, #totalPriceDisplayMobile').text('₹' + finalTotalPrice.toFixed(2));
 
             // Update the hidden input for the final price to be sent to the backend
             $('input[name="price"]').val(finalTotalPrice.toFixed(2));
+
+            // Update mobile bottom bar total (only relevant on small screens but harmless elsewhere)
+            $('#bottomBarTotal').text('₹' + finalTotalPrice.toFixed(2));
         }
 
         function AddRemoveSeat(el, seatId, price) {
@@ -675,11 +801,11 @@
             if (!alreadySelected) {
                 selectedSeats.push(seatNumber);
                 subtotalBeforeCoupon += priceWithMarkup; // Add to subtotal (BEFORE coupon)
-                $('.selected-seat-details').append(
-                    `<span class="list-group-item d-flex justify-content-between" data-seat-id="${seatNumber}" data-price="${priceWithMarkup.toFixed(2)}">
-                        @lang('Seat') ${seatNumber} <span>{{ __($general->cur_sym) }}${priceWithMarkup.toFixed(2)}</span>
-                    </span>`
-                );
+                const seatHTML = `<span class="list-group-item d-flex justify-content-between" data-seat-id="${seatNumber}" data-price="${priceWithMarkup.toFixed(2)}">
+                    @lang('Seat') ${seatNumber} <span>{{ __($general->cur_sym) }}${priceWithMarkup.toFixed(2)}</span>
+                </span>`;
+                $('.selected-seat-details').append(seatHTML);
+                $('.selected-seat-details-mobile').append(seatHTML);
             } else {
                 selectedSeats = selectedSeats.filter(seat => seat !== seatNumber);
                 // Get the stored price from the data attribute
@@ -687,10 +813,29 @@
                     'price'));
                 subtotalBeforeCoupon -= storedPrice; // Subtract from subtotal
                 $(`.selected-seat-details span[data-seat-id="${seatNumber}"]`).remove();
+                $(`.selected-seat-details-mobile span[data-seat-id="${seatNumber}"]`).remove();
             }
 
             // Update hidden input for selected seats
             $('input[name="seats"]').val(selectedSeats.join(','));
+
+            // Update mobile bottom bar seat count + visibility
+            const seatCount = selectedSeats.length;
+            let seatLabel = '@lang('No seat selected')';
+            if (seatCount === 1) {
+                seatLabel = '1 @lang('seat')';
+            } else if (seatCount > 1) {
+                seatLabel = seatCount + ' @lang('seats')';
+            }
+            $('#bottomBarSeatCount').text(seatLabel);
+
+            if (seatCount > 0) {
+                $('#bookingBottomBar').addClass('active');
+            } else {
+                $('#bookingBottomBar').removeClass('active');
+                $('#bookingBottomOverlay').removeClass('active');
+                $('body').removeClass('booking-sheet-open');
+            }
 
             if (selectedSeats.length > 0) {
                 $('.booked-seat-details').removeClass('d-none').addClass('d-block');
@@ -717,12 +862,6 @@
             updatePriceDisplays(); // Update all displayed prices
         }
 
-        // Handle form submission
-        $('#bookingForm').on('submit', function(e) {
-            e.preventDefault();
-            fetchBoardingPoints();
-        });
-
         function fetchBoardingPoints() {
             $.ajax({
                 url: "{{ route('get.boarding.points') }}",
@@ -745,6 +884,54 @@
             });
         }
 
+        // Function to scroll to dropping points container
+        function scrollToDroppingPoints() {
+            const droppingHeading = $('.dropping-points-container').closest('.col-md-6').find('h6').first();
+            const targetElement = droppingHeading.length ? droppingHeading : $('.dropping-points-container');
+
+            if (!targetElement.length) {
+                return;
+            }
+
+            // .flyout-content is the scrollable container
+            const scrollableContainer = $('.flyout-content');
+
+            if (!scrollableContainer.length) {
+                return;
+            }
+
+            // Get header and tabs heights
+            const header = $('.flyout-header');
+            const tabs = $('#bookingSteps');
+            const headerHeight = header.length ? header.outerHeight(true) : 0;
+            const tabsHeight = tabs.length ? tabs.outerHeight(true) : 0;
+
+            // Get positions relative to document
+            const targetOffset = targetElement.offset();
+            const containerOffset = scrollableContainer.offset();
+
+
+            if (!targetOffset || !containerOffset) {
+                return;
+            }
+
+            // Calculate target position relative to container
+            const targetRelativeTop = targetOffset.top - containerOffset.top;
+
+            // Add current scroll to get absolute position in content
+            const currentScroll = scrollableContainer.scrollTop();
+            const absoluteTop = targetRelativeTop + currentScroll;
+
+            // Calculate scroll: position target below header + tabs with spacing
+            const spacing = 20;
+            const scrollTo = absoluteTop - headerHeight - tabsHeight - spacing;
+
+            // Scroll using jQuery animate
+            scrollableContainer.animate({
+                scrollTop: Math.max(0, scrollTo)
+            }, 500, 'swing');
+        }
+
         function renderBoardingPoints(points) {
             if (points.length === 0) {
                 $('.boarding-points-container').html('<div class="alert alert-info">No boarding points available</div>');
@@ -765,8 +952,8 @@
                     <div class="point-details-row">
                         <i class="las la-map-marker-alt"></i>
                         <span class="point-location">${point.CityPointLocation || point.CityPointName}</span>
-                        ${point.CityPointContactNumber ? `<span class="point-contact">- ${point.CityPointContactNumber}</span>` : ''}
                     </div>
+                    ${point.CityPointContactNumber ? `<div class="point-contact-row"><span class="point-contact">${point.CityPointContactNumber}</span></div>` : ''}
                 </div>
                 `;
             });
@@ -776,6 +963,9 @@
                 $('.boarding-point-card').removeClass('selected');
                 $(this).addClass('selected');
                 $('#selected_boarding_point').val($(this).data('index'));
+
+                // Auto-scroll to dropping points container
+                setTimeout(scrollToDroppingPoints, 150); // Small delay to ensure DOM is updated
             });
         }
 
@@ -815,30 +1005,57 @@
             });
         }
 
+        // Enable/disable continue button based on point selection
+        function updateContinueButtonState() {
+            const boardingSelected = $('#selected_boarding_point').val();
+            const droppingSelected = $('#selected_dropping_point').val();
+            const continueBtn = $('#nextToPassengerBtn');
+
+            if (boardingSelected && droppingSelected) {
+                continueBtn.prop('disabled', false).removeClass('disabled');
+            } else {
+                continueBtn.prop('disabled', true).addClass('disabled');
+            }
+        }
+
+
+        // Handle form submission
+        $('#bookingForm').on('submit', function(e) {
+            e.preventDefault();
+            fetchBoardingPoints();
+        });
+
         // Coupon validation and application
-        $('#applyCouponBtn').on('click', function() {
-            const $container = $('#couponInputContainer');
+        $('#applyCouponBtn, #applyCouponBtnMobile').on('click', function() {
+            const isMobile = $(this).attr('id') === 'applyCouponBtnMobile';
+            const $container = isMobile ? $('#couponInputContainerMobile') : $('#couponInputContainer');
+            const $input = isMobile ? $('#couponCodeInputMobile') : $('#couponCodeInput');
             if ($container.hasClass('d-none')) {
                 $container.removeClass('d-none').addClass('d-flex');
-                $('#couponCodeInput').focus();
+                $input.focus();
             }
         });
 
-        $('#applyCouponCodeBtn').on('click', function() {
-            const couponCode = $('#couponCodeInput').val().trim();
+        $('#applyCouponCodeBtn, #applyCouponCodeBtnMobile').on('click', function() {
+            const isMobile = $(this).attr('id') === 'applyCouponCodeBtnMobile';
+            const $input = isMobile ? $('#couponCodeInputMobile') : $('#couponCodeInput');
+            const $errorMsg = isMobile ? $('#couponErrorMessageMobile') : $('#couponErrorMessage');
+            const $container = isMobile ? $('#couponInputContainerMobile') : $('#couponInputContainer');
+
+            const couponCode = $input.val().trim();
             if (!couponCode) {
-                $('#couponErrorMessage').text('Please enter a coupon code').removeClass('d-none');
+                $errorMsg.text('Please enter a coupon code').removeClass('d-none');
                 return;
             }
 
             if (subtotalBeforeCoupon <= 0) {
-                $('#couponErrorMessage').text('Please select seats first').removeClass('d-none');
+                $errorMsg.text('Please select seats first').removeClass('d-none');
                 return;
             }
 
             const $btn = $(this);
             $btn.prop('disabled', true).html('<i class="las la-spinner la-spin"></i> Validating...');
-            $('#couponErrorMessage').addClass('d-none');
+            $errorMsg.addClass('d-none');
 
             $.ajax({
                 url: "{{ url('/api/coupons/validate') }}",
@@ -861,20 +1078,19 @@
 
                         $('#form_coupon_code').val(couponCode);
 
-                        // Hide coupon input, show discount row
-                        $('#couponInputContainer').addClass('d-none').removeClass('d-flex');
-                        $('#couponCodeInput').val('');
+                        // Hide coupon input, show discount row (both desktop and mobile)
+                        $container.addClass('d-none').removeClass('d-flex');
+                        $input.val('');
                         // Show the link button again if needed (will be hidden when discount is shown)
                         updatePriceDisplays();
                     } else {
-                        $('#couponErrorMessage').text(response.message || 'Invalid coupon code')
-                            .removeClass('d-none');
+                        $errorMsg.text(response.message || 'Invalid coupon code').removeClass('d-none');
                     }
                 },
                 error: function(xhr) {
-                    const errorMsg = xhr.responseJSON?.message ||
+                    const errorMsgText = xhr.responseJSON?.message ||
                         'Failed to validate coupon. Please try again.';
-                    $('#couponErrorMessage').text(errorMsg).removeClass('d-none');
+                    $errorMsg.text(errorMsgText).removeClass('d-none');
                 },
                 complete: function() {
                     $btn.prop('disabled', false).html('@lang('Apply')');
@@ -882,27 +1098,69 @@
             });
         });
 
-        // Remove coupon
-        $('#removeCouponBtn').on('click', function() {
+        // Remove coupon (works for both desktop and mobile)
+        $('#removeCouponBtn, #removeCouponBtnMobile').on('click', function() {
             appliedCouponCode = null;
             appliedCouponData = null;
             $('#form_coupon_code').val('');
-            // Reset discount label
-            $('#discountLabelText').text('Discount');
+            // Reset discount label (both desktop and mobile)
+            $('#discountLabelText, #discountLabelTextMobile').text('Discount');
             updatePriceDisplays();
         });
 
-        // Allow Enter key to apply coupon
-        $('#couponCodeInput').on('keypress', function(e) {
+        // Allow Enter key to apply coupon (both desktop and mobile)
+        $('#couponCodeInput, #couponCodeInputMobile').on('keypress', function(e) {
             if (e.which === 13) {
                 e.preventDefault();
-                $('#applyCouponCodeBtn').click();
+                const isMobile = $(this).attr('id') === 'couponCodeInputMobile';
+                const $btn = isMobile ? $('#applyCouponCodeBtnMobile') : $('#applyCouponCodeBtn');
+                $btn.click();
             }
         });
 
         $(document).ready(function() {
             // Disable booked seats
             $('.seat-wrapper .seat.booked').attr('disabled', true);
+
+            // Mobile bottom sheet toggle - clicking info section opens bottom sheet
+            $('#toggleBottomSheetInfo').on('click', function() {
+                // Only respond if bar is active (at least one seat selected)
+                if (!$('#bookingBottomBar').hasClass('active')) {
+                    return;
+                }
+
+                $('body').toggleClass('booking-sheet-open');
+                $('#bookingBottomOverlay').toggleClass('active');
+
+                // Force update prices when opening to ensure content is populated
+                if ($('body').hasClass('booking-sheet-open') && typeof updatePriceDisplays === 'function') {
+                    updatePriceDisplays();
+                }
+            });
+
+            // Mobile continue to booking button - opens flyout modal
+            $('#continueToBookingMobileBtn').on('click', function() {
+                // Only respond if bar is active (at least one seat selected)
+                if (!$('#bookingBottomBar').hasClass('active')) {
+                    return;
+                }
+                // Close bottom sheet if open
+                $('body').removeClass('booking-sheet-open');
+                $('#bookingBottomOverlay').removeClass('active');
+                // Open flyout modal
+                fetchBoardingPoints();
+            });
+
+            $('#bookingBottomOverlay').on('click', function() {
+                $('body').removeClass('booking-sheet-open');
+                $('#bookingBottomOverlay').removeClass('active');
+            });
+
+            // Close bottom sheet button
+            $('#closeBottomSheet').on('click', function() {
+                $('body').removeClass('booking-sheet-open');
+                $('#bookingBottomOverlay').removeClass('active');
+            });
 
             // Handle flyout close
             $('#closeFlyout, #flyoutOverlay').on('click', function() {
@@ -958,19 +1216,6 @@
             $('#passenger-tab').tab('show');
         });
 
-        // Enable/disable continue button based on point selection
-        function updateContinueButtonState() {
-            const boardingSelected = $('#selected_boarding_point').val();
-            const droppingSelected = $('#selected_dropping_point').val();
-            const continueBtn = $('#nextToPassengerBtn');
-
-            if (boardingSelected && droppingSelected) {
-                continueBtn.prop('disabled', false).removeClass('disabled');
-            } else {
-                continueBtn.prop('disabled', true).addClass('disabled');
-            }
-        }
-
         // Call this function whenever a point is selected
         $(document).on('click', '.boarding-point-card, .dropping-point-card', function() {
             setTimeout(updateContinueButtonState, 100);
@@ -1019,37 +1264,6 @@
             $('#payment-tab').tab('show');
         });
 
-        // Function to update payment invoice
-        function updatePaymentInvoice() {
-            // Journey details
-            $('#invoice-route').text($('#origin-id').val() + ' → ' + $('#destination-id').val());
-            $('#invoice-date').text($('#date_of_journey').val());
-            $('#invoice-seats').text(selectedSeats.join(', '));
-
-            // Boarding & Dropping points
-            const boardingPoint = $('.boarding-point-card.selected .point-name').text() || 'Not selected';
-            const boardingTime = $('.boarding-point-card.selected .point-time').text() || '';
-            $('#invoice-boarding').text(boardingPoint + (boardingTime ? ' - ' + boardingTime : ''));
-
-            const droppingPoint = $('.dropping-point-card.selected .point-name').text() || 'Not selected';
-            const droppingTime = $('.dropping-point-card.selected .point-time').text() || '';
-            $('#invoice-dropping').text(droppingPoint + (droppingTime ? ' - ' + droppingTime : ''));
-
-            // Passenger details
-            const passengerName = $('#passenger_title').val() + '. ' + $('#passenger_firstname').val() + ' ' + $(
-                '#passenger_lastname').val();
-            $('#invoice-passenger-name').text(passengerName);
-            $('#invoice-passenger-phone').text($('#passenger_phone').val());
-            $('#invoice-passenger-age').text($('#passenger_age').val() + ' years');
-
-            // Fare details - clone from booking summary
-            const fareHTML = $('.fare-breakdown').html() + '<div class="total-section mt-3">' + $('.total-section').html() +
-                '</div>';
-            $('#invoice-fare-details').html(fareHTML);
-
-            // Update total display
-            $('#payment-total-display').text('(' + $('#totalPriceDisplay').text() + ')');
-        }
 
         // Show/hide bottom nav buttons based on active tab
         $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
@@ -1093,7 +1307,7 @@
                     }
                 },
                 error: function(xhr) {
-                    console.log(xhr.responseJSON);
+                    (xhr.responseJSON);
                     alert(xhr.responseJSON?.message ||
                         "Failed to process booking. Please check your details.");
                     $btn.prop('disabled', false).html(
@@ -1105,62 +1319,6 @@
             });
         });
 
-        // Direct booking function
-        function createPaymentOrder(orderId, ticketId, amount) {
-            var options = {
-                "key": "{{ env('RAZORPAY_KEY') }}",
-                "amount": amount * 100, // Convert to paise
-                "currency": "INR",
-                "name": "Ghumantoo",
-                "description": "Seat Booking Payment",
-                "order_id": orderId,
-                "image": "https://vindhyashrisolutions.com/assets/images/logoIcon/logo.png",
-                "prefill": {
-                    "name": $('#passenger_firstname').val() + ' ' + $('#passenger_lastname').val(),
-                    "email": $('#passenger_email').val(),
-                    "contact": $('#passenger_phone').val()
-                },
-                "handler": function(response) {
-                    // Process payment success
-                    processPaymentSuccess(response, ticketId);
-                },
-                "theme": {
-                    "color": "#3399cc"
-                }
-            };
-            var rzp = new Razorpay(options);
-            rzp.open();
-        }
-
-        // Process payment success
-        function processPaymentSuccess(response, ticketId) {
-            $.ajax({
-                url: "{{ route('book.ticket') }}",
-                type: "POST",
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_order_id: response.razorpay_order_id,
-                    razorpay_signature: response.razorpay_signature,
-                    ticket_id: ticketId
-                },
-                dataType: "json",
-                success: function(res) {
-                    if (res.success) {
-                        alert("Payment successful! Ticket booked successfully.");
-                        window.location.href = res.redirect;
-                    } else {
-                        alert(res.message || "Payment verification failed. Please contact support.");
-                    }
-                },
-                error: function(xhr) {
-                    console.log(xhr.responseJSON);
-                    alert(xhr.responseJSON?.message || "Failed to verify payment. Please contact support.");
-                }
-            });
-        }
-
-        // Old Razorpay functions removed - now using direct booking
 
         // Coupon validation and application
         $(document).on('click', '#applyCouponBtn', function() {
@@ -1296,7 +1454,7 @@
                             .val()
                     },
                     success: function(response) {
-                        console.log(response);
+                        (response);
                         if (response.status === 200) {
                             // Show OTP verification field only if user is not logged in
                             @if (!auth()->check())
@@ -1388,6 +1546,9 @@
                 location: pointLocation,
                 time: pointTime
             });
+
+            // Auto-scroll to dropping points container
+            setTimeout(scrollToDroppingPoints, 150);
         });
 
         // When a dropping point is selected, store its details
@@ -1403,19 +1564,12 @@
             $('#form_dropping_point_name').val(pointName);
             $('#form_dropping_point_location').val(pointLocation);
             $('#form_dropping_point_time').val(pointTime);
-
-            console.log('Dropping point selected:', {
-                index: pointIndex,
-                name: pointName,
-                location: pointLocation,
-                time: pointTime
-            });
         });
     </script>
 
     @endpush
 
-    @push('style')
+@push('style')
     <style>
         .seat-selection-container {
             margin-top: 30px;
@@ -1435,6 +1589,176 @@
 
         .row {
             gap: 0px;
+        }
+
+        /* ===== Mobile Booking Bottom Bar & Sheet ===== */
+
+        @media (max-width: 991px) {
+
+            /* Hide booking form container completely on mobile - show bottom bar instead */
+            /* Keep container accessible for bottom sheet booking summary */
+            #bookingFormContainer {
+                /* Make column take no space in layout */
+                flex: 0 0 0 !important;
+                max-width: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                /* Hide visually but keep in DOM for bottom sheet access */
+                position: absolute;
+                width: 0;
+                height: 0;
+                overflow: visible;
+                opacity: 0;
+                pointer-events: none;
+                z-index: -1;
+            }
+
+            /* Mobile Bottom Sheet Container */
+            #bookingBottomSheet {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 1050;
+                max-height: 70vh;
+                overflow-y: auto;
+                transform: translateY(100%);
+                transition: transform 0.25s ease-out;
+                background: #fff;
+                border-radius: 16px 16px 0 0;
+                box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.18);
+                padding: 20px;
+            }
+
+            body.booking-sheet-open #bookingBottomSheet {
+                transform: translateY(0);
+            }
+
+            /* Bottom Sheet Header with Close Button */
+            .booking-summary-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+
+            .close-bottom-sheet-btn {
+                background: transparent;
+                border: none;
+                font-size: 24px;
+                color: #666;
+                cursor: pointer;
+                padding: 0;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s ease;
+            }
+
+            .close-bottom-sheet-btn:hover {
+                background: #f5f5f5;
+                color: #333;
+            }
+
+            .close-bottom-sheet-btn:active {
+                background: #e9ecef;
+                transform: scale(0.95);
+            }
+
+            #bookingBottomSheet .booked-seat-details-mobile {
+                width: 100%;
+            }
+
+            /* Compact bottom bar */
+            .booking-bottom-bar {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                padding: 10px 14px;
+                background: #ffffff;
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+                display: none;
+                align-items: center;
+                justify-content: space-between;
+                z-index: 1040;
+            }
+
+            .booking-bottom-bar.active {
+                display: flex;
+            }
+
+            .booking-bottom-bar .bottom-bar-info {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                flex: 1;
+                cursor: pointer;
+                position: relative;
+                padding-right: 24px;
+            }
+
+            .booking-bottom-bar .bottom-bar-info .bottom-bar-chevron {
+                position: absolute;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 14px;
+                color: #666;
+                transition: transform 0.3s ease;
+            }
+
+            body.booking-sheet-open .booking-bottom-bar .bottom-bar-info .bottom-bar-chevron {
+                transform: translateY(-50%) rotate(180deg);
+            }
+
+            .booking-bottom-seat-count,
+            .bottom-bar-seat-count {
+                font-size: 13px;
+                color: #555;
+            }
+
+            .bottom-bar-total {
+                font-weight: 700;
+                font-size: 15px;
+                color: #D63942;
+            }
+
+            .bottom-bar-button {
+                padding: 8px 14px;
+                font-size: 13px;
+                font-weight: 600;
+                border-radius: 6px;
+                white-space: nowrap;
+            }
+
+            .booking-bottom-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.45);
+                z-index: 1035;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.2s ease;
+            }
+
+            .booking-bottom-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            /* Adjust bottom bar when sheet is open */
+            body.booking-sheet-open .booking-bottom-bar {
+                transform: translateY(0);
+            }
+
+            /* Prevent bar from overlapping the fixed flyout bottom nav */
+            .booking-flyout.active+.booking-bottom-bar {
+                bottom: 70px;
+            }
         }
 
         /* Simpler styles for price displays */
@@ -1544,6 +1868,12 @@
             z-index: 10;
         }
 
+        @media (max-width: 768px) {
+            .flyout-header {
+                padding: 12px 16px;
+            }
+        }
+
         .flyout-title {
             margin: 0;
             font-size: 1.25rem;
@@ -1574,6 +1904,44 @@
 
         .flyout-body {
             padding: 20px;
+            padding-bottom: 100px;
+            /* Space for fixed bottom nav buttons */
+        }
+
+        @media (max-width: 768px) {
+            .flyout-body {
+                padding: 15px;
+                padding-bottom: 90px;
+                /* Space for fixed bottom nav on mobile */
+            }
+        }
+
+        /* Responsive nav-tabs */
+        @media (max-width: 768px) {
+            #bookingSteps.nav-tabs {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            #bookingSteps .nav-item {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+
+            #bookingSteps .nav-link {
+                font-size: 12px;
+                padding: 8px 6px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #bookingSteps .nav-link {
+                font-size: 11px;
+                padding: 6px 4px;
+            }
         }
 
         /* Responsive flyout */
@@ -1824,21 +2192,24 @@
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             max-width: 100%;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .point-info-row {
             display: flex;
-            align-items: baseline;
+            align-items: flex-start;
             gap: 10px;
-            margin-bottom: 4px;
-            flex-wrap: nowrap;
+            margin-bottom: 8px;
+            width: 100%;
         }
 
         .point-details-row {
             display: flex;
             align-items: flex-start;
             gap: 6px;
-            line-height: 1.3;
+            line-height: 1.4;
+            width: 100%;
             flex-wrap: wrap;
         }
 
@@ -1866,14 +2237,21 @@
             color: #333;
             white-space: normal;
             word-wrap: break-word;
+            overflow-wrap: break-word;
+            flex: 1;
+            min-width: 0;
+            line-height: 1.4;
+            word-break: break-word;
         }
 
         .point-time {
             font-size: 1.1rem;
             color: #333;
             font-weight: 700;
-            min-width: 65px;
+            min-width: 50px;
+            width: 50px;
             flex-shrink: 0;
+            line-height: 1.4;
         }
 
         .boarding-point-card.selected .point-time,
@@ -1887,11 +2265,15 @@
         .point-location {
             font-size: 0.8rem;
             color: #666;
+            overflow-wrap: break-word;
             word-wrap: break-word;
             word-break: break-word;
-            overflow-wrap: break-word;
             line-height: 1.4;
             flex: 1;
+            min-width: 0;
+            white-space: normal;
+            max-width: 100%;
+            width: 100%;
         }
 
         .point-location:last-child,
@@ -1905,11 +2287,28 @@
             color: rgba(255, 255, 255, 0.85);
         }
 
+        .point-contact-row {
+            margin-top: 4px;
+            width: 100%;
+        }
+
         .point-contact {
             font-size: 0.75rem;
             color: #999;
-            margin-left: 4px;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-all;
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            line-height: 1.4;
+        }
+
+        .point-details-row i {
             flex-shrink: 0;
+            margin-top: 2px;
+            align-self: flex-start;
         }
 
         .point-card.selected .point-contact {
@@ -1933,6 +2332,8 @@
         @media (max-width: 768px) {
             .flyout-bottom-nav {
                 width: 100%;
+                left: 0;
+                right: 0;
             }
         }
 
@@ -1988,6 +2389,8 @@
             .passenger-bottom-nav,
             .payment-bottom-nav {
                 width: 100%;
+                left: 0;
+                right: 0;
             }
         }
 

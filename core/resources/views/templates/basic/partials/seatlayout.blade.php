@@ -7,7 +7,6 @@
 @push('style')
     <style>
         .bus-wrapper-mobile {
-            width: 100%;
             overflow-x: auto;
             overflow-y: hidden;
             display: block;
@@ -19,13 +18,38 @@
         }
 
         .bus {
-            max-width: 460px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             gap: 12px;
             height: auto;
             align-items: stretch;
+        }
+
+
+
+        .bus .nseat,
+        .bus .bseat,
+        .bus .rseat {
+            width: 30px !important;
+            height: 30px !important;
+            font-size: 10px !important;
+        }
+
+        .bus .hseat,
+        .bus .bhseat,
+        .bus .rhseat {
+            width: 60px !important;
+            height: 28px !important;
+            font-size: 10px !important;
+        }
+
+        .bus .vseat,
+        .bus .vrseat,
+        .bus .bvseat {
+            width: 28px !important;
+            height: 60px !important;
+            font-size: 1rem !important;
         }
 
         /* Mobile: Rotate bus layout vertically (90 degrees clockwise) */
@@ -37,29 +61,29 @@
             }
 
             .bus-wrapper-mobile {
-                height: 60vh;
-                width: 100%;
+                height: 70vh;
+                max-height: 70vh;
                 margin: 0;
                 padding: 0 !important;
                 position: relative;
-                left: 5%;
-                overflow-x: scroll;
-                overflow-y: hidden;
+                overflow-x: auto;
+                overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
             }
 
             .bus {
                 position: absolute;
-                top: 0;
-                left: 50%;
-                transform: translateX(-50%) rotate(90deg);
-                transform-origin: center center;
-                width: calc(100vh - 10px);
+                left: 0;
+                padding-bottom: 8px;
+                transform: translateY(-100%) rotate(90deg);
+                transform-origin: bottom left;
+                width: max-content;
                 height: auto;
                 margin: 0;
                 gap: 8px;
                 display: flex;
                 flex-direction: column;
+                will-change: transform;
             }
 
             /* Preserve structure - outerseat/outerlowerseat maintain relative positioning and start from top */
@@ -76,17 +100,13 @@
 
             /* Preserve busSeatlft width - steering and driver cabin */
             .bus .busSeatlft {
-                width: 12% !important;
-                min-width: 50px !important;
-                max-width: 60px !important;
-                flex-shrink: 0 !important;
                 display: flex !important;
+                flex-direction: column-reverse !important;
                 align-items: center !important;
-                justify-content: center !important;
+                justify-content: flex-start !important;
                 position: relative !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                height: 100% !important;
+                padding: 10px 8px !important;
+                padding-bottom: 8% !important;
                 box-sizing: border-box;
             }
 
@@ -96,10 +116,8 @@
                 margin-left: 1rem !important;
                 display: grid !important;
                 grid-auto-rows: min-content !important;
-                justify-items: center !important;
+                justify-items: end !important;
                 gap: 6px !important;
-                width: auto !important;
-                max-width: 100% !important;
                 overflow: visible !important;
                 box-sizing: border-box;
             }
@@ -108,7 +126,7 @@
             .bus .seatcontainer {
                 display: flex !important;
                 flex-direction: column !important;
-                align-items: center !important;
+                align-items: flex-end !important;
                 overflow: visible !important;
                 box-sizing: border-box;
             }
@@ -117,10 +135,15 @@
             .bus .seat-row,
             .bus [class^="row"] {
                 display: flex !important;
-                justify-content: center !important;
+                justify-content: flex-end !important;
                 gap: 6px !important;
                 margin-bottom: 6px !important;
-                width: 100% !important;
+            }
+
+            /* Fix row-aisle alignment when vseat/bvseat is at the end */
+            /* vseat (60px height) takes column space - align aisle row to match hseat position */
+            .bus [class^="row"].aisle {
+                align-items: flex-start !important;
             }
 
             /* Prevent busSeat overflow - keep it contained */
@@ -128,25 +151,6 @@
                 overflow: visible !important;
                 height: auto !important;
                 box-sizing: border-box;
-            }
-
-            /* Make seats touch-friendly */
-            .bus .nseat {
-                width: 32px !important;
-                height: 32px !important;
-                font-size: 11px !important;
-            }
-
-            .bus .hseat {
-                width: 65px !important;
-                height: 30px !important;
-                font-size: 11px !important;
-            }
-
-            .bus .vseat {
-                width: 30px !important;
-                height: 65px !important;
-                font-size: 11px !important;
             }
         }
 
@@ -157,26 +161,7 @@
             }
 
             .bus {
-                top: 0;
                 gap: 6px;
-            }
-
-            .bus .nseat {
-                width: 30px !important;
-                height: 30px !important;
-                font-size: 10px !important;
-            }
-
-            .bus .hseat {
-                width: 60px !important;
-                height: 28px !important;
-                font-size: 10px !important;
-            }
-
-            .bus .vseat {
-                width: 28px !important;
-                height: 60px !important;
-                font-size: 10px !important;
             }
         }
 
@@ -199,9 +184,11 @@
         .busSeatlft {
             width: 12%;
             display: flex;
+            flex-direction: row;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             position: relative;
+            padding: 10px 8px;
         }
 
         .upper,
@@ -213,6 +200,9 @@
             color: #666;
             letter-spacing: 0.5px;
             transform: rotate(180deg);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 0;
         }
 
         .upper::before {
@@ -223,32 +213,19 @@
             content: "Lower";
         }
 
-        /* Enhanced steering wheel for lower deck */
-        .outerlowerseat .busSeatlft::before {
-            content: '';
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 32px;
-            height: 32px;
-            background-color: #555;
-            border-radius: 50%;
-            border: 1px solid #777;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
+        /* Steering wheel SVG for lower deck - injected via CSS */
         .outerlowerseat .busSeatlft::after {
             content: '';
             position: absolute;
-            top: 21px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 18px;
-            height: 18px;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            background: radial-gradient(circle, #fff 30%, transparent 30%);
+            top: 10px;
+            left: 8px;
+            transform: translateY(-50%) rotate(-90deg);
+            width: 32px;
+            height: 32px;
+            background-image: url("{{ asset('assets/templates/basic/images/icon/steering.svg') }}");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
         }
 
         /* Make busSeatrgt a flexible grid to align rows and columns */
@@ -276,8 +253,6 @@
 
         /* Seater Seats */
         .nseat {
-            width: 24px;
-            height: 24px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -290,9 +265,8 @@
         }
 
         /* Normal Sleeper Seats */
-        .hseat {
-            width: 56px;
-            height: 22px;
+        .hseat,
+        .rhseat {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -304,10 +278,13 @@
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
+        .rhseat {
+            border: 1px solid deeppink !important;
+        }
+
         /* Vertical Sleeper Seats */
         .vseat {
-            width: 22px;
-            height: 56px;
+
             display: flex;
             justify-content: center;
             align-items: center;
@@ -320,9 +297,8 @@
         }
 
         /* Booked Seater Seats */
-        .bseat {
-            width: 24px;
-            height: 24px;
+        .bseat,
+        .rseat {
             border-radius: 4px;
             border: 1px solid #bdbdbd;
             cursor: not-allowed;
@@ -330,10 +306,12 @@
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
         }
 
+        .rseat {
+            background-color: deeppink !important;
+        }
+
         /* Booked Normal Sleeper Seats */
         .bhseat {
-            width: 56px;
-            height: 22px;
             border-radius: 4px;
             border: 1px solid #bdbdbd;
             cursor: not-allowed;
@@ -343,8 +321,6 @@
 
         /*Booked Vertical Sleeper Seats */
         .bvseat {
-            width: 22px;
-            height: 56px;
             border-radius: 4px;
             border: 1px solid #bdbdbd;
             cursor: not-allowed;
@@ -386,16 +362,6 @@
             color: #fff;
         }
 
-        .clr {
-            clear: both;
-        }
-
-        .clearfix::after {
-            content: "";
-            display: table;
-            clear: both;
-        }
-
         /* Target all dynamically generated rows like .row1, .row2, etc. */
         [class^="row"] {
             display: flex;
@@ -407,7 +373,13 @@
         }
 
         [class^="row"].aisle {
-            justify-content: space-between;
+            justify-content: flex-end;
+        }
+
+        /* Fix row-aisle alignment when vseat/bvseat is at the end */
+        /* Applied via JS when vseat detected in next row */
+        .seatcontainer>.seat-row.aisle.has-vseat-below {
+            align-items: flex-start;
         }
     </style>
 @endpush
@@ -530,7 +502,24 @@
 
                     deck.innerHTML = '';
                     deck.appendChild(newContainer);
+
+                    // Fix aisle row alignment when vseat/bvseat is present in previous row
+                    // vseat (60px) takes column space relative to hseat (28px) - align aisle above vseat
+                    const seatRows = Array.from(deck.querySelectorAll('.seat-row'));
+                    seatRows.forEach((row, index) => {
+                        if (row.classList.contains('aisle')) {
+                            const prevRow = seatRows[index - 1];
+                            if (prevRow) {
+                                const hasVseat = prevRow.querySelector(
+                                    '.vseat, .bvseat, .vrseat');
+                                if (hasVseat) {
+                                    row.classList.add('has-vseat-below');
+                                }
+                            }
+                        }
+                    });
                 });
+
 
             }, 0);
         });

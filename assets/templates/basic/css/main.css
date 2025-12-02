@@ -5050,49 +5050,113 @@ i {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px;
+    align-items: center;
+    gap: 12px;
     margin: 20px auto;
-    max-width: 800px;
+    max-width: 100%;
     padding: 15px;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
 }
 
+/* Mobile devices - 2 items per row */
 @media (max-width: 575px) {
     .seat-for-reserved {
         justify-content: space-between;
+        gap: 8px;
+        padding: 12px 8px;
+        margin: 15px auto;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .seat-for-reserved .seat-condition {
-        flex: 0 0 48%;
-        max-width: 48%;
+        flex: 0 0 calc(50% - 4px);
+        max-width: calc(50% - 4px);
         justify-content: flex-start;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    
+    .seat-condition p {
+        font-size: 11px;
     }
 }
 
-@media (min-width: 768px) {
+/* Tablet and small medium screens - allow natural wrapping */
+@media (min-width: 576px) and (max-width: 765px) {
+    .seat-for-reserved {
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 10px;
+    }
+
+    .seat-for-reserved .seat-condition {
+        flex: 0 0 auto;
+    }
+}
+
+/* Medium screens - ensure wrapping when needed */
+@media (min-width: 766px) and (max-width: 1329px) {
+    .seat-for-reserved {
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 10px;
+    }
+
+    .seat-for-reserved .seat-condition {
+        flex: 0 0 auto;
+        max-width: none;
+    }
+    
+    .seat-condition p {
+        font-size: 12px;
+    }
+}
+
+/* Large screens above 1330px - single row */
+@media (min-width: 1330px) {
     .seat-for-reserved {
         flex-wrap: nowrap;
+        justify-content: center;
+        max-width: 800px;
+        gap: 12px;
     }
 }
 
 .seat-condition {
     display: flex;
     align-items: center;
-    margin: 0 5px;
+    gap: 8px;
+    margin: 0;
+    flex-shrink: 0;
+    flex-grow: 0;
+    min-width: fit-content;
 }
 
-.seat-condition .seat {
+.seat-condition .seat,
+.seat-condition span.seat,
+.seat-condition div.seat {
     width: 24px;
     height: 24px;
-    margin-right: 8px;
+    min-width: 24px;
+    min-height: 24px;
+    margin: 0;
     cursor: default;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 }
 
 .seat-condition p {
     font-size: 13px;
     white-space: nowrap;
+    margin: 0;
+    line-height: 1.4;
 }
 
 .seat-condition.available-seat .seat {
@@ -5188,6 +5252,8 @@ i {
     padding: 20px 20px;
     position: sticky;
     top: 100px;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 .seat-overview-wrapper .boarding-point {

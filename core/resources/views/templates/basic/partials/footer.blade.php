@@ -1,7 +1,7 @@
 @php
-$content = getContent('footer.content', true);
-$socialLinks = getContent('social_links.element',false,null,true);
-$policies = getContent('policies.element',false,null,true);
+    $content = getContent('footer.content', true);
+    $socialLinks = getContent('social_links.element', false, null, true);
+    $policies = getContent('policies.element', false, null, true);
 @endphp
 <!-- Footer Section Starts Here -->
 <section class="footer-seciton">
@@ -11,14 +11,15 @@ $policies = getContent('policies.element',false,null,true);
                 <div class="col-xl-4 col-lg-3 col-md-6 col-sm-6">
                     <div class="footer-widget">
                         <div class="logo">
-                            <img src="{{ getImage(imagePath()['logoIcon']['path'].'/logo_2.png') }}" alt="@lang('Logo')">
+                            <img src="{{ getImage(imagePath()['logoIcon']['path'] . '/logo_2.png') }}"
+                                alt="@lang('Logo')">
                         </div>
                         <p>{{ __(@$content->data_values->short_description) }}</p>
                         <ul class="social-icons d-none d-lg-flex footer-social-desktop">
                             @foreach ($socialLinks as $item)
-                            <li>
-                                <a href="{{ $item->data_values->url }}">@php echo $item->data_values->icon @endphp</a>
-                            </li>
+                                <li>
+                                    <a href="{{ $item->data_values->url }}">@php echo $item->data_values->icon @endphp</a>
+                                </li>
                             @endforeach
                         </ul>
                     </div>
@@ -27,10 +28,10 @@ $policies = getContent('policies.element',false,null,true);
                     <div class="footer-widget">
                         <h4 class="widget-title">@lang('Useful Links')</h4>
                         <ul class="footer-links">
-                            @foreach($pages as $k => $data)
-                            <li>
-                                <a href="{{route('pages',[$data->slug])}}">{{__($data->name)}}</a>
-                            </li>
+                            @foreach ($pages as $k => $data)
+                                <li>
+                                    <a href="{{ route('pages', [$data->slug]) }}">{{ __($data->name) }}</a>
+                                </li>
                             @endforeach
                             <li>
                                 <a href="{{ route('blog') }}">@lang('Blog')</a>
@@ -46,11 +47,12 @@ $policies = getContent('policies.element',false,null,true);
                         <h4 class="widget-title">@lang('Policies')</h4>
                         <ul class="footer-links">
                             @foreach ($policies as $policy)
-                            <li>
-                                <a href="{{ route('policy.details', [$policy->id, slug($policy->data_values->title)]) }}">@php
-                                    echo $policy->data_values->title
-                                    @endphp</a>
-                            </li>
+                                <li>
+                                    <a
+                                        href="{{ route('policy.details', [$policy->id, slug($policy->data_values->title)]) }}">@php
+                                            echo $policy->data_values->title;
+                                        @endphp</a>
+                                </li>
                             @endforeach
 
                         </ul>
@@ -60,17 +62,21 @@ $policies = getContent('policies.element',false,null,true);
                     <div class="footer-widget">
                         <h4 class="widget-title">@lang('Contact Info')</h4>
                         @php
-                        $contacts = getContent('contact.content', true);
+                            $contacts = getContent('contact.content', true);
                         @endphp
                         <ul class="footer-contacts">
                             <li>
                                 <i class="las la-map-pin"></i> {{ __($contacts->data_values->address) }}
                             </li>
                             <li>
-                            <i class="las la-phone-volume"></i> <a href="tel:{{ __($contacts->data_values->contact_number) }}"> {{ __($contacts->data_values->contact_number) }}</a>
+                                <i class="las la-phone-volume"></i> <a
+                                    href="tel:{{ __($contacts->data_values->contact_number) }}">
+                                    {{ __($contacts->data_values->contact_number) }}</a>
                             </li>
                             <li>
-                            <i class="las la-envelope"></i> <a href="mailto:{{ __($contacts->data_values->email) }}"> {{ __($contacts->data_values->email) }}</a>
+                                <i class="las la-envelope"></i> <a
+                                    href="mailto:{{ __($contacts->data_values->email) }}">
+                                    {{ __($contacts->data_values->email) }}</a>
                             </li>
                         </ul>
                     </div>
@@ -79,9 +85,9 @@ $policies = getContent('policies.element',false,null,true);
                 <div class="col-12 d-lg-none footer-social-mobile">
                     <ul class="social-icons">
                         @foreach ($socialLinks as $item)
-                        <li>
-                            <a href="{{ $item->data_values->url }}">@php echo $item->data_values->icon @endphp</a>
-                        </li>
+                            <li>
+                                <a href="{{ $item->data_values->url }}">@php echo $item->data_values->icon @endphp</a>
+                            </li>
                         @endforeach
                     </ul>
                 </div>
@@ -92,7 +98,7 @@ $policies = getContent('policies.element',false,null,true);
 <!-- Footer Section Ends Here -->
 
 @php
-$cookie = App\Models\Frontend::where('data_keys','cookie.data')->first();
+    $cookie = App\Models\Frontend::where('data_keys', 'cookie.data')->first();
 @endphp
 
 <!-- cookies default start -->
@@ -102,7 +108,7 @@ $cookie = App\Models\Frontend::where('data_keys','cookie.data')->first();
     </div>
     <p class="mt-4 cookies-card__content">
         @php
-        echo @$cookie->data_values->description
+            echo @$cookie->data_values->description;
         @endphp
         <a href="{{ route('cookie.details') }}" target="_blank">@lang('learn more')</a>
     </p>
@@ -112,34 +118,34 @@ $cookie = App\Models\Frontend::where('data_keys','cookie.data')->first();
 </div>
 <!-- cookies default end -->
 @push('script')
-<script>
-    (function($) {
-        "use strict";
+    <script>
+        (function($) {
+            "use strict";
 
-        $('#cookiePolicy').hide();
-        @if(@$cookie-> data_values-> status && !session('cookie_accepted'))
-        $('#cookiePolicy').show();
-        @endif
+            $('#cookiePolicy').hide();
+            @if (@$cookie->data_values->status && !session('cookie_accepted'))
+                $('#cookiePolicy').show();
+            @endif
 
-        $('a[name="cookieAccept"]').click(function(event) {
-            event.preventDefault();
-            var actionUrl = "{{ route('cookie.accept') }}";
-            $.ajax({
-                type: "GET",
-                url: actionUrl,
-                success: function(data) {
-                    console.log(data);
-                    $('#cookiePolicy').hide();
-                    if (data.success) {
-                        notify('success', data.success);
+            $('a[name="cookieAccept"]').click(function(event) {
+                event.preventDefault();
+                var actionUrl = "{{ route('cookie.accept') }}";
+                $.ajax({
+                    type: "GET",
+                    url: actionUrl,
+                    success: function(data) {
+                        (data);
                         $('#cookiePolicy').hide();
+                        if (data.success) {
+                            notify('success', data.success);
+                            $('#cookiePolicy').hide();
+                        }
                     }
-                }
+                });
             });
-        });
-        $('.search').on('change', function() {
-            $('#filterForm').submit();
-        });
-    })(jQuery);
-</script>
+            $('.search').on('change', function() {
+                $('#filterForm').submit();
+            });
+        })(jQuery);
+    </script>
 @endpush

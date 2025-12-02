@@ -602,7 +602,54 @@ class SiteController extends Controller
         }
 
         $cities = DB::table("cities")->get();
-        return view($this->activeTemplate . 'book_ticket', compact('pageTitle', 'parsedLayout', 'layout', 'cities', 'originCity', 'destinationCity', 'seatHtml', 'isOperatorBus'));
+
+        // Fetch markup configuration
+        $markupData = MarkupTable::orderBy('id', 'desc')->first();
+        $flatMarkup = isset($markupData->flat_markup) ? (float) $markupData->flat_markup : 0;
+        $percentageMarkup = isset($markupData->percentage_markup) ? (float) $markupData->percentage_markup : 0;
+        $threshold = isset($markupData->threshold) ? (float) $markupData->threshold : 0;
+
+        // Fetch fee settings from general settings
+        $generalSettings = \App\Models\GeneralSetting::first();
+        $gstPercentage = $generalSettings->gst_percentage ?? 0;
+        $serviceChargePercentage = $generalSettings->service_charge_percentage ?? 0;
+        $platformFeePercentage = $generalSettings->platform_fee_percentage ?? 0;
+        $platformFeeFixed = $generalSettings->platform_fee_fixed ?? 0;
+
+        // Fetch the current active and unexpired coupon
+        $currentCoupon = \App\Models\CouponTable::where('status', 1)
+            ->where('expiry_date', '>=', \Carbon\Carbon::today())
+            ->first();
+
+        // Ensure coupon values are numeric before JSON encoding for JavaScript
+        if ($currentCoupon) {
+            $currentCoupon->coupon_threshold = (float) $currentCoupon->coupon_threshold;
+            $currentCoupon->coupon_value = (float) $currentCoupon->coupon_value;
+            // Ensure status is explicitly boolean for JSON encoding
+            $currentCoupon->status = (bool) $currentCoupon->status;
+        }
+
+        // Pass the current coupon object to JavaScript
+        $currentCouponJson = json_encode($currentCoupon ?? null);
+
+        return view($this->activeTemplate . 'book_ticket', compact(
+            'pageTitle',
+            'parsedLayout',
+            'layout',
+            'cities',
+            'originCity',
+            'destinationCity',
+            'seatHtml',
+            'isOperatorBus',
+            'flatMarkup',
+            'percentageMarkup',
+            'threshold',
+            'gstPercentage',
+            'serviceChargePercentage',
+            'platformFeePercentage',
+            'platformFeeFixed',
+            'currentCouponJson'
+        ));
     }
 
     public function placeholderImage($size = null)
@@ -844,6 +891,19 @@ class SiteController extends Controller
         return $dom->saveHTML();
     }
 
+    /**
+     * SECURITY CRITICAL: Price Validation
+     *
+     * When processing form submission in this method:
+     * - DO NOT trust the 'price' input from the frontend
+     * - ALWAYS recalculate the final price on the backend using:
+     *   - Selected seats from the request
+     *   - Markup configuration from database
+     *   - Fee percentages from GeneralSetting
+     *   - Active coupon validation and discount calculation
+     * - Use the recalculated price for payment processing
+     * - The frontend price is for display purposes only
+     */
     // 4. Apply api for seat block and create payment order
     public function blockSeat(Request $request)
     {

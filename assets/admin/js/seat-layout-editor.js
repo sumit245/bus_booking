@@ -23,6 +23,7 @@ class SeatLayoutEditor {
     this.previewModal = options.previewModal;
     this.previewContent = options.previewContent;
     this.previewUrl = options.previewUrl;
+    this.autoSaveUrl = options.autoSaveUrl; // URL for AJAX auto-save
     this.deckTypeSelect = options.deckTypeSelect;
     this.seatLayoutSelect = options.seatLayoutSelect;
     this.columnsPerRowInput = options.columnsPerRowInput;
@@ -1169,25 +1170,142 @@ class SeatLayoutEditor {
     const deck = this.selectedSeat.dataset.deck;
     const seatData = JSON.parse(this.selectedSeat.dataset.seatData);
 
-    this.layoutData[deck].seats.forEach((seat) => {
-      if (seat.seat_id === seatData.seat_id) {
-        seat.seat_id = seatId;
-        seat.price = price;
-        seat.type = type;
-      }
-    });
+    // Store original seat_id before it gets changed
+    const originalSeatId = seatData.seat_id;
+
+    // Find the seat in layoutData array - try multiple matching strategies
+    const seatsArray = this.layoutData[deck]?.seats || [];
+    let seatIndex = -1;
+
+    // First try: match by seat_id (handle string/number conversion)
+    seatIndex = seatsArray.findIndex(seat =>
+      String(seat.seat_id) === String(originalSeatId) ||
+      seat.seat_id === originalSeatId
+    );
+
+    // Fallback: match by position (row/col) if seat_id match fails
+    if (seatIndex === -1 && seatData.row !== undefined && seatData.col !== undefined) {
+      seatIndex = seatsArray.findIndex(seat =>
+        seat.row === seatData.row &&
+        seat.col === seatData.col &&
+        seat.side === seatData.side
+      );
+    }
+
+    // Update the seat in layoutData array if found
+    if (seatIndex !== -1) {
+      // Update all seat properties
+      seatsArray[seatIndex].seat_id = seatId;
+      seatsArray[seatIndex].price = price;
+      seatsArray[seatIndex].type = type;
+      seatsArray[seatIndex].category = type === 'nseat' ? 'seater' : 'sleeper';
+      seatsArray[seatIndex].is_sleeper = type !== 'nseat';
+
+      console.log("Seat found and updated in layoutData:", {
+        seatIndex,
+        originalSeatId,
+        newSeatId: seatId,
+        price,
+        type,
+        updatedSeat: seatsArray[seatIndex]
+      });
+    } else {
+      console.error("Seat not found in layoutData array!", {
+        deck,
+        originalSeatId,
+        row: seatData.row,
+        col: seatData.col,
+        side: seatData.side,
+        totalSeats: seatsArray.length,
+        seatsArray: seatsArray
+      });
+    }
 
     // Update seat data in element
     seatData.seat_id = seatId;
     seatData.price = price;
     seatData.type = type;
+    seatData.category = type === 'nseat' ? 'seater' : 'sleeper';
+    seatData.is_sleeper = type !== 'nseat';
     this.selectedSeat.dataset.seatData = JSON.stringify(seatData);
 
     // Update counts
     this.updateSeatCounts();
     this.updateLayoutDataInput();
 
-    console.log("Seat updated:", { seatId, price, type });
+    console.log("Seat updated:", { seatId, price, type, wasFound: seatIndex !== -1 });
+
+    // Auto-save to database via AJAX
+    if (this.autoSaveUrl) {
+      this.autoSaveLayout();
+    }
+  }
+
+  /**
+   * Auto-save layout data to database via AJAX
+   * Called automatically after seat updates to persist changes immediately
+   */
+  async autoSaveLayout() {
+    if (!this.autoSaveUrl) {
+      console.warn("Auto-save URL not configured, skipping auto-save");
+      return;
+    }
+
+    try {
+      // Get CSRF token from meta tag or form
+      const csrfToken =
+        document
+          .querySelector('meta[name="csrf-token"]')
+          ?.getAttribute("content") ||
+        document.querySelector('input[name="_token"]')?.value ||
+        "";
+
+      // Prepare data to send
+      const layoutData = this.getLayoutData();
+      const dataWithConfig = {
+        ...layoutData,
+        configuration: {
+          seatLayout: this.seatLayout,
+          deckType: this.deckType,
+          columnsPerRow: this.columnsPerRow,
+        },
+      };
+
+      const payload = {
+        layout_data: JSON.stringify(dataWithConfig),
+        total_seats: parseInt(this.totalSeatsInput.value) || 0,
+        upper_deck_seats: parseInt(this.upperDeckSeatsInput.value) || 0,
+        lower_deck_seats: parseInt(this.lowerDeckSeatsInput.value) || 0,
+        _token: csrfToken,
+      };
+
+      console.log("Auto-saving layout data...", {
+        url: this.autoSaveUrl,
+        totalSeats: payload.total_seats,
+      });
+
+      const response = await fetch(this.autoSaveUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrfToken,
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        console.log("Layout auto-saved successfully:", result.message);
+      } else {
+        console.error("Auto-save failed:", result.error || "Unknown error");
+      }
+    } catch (error) {
+      console.error("Auto-save error:", error);
+      // Don't show alert to user - auto-save failures shouldn't interrupt workflow
+      // The manual "Update Layout" button will still work
+    }
   }
 
   deleteSelectedSeat() {

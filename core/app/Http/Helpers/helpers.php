@@ -1123,61 +1123,77 @@ function sendOtp($mobile, $otp, $userName = "Guest")
     }
 }
 
-function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
-{
-    $apiUrl = env("WHATSAPP_API_URL");
-    $apiKey = env("WHATSAPP_API_KEY");
-
-    // Clean mobile number - remove country code if present since template already has 91 prefix
-    $cleanNumber = preg_replace("/^(\+91|91)/", "", $mobileNumber);
-
-    // Prepare media object if PDF URL is available
-    $media = [];
-    if (isset($ticketDetails['pdf_url']) && $ticketDetails['pdf_url']) {
-        $media = [
-            'url' => $ticketDetails['pdf_url'],
-            'filename' => 'Ghumantoo_' . ($ticketDetails['pnr'] ?? 'ticket')
-        ];
-    }
-
-    // Prepare payload
-    $payload = [
-        "apiKey" => $apiKey,
-        "campaignName" => "ticket_pdf_consumer",
-        "destination" => $cleanNumber,
-        "userName" => $ticketDetails["passenger_name"],
-        "templateParams" => [
-            $ticketDetails["source_name"] ?? "N/A",
-            $ticketDetails["destination_name"] ?? "N/A",
-            $ticketDetails["date_of_journey"] ?? "N/A",
-            $ticketDetails["pnr"] ?? "N/A",
-            $ticketDetails["seats"] ?? "N/A",
-            $ticketDetails["boarding_details"], // Boarding Details
-            $ticketDetails["drop_off_details"], // Drop-Off Details
-            "from ghumantoo" // 8th parameter
-        ],
-        "source" => "new-landing-page form",
-        "media" => $media,
-        "buttons" => [], // No buttons provided
-        "carouselCards" => [], // No carousel cards provided
-        "location" => [], // No location provided
-        "paramsFallbackValue" => [
-            "FirstName" => "user",
-        ],
-    ];
-
-    $response = Http::post($apiUrl, $payload);
-    Log::info("WhatsApp API response", [
-        "url" => $apiUrl,
-        "payload" => $payload,
-        "response" => $response->json(),
-    ]);
-    if ($response->successful()) {
-        return true; // Return true if the API call succeeds
-    } else {
-        throw new \Exception("Failed to send WhatsApp message. Error: " . $response->body());
-    }
-}
+// SKIP WHATSAPP NOTIFICATIONS - Service is currently suspended
+// function sendTicketDetailsWhatsApp(array $ticketDetails, $mobileNumber)
+// {
+//     $apiUrl = env("WHATSAPP_API_URL");
+//     $apiKey = env("WHATSAPP_API_KEY");
+// 
+//     // Clean mobile number - remove country code if present since template already has 91 prefix
+//     $cleanNumber = preg_replace("/^(\+91|91)/", "", $mobileNumber);
+// 
+//     // Prepare media object if PDF URL is available
+//     $media = [];
+//     if (isset($ticketDetails['pdf_url']) && $ticketDetails['pdf_url']) {
+//         $media = [
+//             'url' => $ticketDetails['pdf_url'],
+//             'filename' => 'Ghumantoo_' . ($ticketDetails['pnr'] ?? 'ticket')
+//         ];
+//     }
+// 
+//     // Prepare payload
+//     $payload = [
+//         "apiKey" => $apiKey,
+//         "campaignName" => "ticket_pdf_consumer",
+//         "destination" => $cleanNumber,
+//         "userName" => $ticketDetails["passenger_name"],
+//         "templateParams" => [
+//             $ticketDetails["source_name"] ?? "N/A",
+//             $ticketDetails["destination_name"] ?? "N/A",
+//             $ticketDetails["date_of_journey"] ?? "N/A",
+//             $ticketDetails["pnr"] ?? "N/A",
+//             $ticketDetails["seats"] ?? "N/A",
+//             $ticketDetails["boarding_details"], // Boarding Details
+//             $ticketDetails["drop_off_details"], // Drop-Off Details
+//             "from ghumantoo" // 8th parameter
+//         ],
+//         "source" => "new-landing-page form",
+//         "media" => $media,
+//         "buttons" => [], // No buttons provided
+//         "carouselCards" => [], // No carousel cards provided
+//         "location" => [], // No location provided
+//         "paramsFallbackValue" => [
+//             "FirstName" => "user",
+//         ],
+//     ];
+// 
+//     $response = Http::post($apiUrl, $payload);
+//     Log::info("WhatsApp API response", [
+//         "url" => $apiUrl,
+//         "payload" => $payload,
+//         "response" => $response->json(),
+//     ]);
+//     
+//     if ($response->successful()) {
+//         return true; // Return true if the API call succeeds
+//     } else {
+//         $errorBody = $response->json();
+//         $errorMessage = $errorBody['errorMessage'] ?? $response->body();
+//         
+//         // Log specific handling for suspended services
+//         if (isset($errorBody['errorMessage']) && strpos($errorBody['errorMessage'], 'suspended') !== false) {
+//             Log::warning("WhatsApp service suspended - notification will be sent manually", [
+//                 'mobile' => $mobileNumber,
+//                 'error' => $errorMessage,
+//                 'ticket_details' => $ticketDetails
+//             ]);
+//             // Don't throw exception for suspended services - return false to indicate failure but allow booking to continue
+//             return false;
+//         }
+//         
+//         throw new \Exception("Failed to send WhatsApp message. Error: " . $errorMessage);
+//     }
+// }
 
 function searchAPIBuses($source, $destination, $date, $userIp = "::1")
 {

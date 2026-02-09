@@ -483,6 +483,7 @@
                 previewModal: document.getElementById('previewModal'),
                 previewContent: document.getElementById('previewContent'),
                 previewUrl: '{{ route('operator.buses.seat-layouts.preview', $bus) }}',
+                autoSaveUrl: '{{ route('operator.buses.seat-layouts.auto-save', [$bus, $seatLayout]) }}',
                 deckTypeSelect: document.getElementById('deck_type'),
                 upperDeckSection: document.getElementById('upperDeckSection'),
                 lowerDeckLabel: document.getElementById('lowerDeckLabel')

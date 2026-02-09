@@ -1466,15 +1466,16 @@ class ApiTicketController extends Controller
                     'ticket_id' => $result['ticket_id'],
                     'pnr' => $result['pnr'],
                     'block_details' => $blockDetails,
+                    'notifications_sent' => $result['notifications_sent'] ?? true,
+                    'note' => $result['note'] ?? null,
                     'status' => 201
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'message' => $result['message'],
-                'cancelled' => $result['cancelled'] ?? false
-            ], $result['cancelled'] ?? false ? 500 : 400);
+                'message' => $result['message']
+            ], 400);
 
         } catch (\Razorpay\Api\Errors\SignatureVerificationError $e) {
             return response()->json([

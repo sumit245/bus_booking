@@ -154,6 +154,72 @@ class SeatLayoutController extends Controller
     }
 
     /**
+     * Auto-save seat layout data via AJAX (for real-time seat price/type updates)
+     * This endpoint allows saving layout_data without requiring full form submission
+     */
+    public function autoSave(Request $request, OperatorBus $bus, SeatLayout $seatLayout)
+    {
+        $operator = Auth::guard('operator')->user();
+
+        // Ensure the bus belongs to the operator and layout belongs to the bus
+        if ($bus->operator_id !== $operator->id || $seatLayout->operator_bus_id !== $bus->id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unauthorized access.'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'layout_data' => 'required|json',
+            'total_seats' => 'required|integer|min:1|max:100',
+            'upper_deck_seats' => 'required|integer|min:0',
+            'lower_deck_seats' => 'required|integer|min:0',
+        ]);
+
+        try {
+            // Parse layout data
+            $layoutData = json_decode($validated['layout_data'], true);
+
+            // Update seat layout data only (don't update other fields like layout_name, deck_type)
+            $seatLayout->total_seats = $validated['total_seats'];
+            $seatLayout->upper_deck_seats = $validated['upper_deck_seats'];
+            $seatLayout->lower_deck_seats = $validated['lower_deck_seats'];
+            $seatLayout->layout_data = $layoutData;
+
+            // Regenerate HTML layout
+            $seatLayout->html_layout = $seatLayout->generateHtmlLayout();
+            $seatLayout->save();
+
+            // Update bus total seats
+            $bus->update(['total_seats' => $validated['total_seats']]);
+
+            Log::info('Seat layout auto-saved successfully', [
+                'operator_id' => $operator->id,
+                'bus_id' => $bus->id,
+                'layout_id' => $seatLayout->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Seat layout saved successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to auto-save seat layout', [
+                'operator_id' => $operator->id,
+                'bus_id' => $bus->id,
+                'layout_id' => $seatLayout->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to save seat layout: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Update the specified seat layout
      */
     public function update(Request $request, OperatorBus $bus, SeatLayout $seatLayout)

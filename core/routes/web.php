@@ -1095,6 +1095,10 @@ Route::name("operator.")
                     "seat-layouts/preview",
                     "Operator\SeatLayoutController@preview",
                 )->name("seat-layouts.preview");
+                Route::post(
+                    "seat-layouts/{seatLayout}/auto-save",
+                    "Operator\SeatLayoutController@autoSave",
+                )->name("seat-layouts.auto-save");
 
                 // Cancellation Policy Management
                 Route::get(

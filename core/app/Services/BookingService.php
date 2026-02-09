@@ -194,18 +194,18 @@ class BookingService
             // Update ticket with booking details
             $this->updateTicketWithBookingDetails($bookedTicket, $apiResponse, $bookingData);
 
-            // Send WhatsApp notifications
-            $whatsappSuccess = $this->sendWhatsAppNotifications($bookedTicket, $apiResponse, $bookingData);
-
-            // If WhatsApp fails, cancel the booking
-            if (!$whatsappSuccess) {
-                $this->cancelBookingDueToNotificationFailure($bookedTicket, $apiResponse, $bookingData);
-                return [
-                    'success' => false,
-                    'message' => 'Booking cancelled due to notification failure. Please try again.',
-                    'cancelled' => true
-                ];
-            }
+            // SKIP WHATSAPP NOTIFICATIONS - Service is currently suspended
+            // $whatsappSuccess = $this->sendWhatsAppNotifications($bookedTicket, $apiResponse, $bookingData);
+            
+            // Log that WhatsApp is bypassed
+            Log::info('BookingService: WhatsApp notifications bypassed - service suspended', [
+                'ticket_id' => $bookedTicket->id,
+                'pnr' => $bookedTicket->pnr_number,
+                'message' => 'Booking completed without WhatsApp notifications. Manual notification may be required.'
+            ]);
+            
+            // Set success flag to true since we're bypassing WhatsApp
+            $whatsappSuccess = true;
 
             // Send FCM push notification for booking confirmation
             // Don't fail the booking if FCM fails - it's not critical
@@ -224,9 +224,11 @@ class BookingService
 
             return [
                 'success' => true,
-                'message' => 'Booking completed successfully',
+                'message' => 'Booking completed successfully (WhatsApp notifications bypassed)',
                 'ticket_id' => $bookedTicket->id,
-                'pnr' => $bookedTicket->pnr_number
+                'pnr' => $bookedTicket->pnr_number,
+                'notifications_sent' => false,
+                'note' => 'WhatsApp service is currently suspended. Booking completed successfully without notifications.'
             ];
 
         } catch (\Razorpay\Api\Errors\SignatureVerificationError $e) {
@@ -2205,13 +2207,15 @@ class BookingService
             ]);
 
             // Check if critical notifications failed (passenger and admin are mandatory)
+            // Make notifications non-critical - log failures but don't fail the booking
             if (!$passengerWhatsAppSuccess || !$adminWhatsAppSuccess) {
-                Log::error('Critical WhatsApp notification failed', [
+                Log::warning('Critical WhatsApp notification failed - continuing with booking', [
                     'ticket_id' => $bookedTicket->id,
                     'passenger_success' => $passengerWhatsAppSuccess,
-                    'admin_success' => $adminWhatsAppSuccess
+                    'admin_success' => $adminWhatsAppSuccess,
+                    'message' => 'Notifications failed but booking will proceed. Manual notification required.'
                 ]);
-                return false;
+                // Don't return false - let the booking complete
             }
 
             // Log warning if agent/operator notifications failed but don't fail the booking
